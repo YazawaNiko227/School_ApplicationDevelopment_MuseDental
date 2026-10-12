@@ -28,7 +28,12 @@ import javax.swing.table.JTableHeader;
 import javax.swing.table.TableRowSorter;
 
 /**
- * Giao diện tra cứu hồ sơ bệnh nhân theo các trường trong sơ đồ CSDL của dự án.
+ * PatientSearchPanel là giao diện tra cứu hồ sơ bệnh nhân theo các trường dữ liệu chính của hệ thống.
+ *
+ * Panel này có nhiệm vụ hiển thị danh sách bệnh nhân, cho phép nhập từ khóa tìm kiếm, lọc theo
+ * nhiều trường như mã bệnh nhân, tên, số điện thoại hoặc CCCD, và mở chi tiết hồ sơ bằng nhấp đúp.
+ * Nó tạo thành một module độc lập có thể được nhúng trực tiếp vào `MainFrame` mà không cần mở màn hình
+ * riêng biệt, giúp người dùng tìm kiếm nhanh và thao tác liền mạch trên cùng một workspace.
  */
 public final class PatientSearchPanel extends JPanel {
     // Bảng màu dùng chung cho chữ, nút và đường viền của màn hình.
@@ -53,7 +58,11 @@ public final class PatientSearchPanel extends JPanel {
     // Cho phép sắp xếp danh sách theo tiêu đề cột.
     private final TableRowSorter<DefaultTableModel> sorter = new TableRowSorter<>(tableModel);
 
-    // Khởi tạo nền, thanh tìm kiếm và bảng kết quả; ban đầu hiển thị toàn bộ dữ liệu mẫu.
+    /**
+     * Khởi tạo panel tra cứu bằng cách đặt layout, thêm thanh tìm kiếm và khu vực danh sách kết quả.
+     * Khi được render lần đầu, panel sẽ nạp toàn bộ dữ liệu mẫu và hiển thị ngay cho người dùng,
+     * giúp kiểm tra UI mà không cần kết nối backend hoặc database.
+     */
     public PatientSearchPanel() {
         setLayout(new BorderLayout(0, 18));
         setBackground(new Color(244, 248, 249));
@@ -63,7 +72,11 @@ public final class PatientSearchPanel extends JPanel {
         populateTable(patients);
     }
 
-    // Tạo phần tiêu đề, ô nhập từ khóa và các nút thao tác tìm kiếm.
+    /**
+     * Tạo phần thanh tìm kiếm bao gồm tiêu đề, ô nhập từ khóa và hai nút tác vụ.
+     * Nút "Tìm hồ sơ" thực thi tra cứu ngay, còn "Xóa lọc" lại phục hồi toàn bộ danh sách và trả
+     * con trỏ về trường nhập để người dùng tiếp tục tìm kiếm nhanh hơn.
+     */
     private JPanel createSearchToolbar() {
         JPanel toolbar = new JPanel(new BorderLayout(0, 14));
         toolbar.setOpaque(false);
@@ -137,7 +150,11 @@ public final class PatientSearchPanel extends JPanel {
         return toolbar;
     }
 
-    // Tạo khu vực bảng kết quả, tiêu đề cột và hướng dẫn mở hồ sơ chi tiết.
+    /**
+     * Tạo khu vực danh sách kết quả và cấu hình bảng hiển thị.
+     * Panel này không chỉ chứa dữ liệu, mà còn thiết lập lựa chọn đơn, sắp xếp theo cột và nhấp đúp
+     * để xem thông tin chi tiết của một bệnh nhân. Đây là phần giao diện trọng tâm của chức năng tra cứu.
+     */
     private JPanel createResultsPanel() {
         JPanel panel = new JPanel(new BorderLayout(0, 12));
         panel.setBackground(Color.WHITE);
@@ -204,7 +221,11 @@ public final class PatientSearchPanel extends JPanel {
         return panel;
     }
 
-    // Áp dụng giao diện thống nhất cho nút xóa bộ lọc.
+    /**
+     * Áp dụng phong cách nút phụ để đồng bộ với thiết kế của hệ thống.
+     * Nút này thường dùng cho hành động như "Xóa lọc" hoặc các thao tác phụ, nên cần có màu nền trắng,
+     * viền rõ ràng và giao diện thân thiện với thao tác khác trong panel.
+     */
     private void styleSecondaryButton(JButton button) {
         button.setFont(new Font("Arial", Font.BOLD, 11));
         button.setForeground(INK);
@@ -216,7 +237,11 @@ public final class PatientSearchPanel extends JPanel {
         button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
     }
 
-    // Tra cứu một chuỗi trên đúng bốn trường tìm kiếm được mô tả trong tài liệu yêu cầu.
+    /**
+     * Tìm kiếm bệnh nhân theo từ khóa trên những trường quan trọng: mã bệnh nhân, họ tên, số điện thoại và CCCD.
+     * Tất cả chuỗi so sánh đều được chuẩn hóa để bỏ dấu tiếng Việt và chuyển về chữ thường, giúp tìm kiếm
+     * robust hơn khi người dùng nhập không dấu hoặc có biến thể ký tự.
+     */
     private void searchPatients() {
         String query = normalize(searchField.getText().trim());
         List<Patient> matches = new ArrayList<>();
@@ -233,7 +258,11 @@ public final class PatientSearchPanel extends JPanel {
         populateTable(matches);
     }
 
-    // Nạp danh sách hồ sơ mới vào bảng và cập nhật trạng thái số lượng kết quả.
+    /**
+     * Nạp dữ liệu mới vào `DefaultTableModel` và đồng thời cập nhật thông báo số lượng kết quả.
+     * Cách làm này giữ `JTable` luôn được dữ liệu mới nhất và hiển thị một lời nhắn rõ ràng khi không tìm thấy
+     * bệnh nhân nào phù hợp với điều kiện lọc.
+     */
     private void populateTable(List<Patient> rows) {
         tableModel.setRowCount(0);
         for (Patient patient : rows) {
@@ -249,7 +278,11 @@ public final class PatientSearchPanel extends JPanel {
         resultCount.setText(rows.isEmpty() ? "Không tìm thấy hồ sơ phù hợp" : rows.size() + " hồ sơ");
     }
 
-    // Hiển thị thông tin hành chính và y tế của hồ sơ được chọn trong hộp thoại.
+    /**
+     * Hiển thị toàn bộ thông tin chi tiết của bệnh nhân đang được chọn trong bảng.
+     * Thông tin được trình bày dạng văn bản chỉ đọc trong dialog, giúp nhân viên nắm nhanh các dữ liệu
+     * hành chính, tiền sử bệnh lý và thông tin liên hệ mà không cần mở nhiều màn hình khác nhau.
+     */
     private void showPatientDetails() {
         int viewRow = patientTable.getSelectedRow();
         if (viewRow < 0) {
@@ -288,7 +321,11 @@ public final class PatientSearchPanel extends JPanel {
                 JOptionPane.INFORMATION_MESSAGE);
     }
 
-    // Lấy đối tượng hồ sơ từ mã bệnh nhân đang được chọn trong bảng.
+    /**
+     * Tra cứu đối tượng bệnh nhân trong danh sách dựa trên mã bệnh nhân.
+     * Phương thức này phục vụ cho thao tác xem chi tiết, nơi cần lấy lại dữ liệu đầy đủ từ mã
+     * được lưu trong bảng để hiển thị hộp thoại chi tiết tương ứng.
+     */
     private Patient findPatient(String patientId) {
         for (Patient patient : patients) {
             if (patient.maBenhNhan.equals(patientId)) {
@@ -298,7 +335,11 @@ public final class PatientSearchPanel extends JPanel {
         return null;
     }
 
-    // Bỏ dấu khi so khớp để người dùng có thể tìm tên dù không gõ dấu tiếng Việt.
+    /**
+     * Chuẩn hóa chuỗi trước khi so khớp tìm kiếm.
+     * Việc bỏ dấu và chuyển về chữ thường giúp hệ thống tìm đúng tên bệnh nhân dù người dùng nhập theo
+     * cách viết có dấu, không dấu hoặc có các ký tự tiếng Việt tương đồng.
+     */
     private String normalize(String value) {
         return Normalizer.normalize(value, Normalizer.Form.NFD)
                 .replaceAll("\\p{M}", "")
@@ -307,7 +348,11 @@ public final class PatientSearchPanel extends JPanel {
                 .toLowerCase(Locale.ROOT);
     }
 
-    // Dữ liệu demo tuân thủ tên cột và quy tắc mã bệnh nhân trong tài liệu OOAD.
+    /**
+     * Tạo dữ liệu mẫu để trình diễn giao diện trước khi hệ thống thực sự kết nối CSDL.
+     * Tất cả hồ sơ demo có cấu trúc tương ứng với các trường hiển thị trên bảng, giúp UI dễ kiểm thử
+     * và phản hồi đúng với yêu cầu nghiệp vụ của phần mềm phòng khám.
+     */
     private List<Patient> createSamplePatients() {
         List<Patient> sample = new ArrayList<>();
         sample.add(new Patient(

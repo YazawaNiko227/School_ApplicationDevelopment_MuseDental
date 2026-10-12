@@ -38,6 +38,14 @@ import javax.swing.UIManager;
 import javax.swing.border.EmptyBorder;
 import javax.swing.text.JTextComponent;
 
+/**
+ * LoginFrame là màn hình đăng nhập của ứng dụng Muse Dental.
+ *
+ * Nó tập trung vào trải nghiệm xác thực ban đầu: hiển thị hình ảnh giới thiệu ở một nửa màn hình,
+ * còn nửa bên phải chứa các trường tên đăng nhập, mật khẩu, checkbox ghi nhớ và nút đăng nhập.
+ * Sau khi người dùng nhập thông tin hợp lệ, màn hình này sẽ chuyển sang `MainFrame` để vào dashboard
+ * chính của hệ thống phòng khám.
+ */
 public final class LoginFrame extends JFrame {
     // Bảng màu dùng chung để giữ giao diện nhất quán giữa các khu vực.
     private static final Color INK = new Color(32, 53, 68);
@@ -62,6 +70,11 @@ public final class LoginFrame extends JFrame {
 
     private JButton createLoginButtonReference;
 
+    /**
+     * Tạo toàn bộ bố cục của màn hình đăng nhập.
+     * Đây là bước khởi tạo giao diện cho cả hai vùng: phần ảnh chào mừng ở trái và phần form đăng nhập
+     * ở phải, tạo cảm giác thẩm mỹ và đồng bộ với thiết kế hệ thống nha khoa.
+     */
     private JPanel createContent() {
         // Chia thẻ đăng nhập thành phần giới thiệu và phần nhập thông tin.
         JPanel background = new JPanel(new GridBagLayout());
@@ -83,6 +96,11 @@ public final class LoginFrame extends JFrame {
         return background;
     }
 
+    /**
+     * Tải ảnh nền phía trái màn hình để tạo cảnh quan thương hiệu cho ứng dụng.
+     * Nếu resource không tồn tại, hệ thống sẽ ném lỗi ngay để lập trình viên biết asset chưa được
+     * thêm vào `resources/images`, tránh lỗi giao diện ẩn ở runtime.
+     */
     private JPanel createWelcomePanel() {
         URL imageResource = getClass().getResource("/images/LoginFrame_Left.png");
         if (imageResource == null) {
@@ -92,6 +110,12 @@ public final class LoginFrame extends JFrame {
         return new WelcomeImagePanel(new ImageIcon(imageResource));
     }
 
+    /**
+     * Xây dựng form đăng nhập bao gồm tiêu đề, nhãn trường nhập liệu, nút hiển thị/ẩn mật khẩu,
+     * checkbox ghi nhớ và nút đăng nhập.
+     * Mỗi hàng trong layout được đặt theo thứ tự logic để người dùng thao tác theo luồng tự nhiên:
+     * nhập username -> password -> lưu tùy chọn -> bấm đăng nhập.
+     */
     private JPanel createLoginPanel() {
         // Bố trí biểu mẫu theo từng hàng để dễ căn chỉnh và thay đổi.
         JPanel panel = new JPanel(new GridBagLayout());
@@ -208,6 +232,10 @@ public final class LoginFrame extends JFrame {
         return panel;
     }
 
+    /**
+     * Tạo nhãn cho từng trường thông tin nhập liệu như tên đăng nhập và mật khẩu.
+     * Hàm này giúp form có độ rõ ràng cao hơn và đồng bộ về kiểu chữ, khoảng cách và màu sắc.
+     */
     private void addFieldLabel(JPanel panel, GridBagConstraints c, String text, int row) {
         JLabel label = new JLabel(text);
         label.setFont(new Font("Arial", Font.BOLD, 10));
@@ -217,6 +245,11 @@ public final class LoginFrame extends JFrame {
         panel.add(label, c);
     }
 
+    /**
+     * Tạo khung nhập liệu dùng chung cho cả username và password.
+     * `icon` đặt ở đầu ô nhập để nhận diện trường, còn `trailing` dùng để chèn nút hành động như
+     * "Hiện/Ẩn" cho mật khẩu mà không làm mất cấu trúc của form.
+     */
     private JPanel createInputContainer(JTextComponent input, String icon, JComponent trailing) {
         // Dùng chung khung nhập liệu cho tên đăng nhập và mật khẩu;
         // trailing cho phép đặt nút hiện/ẩn cạnh trường mật khẩu.
@@ -240,6 +273,10 @@ public final class LoginFrame extends JFrame {
         return container;
     }
 
+    /**
+     * Tạo nút đăng nhập với màu nổi bật và kích thước chuẩn để người dùng dễ bấm.
+     * Khi nhấn, nút sẽ gọi `submitLogin` để kiểm tra nội dung nhập và điều hướng sang dashboard.
+     */
     private JButton createLoginButton() {
         JButton button = new JButton("ĐĂNG NHẬP");
         button.setFont(new Font("Arial", Font.BOLD, 13));
@@ -253,6 +290,11 @@ public final class LoginFrame extends JFrame {
         return button;
     }
 
+    /**
+     * Xử lý sự kiện đăng nhập khi người dùng bấm nút hoặc nhấn Enter.
+     * Hàm này kiểm tra tính hợp lệ của dữ liệu đầu vào trước khi cho phép chuyển sang màn hình chính.
+     * Ở phiên bản hiện tại, đây là bước xác thực sơ bộ trên UI; logic xác thực phía backend sẽ được bổ sung sau.
+     */
     private void submitLogin(ActionEvent event) {
         String username = usernameField.getText().trim();
         char[] password = passwordField.getPassword();
@@ -271,11 +313,21 @@ public final class LoginFrame extends JFrame {
         java.util.Arrays.fill(password, '\0');
     }
 
+    /**
+     * Hiển thị hộp cảnh báo và đặt con trỏ vào trường đang thiếu dữ liệu.
+     * Cách làm này giúp người dùng biết chính xác trường nào chưa được nhập và sửa ngay trên màn hình
+     * mà không phải mất thời gian tìm kiếm lỗi trong toàn bộ form.
+     */
     private void showValidationMessage(String message, JComponent field) {
         JOptionPane.showMessageDialog(this, message, "Thiếu thông tin", JOptionPane.WARNING_MESSAGE);
         field.requestFocusInWindow();
     }
 
+    /**
+     * Hiển thị hướng dẫn hỗ trợ khi người dùng quên mật khẩu.
+     * Thay vì xử lý reset mật khẩu trực tiếp trong UI, hệ thống chỉ ra hướng liên hệ quản trị viên,
+     * phù hợp với mô hình bảo mật và giúp giảm rủi ro truy cập trái phép.
+     */
     private void showForgotPasswordMessage(ActionEvent event) {
         JOptionPane.showMessageDialog(
                 this,

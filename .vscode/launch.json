@@ -1,0 +1,15 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Run Muse Dental",
+            "request": "launch",
+            "mainClass": "gui.LoginFrame",
+            "classPaths": [
+                "${workspaceFolder}/out"
+            ],
+            "preLaunchTask": "Build Muse Dental"
+        }
+    ]
+}

@@ -247,7 +247,11 @@ public final class MainFrame extends JFrame {
             itemButton.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
             itemButton.addActionListener(event -> {
                 setSelectedNavigationButton(itemButton);
-                showModule(item, title);
+                if ("Tìm hồ sơ bệnh nhân".equals(item)) {
+                    showPatientSearch();
+                } else {
+                    showModule(item, title);
+                }
             });
             itemPanel.add(itemButton);
         }
@@ -400,6 +404,16 @@ public final class MainFrame extends JFrame {
         pageDescription.setText("Dữ liệu minh họa · Tình hình hoạt động phòng khám hôm nay");
         contentPanel.removeAll();
         contentPanel.add(createDashboardContent(), BorderLayout.CENTER);
+        contentPanel.revalidate();
+        contentPanel.repaint();
+    }
+
+    // Mở màn hình tìm hồ sơ bệnh nhân theo yêu cầu tra cứu của dự án.
+    private void showPatientSearch() {
+        pageTitle.setText("Tìm hồ sơ bệnh nhân");
+        pageDescription.setText("Tra cứu theo mã bệnh nhân, họ tên, số điện thoại hoặc CCCD");
+        contentPanel.removeAll();
+        contentPanel.add(new PatientSearchPanel(), BorderLayout.CENTER);
         contentPanel.revalidate();
         contentPanel.repaint();
     }

@@ -9,7 +9,13 @@ if errorlevel 1 (
 )
 
 if not exist out mkdir out
-javac -encoding UTF-8 -d out src\main\java\gui\LoginFrame.java
+javac -encoding UTF-8 -sourcepath src\main\java -d out src\main\java\gui\LoginFrame.java src\main\java\gui\MainFrame.java
 if errorlevel 1 exit /b %errorlevel%
+
+xcopy /E /I /Y "src\main\resources\*" "out\" >nul
+if errorlevel 1 (
+    echo Error: Failed to copy application resources into the build folder.
+    exit /b 1
+)
 
 echo Build completed successfully.

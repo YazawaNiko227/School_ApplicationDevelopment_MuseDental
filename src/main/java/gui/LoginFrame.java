@@ -5,23 +5,24 @@
 
 package gui;
 
-import java.awt.BasicStroke;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.Font;
-import java.awt.GradientPaint;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
+import java.awt.GridLayout;
 import java.awt.Insets;
 import java.awt.RenderingHints;
 import java.awt.event.ActionEvent;
+import java.net.URL;
 
 import javax.swing.BorderFactory;
-import javax.swing.JButton; 
+import javax.swing.ImageIcon;
+import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JComponent;
 import javax.swing.JFrame;
@@ -67,20 +68,12 @@ public final class LoginFrame extends JFrame {
         background.setBackground(new Color(243, 248, 249));
         background.setBorder(new EmptyBorder(28, 34, 28, 34));
 
-        JPanel card = new JPanel(new GridBagLayout());
+        // GridLayout chia đều chiều rộng cho hai panel bất kể kích thước nội dung.
+        JPanel card = new JPanel(new GridLayout(1, 2));
         card.setBackground(Color.WHITE);
         card.setBorder(BorderFactory.createLineBorder(new Color(232, 239, 241)));
-
-        GridBagConstraints cardConstraints = new GridBagConstraints();
-        cardConstraints.gridy = 0;
-        cardConstraints.weighty = 1;
-        cardConstraints.fill = GridBagConstraints.BOTH;
-        cardConstraints.gridx = 0;
-        cardConstraints.weightx = 1.05;
-        card.add(createWelcomePanel(), cardConstraints);
-        cardConstraints.gridx = 1;
-        cardConstraints.weightx = 0.95;
-        card.add(createLoginPanel(), cardConstraints);
+        card.add(createWelcomePanel());
+        card.add(createLoginPanel());
 
         GridBagConstraints backgroundConstraints = new GridBagConstraints();
         backgroundConstraints.fill = GridBagConstraints.BOTH;
@@ -91,83 +84,12 @@ public final class LoginFrame extends JFrame {
     }
 
     private JPanel createWelcomePanel() {
-        // Khu vực nhận diện thương hiệu với nền chuyển sắc được vẽ riêng.
-        JPanel panel = new GradientPanel();
-        panel.setLayout(new GridBagLayout());
-        panel.setBorder(new EmptyBorder(44, 48, 40, 44));
-
-        GridBagConstraints c = new GridBagConstraints();
-        c.gridx = 0;
-        c.anchor = GridBagConstraints.WEST;
-        c.fill = GridBagConstraints.HORIZONTAL;
-        c.weightx = 1;
-
-        JPanel brand = new JPanel(new BorderLayout(12, 0));
-        brand.setOpaque(false);
-        brand.add(new ToothMark(), BorderLayout.WEST);
-        JPanel brandText = new JPanel(new BorderLayout());
-        brandText.setOpaque(false);
-        JLabel name = new JLabel("Nha khoa Muse");
-        name.setFont(new Font("Arial", Font.BOLD, 21));
-        name.setForeground(Color.WHITE);
-        //JLabel tagline = new JLabel("DENTAL CLINIC");
-        //tagline.setFont(new Font("Arial", Font.BOLD, 9));
-        //tagline.setForeground(new Color(207, 234, 235));
-        brandText.add(name, BorderLayout.NORTH);
-        //brandText.add(tagline, BorderLayout.SOUTH);
-        brand.add(brandText, BorderLayout.CENTER);
-        c.gridy = 0;
-        panel.add(brand, c);
-
-        JLabel eyebrow = new JLabel("CHĂM SÓC NỤ CƯỜI CỦA BẠN");
-        eyebrow.setFont(new Font("Arial", Font.BOLD, 11));
-        eyebrow.setForeground(new Color(171, 231, 226));
-        c.gridy = 1;
-        c.insets = new Insets(92, 0, 14, 0);
-        panel.add(eyebrow, c);
-
-        JLabel heading = new JLabel("<html>Khởi đầu cho<br>nụ cười khỏe đẹp.</html>");
-        heading.setFont(new Font("Arial", Font.BOLD, 38));
-        heading.setForeground(Color.WHITE);
-        c.gridy = 2;
-        c.insets = new Insets(0, 0, 18, 0);
-        panel.add(heading, c);
-
-        JLabel description = new JLabel(
-                "<html>Đăng nhập để quản lý lịch hẹn, hồ sơ bệnh nhân<br>"
-                        + "và hoạt động phòng khám một cách dễ dàng.</html>");
-        description.setFont(new Font("Arial", Font.PLAIN, 14));
-        description.setForeground(new Color(218, 236, 237));
-        c.gridy = 3;
-        c.insets = new Insets(0, 0, 0, 0);
-        panel.add(description, c);
-
-        JPanel feature = new JPanel(new BorderLayout(12, 0));
-        feature.setOpaque(false);
-        JLabel check = new JLabel("✓", SwingConstants.CENTER);
-        check.setFont(new Font("Arial", Font.BOLD, 13));
-        check.setForeground(Color.WHITE);
-        check.setPreferredSize(new Dimension(28, 28));
-        check.setOpaque(true);
-        check.setBackground(new Color(255, 255, 255, 36));
-        JLabel featureText = new JLabel("Chăm sóc tận tâm · Quản lý thông minh");
-        featureText.setFont(new Font("Arial", Font.PLAIN, 12));
-        featureText.setForeground(new Color(221, 240, 240));
-        feature.add(check, BorderLayout.WEST);
-        feature.add(featureText, BorderLayout.CENTER);
-        c.gridy = 4;
-        c.insets = new Insets(62, 0, 0, 0);
-        panel.add(feature, c);
-
-        JLabel copyright = new JLabel("© 2026 Muse Dental · Hệ thống quản lý phòng khám");
-        copyright.setFont(new Font("Arial", Font.PLAIN, 10));
-        copyright.setForeground(new Color(184, 218, 220));
-        c.gridy = 5;
-        c.weighty = 1;
-        c.anchor = GridBagConstraints.SOUTHWEST;
-        c.insets = new Insets(26, 0, 0, 0);
-        panel.add(copyright, c);
-        return panel;
+        URL imageResource = getClass().getResource("/images/LoginFrame_Left.png");
+        if (imageResource == null) {
+            throw new IllegalStateException(
+                    "Không tìm thấy ảnh giao diện bên trái tại resources/images/LoginFrame_Left.png.");
+        }
+        return new WelcomeImagePanel(new ImageIcon(imageResource));
     }
 
     private JPanel createLoginPanel() {
@@ -203,7 +125,7 @@ public final class LoginFrame extends JFrame {
         usernameField.setToolTipText("Nhập tên đăng nhập");
         c.gridy = 3;
         c.insets = new Insets(9, 0, 22, 0);
-        panel.add(createInputContainer(usernameField, "♙", null), c);
+        panel.add(createInputContainer(usernameField, "●", null), c);
 
         addFieldLabel(panel, c, "MẬT KHẨU", 4);
         passwordField.setFont(new Font("Arial", Font.PLAIN, 14));
@@ -262,28 +184,19 @@ public final class LoginFrame extends JFrame {
         leftLine.setBackground(LINE);
         JPanel rightLine = new JPanel();
         rightLine.setBackground(LINE);
-        JLabel secureText = new JLabel("BẢO MẬT & RIÊNG TƯ", SwingConstants.CENTER);
-        secureText.setFont(new Font("Arial", Font.BOLD, 9));
-        secureText.setForeground(new Color(157, 174, 182));
         divider.add(leftLine, BorderLayout.WEST);
-        divider.add(secureText, BorderLayout.CENTER);
         divider.add(rightLine, BorderLayout.EAST);
         c.gridy = 8;
         c.insets = new Insets(0, 0, 17, 0);
         panel.add(divider, c);
 
-        JLabel securityNote = new JLabel("Thông tin của bạn được bảo vệ an toàn.");
-        securityNote.setFont(new Font("Arial", Font.PLAIN, 11));
-        securityNote.setForeground(MUTED);
-        securityNote.setHorizontalAlignment(SwingConstants.CENTER);
         c.gridy = 9;
         c.insets = new Insets(0, 0, 0, 0);
-        panel.add(securityNote, c);
 
         JPanel footer = new JPanel(new BorderLayout());
         footer.setOpaque(false);
-        footer.add(new JLabel("Muse Dental"), BorderLayout.WEST);
-        JLabel version = new JLabel("STAFF PORTAL  ·  V1.0");
+        footer.add(new JLabel("Nha khoa Muse"), BorderLayout.WEST);
+        JLabel version = new JLabel("Hệ thống nha khoa Muse  ·  V1.0");
         version.setFont(new Font("Arial", Font.BOLD, 9));
         version.setForeground(new Color(160, 177, 184));
         footer.add(version, BorderLayout.EAST);
@@ -350,11 +263,9 @@ public final class LoginFrame extends JFrame {
         } else if (password.length == 0) {
             showValidationMessage("Vui lòng nhập mật khẩu.", passwordField);
         } else {
-            JOptionPane.showMessageDialog(
-                    this,
-                    "Giao diện đăng nhập đã sẵn sàng. Chức năng xác thực sẽ được kết nối sau.",
-                    "Muse Dental",
-                    JOptionPane.INFORMATION_MESSAGE);
+            // Màn hình đăng nhập hiện chưa kết nối xác thực; mở dashboard với tài khoản đã nhập.
+            new MainFrame(username).setVisible(true);
+            dispose();
         }
         // Xóa bản sao mật khẩu khỏi bộ nhớ sau khi xử lý.
         java.util.Arrays.fill(password, '\0');
@@ -373,48 +284,37 @@ public final class LoginFrame extends JFrame {
                 JOptionPane.INFORMATION_MESSAGE);
     }
 
-    private static final class GradientPanel extends JPanel {
-        private GradientPanel() {
-            setOpaque(false);
+    private static final class WelcomeImagePanel extends JPanel {
+        private final ImageIcon backgroundImage;
+
+        private WelcomeImagePanel(ImageIcon backgroundImage) {
+            this.backgroundImage = backgroundImage;
+            setOpaque(true);
+            setBackground(new Color(20, 126, 139));
         }
 
         @Override
         protected void paintComponent(Graphics graphics) {
-            // Vẽ nền chuyển sắc và các điểm trang trí nhẹ cho panel thương hiệu.
-            Graphics2D g = (Graphics2D) graphics.create();
-            g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            g.setPaint(new GradientPaint(0, 0, new Color(20, 126, 139),
-                    getWidth(), getHeight(), new Color(30, 75, 103)));
-            g.fillRect(0, 0, getWidth(), getHeight());
-            g.setColor(new Color(255, 255, 255, 13));
-            g.fillOval(getWidth() - 190, 38, 250, 250);
-            g.fillOval(getWidth() - 105, 110, 155, 155);
-            g.setColor(new Color(239, 103, 151, 95));
-            g.fillOval(getWidth() - 58, 72, 13, 13);
-            g.dispose();
             super.paintComponent(graphics);
-        }
-    }
+            if (getWidth() == 0 || getHeight() == 0) {
+                return;
+            }
 
-    private static final class ToothMark extends JComponent {
-        private ToothMark() {
-            setPreferredSize(new Dimension(42, 42));
-        }
-
-        @Override
-        protected void paintComponent(Graphics graphics) {
-            // Vẽ biểu tượng chiếc răng bằng các nét vector để không cần ảnh phụ.
             Graphics2D g = (Graphics2D) graphics.create();
             g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            g.setColor(new Color(255, 255, 255, 35));
-            g.fillOval(0, 0, 42, 42);
-            g.setColor(Color.WHITE);
-            g.setStroke(new BasicStroke(2.2f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
-            int[] x = {12, 10, 11, 15, 20, 25, 30, 32, 30, 27, 24, 21, 19, 16, 13};
-            int[] y = {12, 16, 22, 25, 25, 23, 19, 14, 11, 10, 11, 10, 10, 11, 12};
-            g.drawPolyline(x, y, x.length);
-            g.drawLine(16, 15, 14, 20);
-            g.drawLine(25, 14, 27, 18);
+            g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+
+            // Co ảnh theo chiều rộng để hiển thị trọn ảnh, không cắt mất nội dung.
+            int imageWidth = backgroundImage.getIconWidth();
+            int imageHeight = backgroundImage.getIconHeight();
+            double scale = Math.min(
+                    (double) getWidth() / imageWidth,
+                    (double) getHeight() / imageHeight);
+            int scaledWidth = (int) Math.round(imageWidth * scale);
+            int scaledHeight = (int) Math.round(imageHeight * scale);
+            int x = (getWidth() - scaledWidth) / 2;
+            int y = (getHeight() - scaledHeight) / 2;
+            g.drawImage(backgroundImage.getImage(), x, y, scaledWidth, scaledHeight, this);
             g.dispose();
         }
     }

@@ -293,6 +293,8 @@ public final class MainFrame extends JFrame {
                 } else if ("Tìm hồ sơ nhân viên".equals(item)) {
                     showEmployeeSearch();
                     /* end trinhKiet */
+                } else if ("Đặt lịch hẹn khám và nhắc lịch".equals(item)) {
+                    showAppointmentManagement();
                 } else {
                     showModule(item, title);
                 }
@@ -498,6 +500,16 @@ public final class MainFrame extends JFrame {
         contentPanel.repaint();
     }
 
+    // Mở màn hình tạo và theo dõi lịch hẹn khám.
+    private void showAppointmentManagement() {
+        pageTitle.setText("Đặt lịch hẹn khám và nhắc lịch");
+        pageDescription.setText("Quản lý lịch hẹn, trạng thái xác nhận và nhắc lịch bệnh nhân");
+        contentPanel.removeAll();
+        contentPanel.add(new AppointmentPanel(), BorderLayout.CENTER);
+        contentPanel.revalidate();
+        contentPanel.repaint();
+    }
+
     /* trinhKiet */
     private void showEmployeeSearch() {
         pageTitle.setText("Tìm hồ sơ nhân viên");
@@ -645,7 +657,7 @@ public final class MainFrame extends JFrame {
         viewAll.setContentAreaFilled(false);
         viewAll.setFocusPainted(false);
         viewAll.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        viewAll.addActionListener(event -> showModule("Lịch hẹn và tiếp đón", "Cập nhật"));
+        viewAll.addActionListener(event -> showAppointmentManagement());
         heading.add(title, BorderLayout.WEST);
         heading.add(viewAll, BorderLayout.EAST);
 

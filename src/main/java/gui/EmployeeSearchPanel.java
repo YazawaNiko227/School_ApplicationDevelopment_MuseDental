@@ -28,6 +28,7 @@ import javax.swing.table.JTableHeader;
 
 public class EmployeeSearchPanel extends JPanel {
 
+    // Các thành phần nhập liệu và bảng kết quả của màn hình tìm kiếm nhân viên.
     private JTextField txtSearch;
     private JComboBox<String> cbRoleFilter;
     private JComboBox<String> cbStatusFilter;
@@ -37,12 +38,13 @@ public class EmployeeSearchPanel extends JPanel {
     private DefaultTableModel tableModel;
     private JLabel lblResultCount;
 
-    // Bảng màu đồng bộ giao diện chung
-    private static final Color PRIMARY_COLOR = new Color(24, 119, 242);
+    // Bảng màu dùng chung; nền nút tìm kiếm được làm sáng để chữ tối dễ đọc.
+    private static final Color PRIMARY_COLOR = new Color(218, 232, 250);
     private static final Color BG_LIGHT = new Color(245, 247, 250);
     private static final Color TEXT_DARK = new Color(33, 37, 41);
     private static final Color BORDER_COLOR = new Color(222, 226, 230);
 
+    // Khởi tạo giao diện, sau đó hiển thị danh sách nhân viên mẫu ban đầu.
     public EmployeeSearchPanel() {
         setLayout(new BorderLayout(15, 15));
         setBackground(BG_LIGHT);
@@ -52,6 +54,7 @@ public class EmployeeSearchPanel extends JPanel {
         loadMockData(); // Nạp dữ liệu mẫu ban đầu
     }
 
+    // Tạo thanh tìm kiếm, bộ lọc chức vụ/trạng thái và bảng kết quả.
     private void initUI() {
         // --- 1. KHU VỰC THANH CÔNG CỤ TÌM KIẾM ---
         JPanel searchCard = new JPanel();
@@ -104,13 +107,13 @@ public class EmployeeSearchPanel extends JPanel {
 
         btnSearch = new JButton("Tìm kiếm");
         btnSearch.setBackground(PRIMARY_COLOR);
-        btnSearch.setForeground(Color.WHITE);
+        btnSearch.setForeground(TEXT_DARK);
         btnSearch.setFont(new Font("Segoe UI", Font.BOLD, 13));
         btnSearch.setFocusPainted(false);
         btnSearch.setPreferredSize(new Dimension(110, 32));
         btnSearch.addActionListener(e -> performSearch());
 
-        btnReset = new JButton("Làm mới");
+        btnReset = new JButton("Xóa lọc");
         btnReset.setBackground(new Color(230, 235, 240));
         btnReset.setForeground(TEXT_DARK);
         btnReset.setFont(new Font("Segoe UI", Font.PLAIN, 13));
@@ -134,6 +137,7 @@ public class EmployeeSearchPanel extends JPanel {
         add(searchCard, BorderLayout.NORTH);
 
         // --- 2. BẢNG HIỂN THỊ KẾT QUẢ ---
+        // Model giữ dữ liệu theo các cột nhân viên và không cho phép sửa trực tiếp trên bảng.
         JPanel tableContainer = new JPanel(new BorderLayout());
         tableContainer.setBackground(Color.WHITE);
         tableContainer.setBorder(BorderFactory.createLineBorder(BORDER_COLOR, 1));
@@ -159,7 +163,7 @@ public class EmployeeSearchPanel extends JPanel {
         header.setForeground(TEXT_DARK);
         header.setPreferredSize(new Dimension(header.getWidth(), 36));
 
-        // Căn giữa một số cột
+        // Căn giữa mã nhân viên, chức vụ, số điện thoại và trạng thái để dễ theo dõi.
         DefaultTableCellRenderer centerRenderer = new DefaultTableCellRenderer();
         centerRenderer.setHorizontalAlignment(JLabel.CENTER);
         employeeTable.getColumnModel().getColumn(0).setCellRenderer(centerRenderer);
@@ -172,6 +176,7 @@ public class EmployeeSearchPanel extends JPanel {
         tableContainer.add(scrollPane, BorderLayout.CENTER);
 
         // --- 3. THANH THỐNG KÊ DƯỚI BẢNG ---
+        // Hiển thị số dòng hiện có sau mỗi lần tìm kiếm hoặc đặt lại bộ lọc.
         JPanel footerPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 8));
         footerPanel.setBackground(Color.WHITE);
         lblResultCount = new JLabel("Tổng số nhân viên: 0");
@@ -183,6 +188,7 @@ public class EmployeeSearchPanel extends JPanel {
         add(tableContainer, BorderLayout.CENTER);
     }
 
+    // Nạp dữ liệu nhân viên minh họa và cập nhật số lượng hiển thị.
     private void loadMockData() {
         tableModel.setRowCount(0);
         Object[][] data = {
@@ -206,6 +212,7 @@ public class EmployeeSearchPanel extends JPanel {
         updateCount();
     }
 
+    // Lọc nhân viên theo từ khóa, chức vụ và trạng thái đã chọn.
     private void performSearch() {
         String keyword = txtSearch.getText().trim().toLowerCase();
         String selectedRole = cbRoleFilter.getSelectedItem().toString();
@@ -227,6 +234,7 @@ public class EmployeeSearchPanel extends JPanel {
                         "Đã nghỉ việc" }
         };
 
+        // Chỉ thêm nhân viên khi đồng thời khớp từ khóa và các bộ lọc đang chọn.
         for (Object[] row : rawData) {
             String id = row[0].toString().toLowerCase();
             String name = row[1].toString().toLowerCase();
@@ -249,6 +257,7 @@ public class EmployeeSearchPanel extends JPanel {
         updateCount();
     }
 
+    // Xóa từ khóa, khôi phục bộ lọc mặc định và nạp lại toàn bộ danh sách mẫu.
     private void resetSearch() {
         txtSearch.setText("");
         cbRoleFilter.setSelectedIndex(0);
@@ -256,6 +265,7 @@ public class EmployeeSearchPanel extends JPanel {
         loadMockData();
     }
 
+    // Đồng bộ nhãn tổng số nhân viên với số dòng đang có trong bảng.
     private void updateCount() {
         lblResultCount.setText("Tổng số nhân viên: " + tableModel.getRowCount());
     }

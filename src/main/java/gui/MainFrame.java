@@ -295,7 +295,10 @@ public final class MainFrame extends JFrame {
                     /* end trinhKiet */
                 } else if ("Đặt lịch hẹn khám và nhắc lịch".equals(item)) {
                     showAppointmentManagement();
-                } else {
+                } else if("Tra cứu hồ sơ bệnh án".equals(item)) {
+
+                } 
+                else {
                     showModule(item, title);
                 }
             });

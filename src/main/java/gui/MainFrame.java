@@ -295,10 +295,11 @@ public final class MainFrame extends JFrame {
                     /* end trinhKiet */
                 } else if ("Đặt lịch hẹn khám và nhắc lịch".equals(item)) {
                     showAppointmentManagement();
-                } else if("Tra cứu hồ sơ bệnh án".equals(item)) {
+                } else if ("Tra cứu hóa đơn / giao dịch".equals(item)) {
+                    showInvoiceLookup();
+                } else if ("Tra cứu hồ sơ bệnh án".equals(item)) {
 
-                } 
-                else {
+                } else {
                     showModule(item, title);
                 }
             });
@@ -519,6 +520,15 @@ public final class MainFrame extends JFrame {
         pageDescription.setText("Tra cứu theo mã nhân viên, họ tên, chức vụ hoặc số điện thoại");
         contentPanel.removeAll();
         contentPanel.add(new EmployeeSearchPanel(), BorderLayout.CENTER);
+        contentPanel.revalidate();
+        contentPanel.repaint();
+    }
+
+    private void showInvoiceLookup() {
+        pageTitle.setText("Tra cứu hóa đơn / giao dịch");
+        pageDescription.setText("Theo dõi hóa đơn, phương thức thanh toán và lịch sử giao dịch điều trị");
+        contentPanel.removeAll();
+        contentPanel.add(new InvokeLookupPanel().getMainPanel(), BorderLayout.CENTER);
         contentPanel.revalidate();
         contentPanel.repaint();
     }

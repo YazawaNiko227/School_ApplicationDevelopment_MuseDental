@@ -1,3 +1,8 @@
+/*
+    Người làm phần này: Phan Đức Toàn
+    MSSV: 24741631
+*/
+
 package gui;
 
 import java.awt.BorderLayout;
@@ -86,15 +91,7 @@ public final class PatientSearchPanel extends JPanel {
         JPanel titleBlock = new JPanel();
         titleBlock.setOpaque(false);
         titleBlock.setLayout(new javax.swing.BoxLayout(titleBlock, javax.swing.BoxLayout.Y_AXIS));
-        JLabel title = new JLabel("Hồ sơ bệnh nhân");
-        title.setFont(new Font("Arial", Font.BOLD, 21));
-        title.setForeground(INK);
-        JLabel subtitle = new JLabel("Tìm nhanh bệnh nhân theo mã, họ tên, số điện thoại hoặc CCCD.");
-        subtitle.setFont(new Font("Arial", Font.PLAIN, 12));
-        subtitle.setForeground(MUTED);
-        titleBlock.add(title);
         titleBlock.add(javax.swing.Box.createVerticalStrut(5));
-        titleBlock.add(subtitle);
         heading.add(titleBlock, BorderLayout.WEST);
 
         JPanel searchBox = new JPanel(new BorderLayout(10, 0));

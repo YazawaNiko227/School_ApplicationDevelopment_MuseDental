@@ -44,12 +44,17 @@ import javax.swing.border.EmptyBorder;
 /**
  * MainFrame là màn hình chính của hệ thống quản lý phòng khám Muse Dental.
  *
- * Giao diện này chứa ba phần cốt lõi: thanh điều hướng bên trái để chọn chức năng,
- * header ở trên cùng để hiển thị tiêu đề và tìm kiếm nhanh, và khu vực nội dung ở giữa
- * để render các màn hình con như dashboard, tra cứu bệnh nhân hoặc các module nghiệp vụ.
+ * Giao diện này chứa ba phần cốt lõi: thanh điều hướng bên trái để chọn chức
+ * năng,
+ * header ở trên cùng để hiển thị tiêu đề và tìm kiếm nhanh, và khu vực nội dung
+ * ở giữa
+ * để render các màn hình con như dashboard, tra cứu bệnh nhân hoặc các module
+ * nghiệp vụ.
  *
- * Mỗi mục trong menu đều gọi đến một phương thức khác nhau để thay đổi nội dung của
- * `contentPanel`, nên người dùng có cảm giác di chuyển giữa các màn hình mà không cần
+ * Mỗi mục trong menu đều gọi đến một phương thức khác nhau để thay đổi nội dung
+ * của
+ * `contentPanel`, nên người dùng có cảm giác di chuyển giữa các màn hình mà
+ * không cần
  * khởi động lại ứng dụng hay mở thêm cửa sổ mới.
  */
 public final class MainFrame extends JFrame {
@@ -82,12 +87,15 @@ public final class MainFrame extends JFrame {
     }
 
     /**
-     * Tạo bố cục tổng thể của ứng dụng: bên trái là menu chức năng, bên phải là vùng làm việc chính.
-     * Phương thức này đóng vai trò như "container" gốc, giúp toàn bộ giao diện có cấu trúc rõ ràng
+     * Tạo bố cục tổng thể của ứng dụng: bên trái là menu chức năng, bên phải là
+     * vùng làm việc chính.
+     * Phương thức này đóng vai trò như "container" gốc, giúp toàn bộ giao diện có
+     * cấu trúc rõ ràng
      * và dễ mở rộng khi thêm chức năng mới vào hệ thống quản lý phòng khám.
      */
     private JPanel createLayout() {
-        // Khung ứng dụng gồm thanh menu cố định và vùng làm việc thay đổi theo chức năng.
+        // Khung ứng dụng gồm thanh menu cố định và vùng làm việc thay đổi theo chức
+        // năng.
         JPanel root = new JPanel(new BorderLayout());
         root.setBackground(CANVAS);
         root.add(createSidebar(), BorderLayout.WEST);
@@ -96,9 +104,12 @@ public final class MainFrame extends JFrame {
     }
 
     /**
-     * Xây dựng sidebar chứa logo, danh mục chức năng theo nhóm và thông tin tài khoản.
-     * Đây là phần tương tác quan trọng nhất của giao diện vì người dùng sẽ chọn các module
-     * nghiệp vụ từ đây, ví dụ: Tổng quan, Cập nhật hồ sơ bệnh nhân, Tìm kiếm, Báo cáo, v.v.
+     * Xây dựng sidebar chứa logo, danh mục chức năng theo nhóm và thông tin tài
+     * khoản.
+     * Đây là phần tương tác quan trọng nhất của giao diện vì người dùng sẽ chọn các
+     * module
+     * nghiệp vụ từ đây, ví dụ: Tổng quan, Cập nhật hồ sơ bệnh nhân, Tìm kiếm, Báo
+     * cáo, v.v.
      */
     private JPanel createSidebar() {
         // Tạo logo, các nhóm menu có thể thu gọn và vùng đăng xuất.
@@ -191,7 +202,8 @@ public final class MainFrame extends JFrame {
 
     /**
      * Tạo footer của sidebar để hiển thị tài khoản đang đăng nhập và nút đăng xuất.
-     * Phần này cung cấp thông tin nhận diện người dùng và cho phép người dùng thoát khỏi phiên
+     * Phần này cung cấp thông tin nhận diện người dùng và cho phép người dùng thoát
+     * khỏi phiên
      * làm việc hiện tại, sau đó quay lại màn hình đăng nhập an toàn hơn.
      */
     private JPanel createAccountFooter() {
@@ -243,8 +255,10 @@ public final class MainFrame extends JFrame {
 
     /**
      * Thêm một nhóm menu dạng accordion cho từng mục nghiệp vụ.
-     * Khi nhấn vào tiêu đề nhóm, các chức năng con sẽ hiện hoặc ẩn ra, đồng thời chỉ một nhóm
-     * được mở cùng lúc để thanh điều hướng không bị quá dày và người dùng dễ theo dõi.
+     * Khi nhấn vào tiêu đề nhóm, các chức năng con sẽ hiện hoặc ẩn ra, đồng thời
+     * chỉ một nhóm
+     * được mở cùng lúc để thanh điều hướng không bị quá dày và người dùng dễ theo
+     * dõi.
      */
     private void addCollapsibleSection(JPanel navigation, String title, String[] items) {
         JButton sectionButton = new JButton(title, new SectionToggleIcon(false));
@@ -275,6 +289,10 @@ public final class MainFrame extends JFrame {
                 setSelectedNavigationButton(itemButton);
                 if ("Tìm hồ sơ bệnh nhân".equals(item)) {
                     showPatientSearch();
+                    /* trinhKiet */
+                } else if ("Tìm hồ sơ nhân viên".equals(item)) {
+                    showEmployeeSearch();
+                    /* end trinhKiet */
                 } else {
                     showModule(item, title);
                 }
@@ -303,7 +321,8 @@ public final class MainFrame extends JFrame {
 
     /**
      * Đăng xuất khỏi phiên hiện tại và trả người dùng về màn hình đăng nhập.
-     * Đây là hành động rời khỏi trạng thái làm việc của nhân viên và cần đóng cửa sổ dashboard
+     * Đây là hành động rời khỏi trạng thái làm việc của nhân viên và cần đóng cửa
+     * sổ dashboard
      * hiện tại để tránh giữ state cũ trong bộ nhớ.
      */
     private void logout() {
@@ -321,12 +340,16 @@ public final class MainFrame extends JFrame {
         JLabel logo = new JLabel(new ImageIcon(icon.getImage().getScaledInstance(42, 42, java.awt.Image.SCALE_SMOOTH)));
         logo.setPreferredSize(new Dimension(42, 42));
         return logo;
+
     }
 
     /**
-     * Tạo vùng nội dung chính của ứng dụng, nơi header và page content được đặt cạnh nhau.
-     * Vùng này không chứa menu, nên mọi thay đổi của màn hình khi chọn mục trong sidebar
-     * chỉ ảnh hưởng đến `contentPanel` mà không làm xô lệch cấu trúc tổng thể của frame.
+     * Tạo vùng nội dung chính của ứng dụng, nơi header và page content được đặt
+     * cạnh nhau.
+     * Vùng này không chứa menu, nên mọi thay đổi của màn hình khi chọn mục trong
+     * sidebar
+     * chỉ ảnh hưởng đến `contentPanel` mà không làm xô lệch cấu trúc tổng thể của
+     * frame.
      */
     private JPanel createWorkspace() {
         JPanel workspace = new JPanel(new BorderLayout());
@@ -337,11 +360,14 @@ public final class MainFrame extends JFrame {
         contentPanel.setBorder(new EmptyBorder(28, 34, 34, 34));
         workspace.add(contentPanel, BorderLayout.CENTER);
         return workspace;
+
     }
 
     /**
-     * Tạo top bar phía trên nội dung chính. Đây là khu vực hiển thị tiêu đề trang, mô tả ngắn
-     * và ô tìm kiếm nhanh giúp người dùng tra cứu trong hàng loạt chức năng mà không cần rời khỏi
+     * Tạo top bar phía trên nội dung chính. Đây là khu vực hiển thị tiêu đề trang,
+     * mô tả ngắn
+     * và ô tìm kiếm nhanh giúp người dùng tra cứu trong hàng loạt chức năng mà
+     * không cần rời khỏi
      * màn hình hiện tại.
      */
     private JPanel createTopBar() {
@@ -405,10 +431,12 @@ public final class MainFrame extends JFrame {
             setSelectedNavigationButton(button);
         }
     }
+    //
 
     // Dùng chung kiểu nút cho menu chính và các mục con để giữ giao diện đồng nhất.
     private JButton createNavigationButton(String title) {
-        // Dùng icon tự vẽ với chữ viết tắt, tránh phụ thuộc ký tự biểu tượng của hệ điều hành.
+        // Dùng icon tự vẽ với chữ viết tắt, tránh phụ thuộc ký tự biểu tượng của hệ
+        // điều hành.
         JButton button = new JButton(title, new MenuBadgeIcon(title));
         button.setHorizontalAlignment(SwingConstants.LEFT);
         button.setIconTextGap(10);
@@ -438,11 +466,14 @@ public final class MainFrame extends JFrame {
 
     /**
      * Hiển thị màn hình tổng quan của phòng khám với các chỉ số hoạt động chính.
-     * Dữ liệu đang dùng ở đây là mock data để minh họa UI; khi tích hợp backend, phần này sẽ
+     * Dữ liệu đang dùng ở đây là mock data để minh họa UI; khi tích hợp backend,
+     * phần
+     * // này sẽ
      * được thay bằng dữ liệu thật từ cơ sở dữ liệu hoặc API của hệ thống.
      */
     private void showDashboard() {
-        // Hiển thị trang tổng quan; số liệu hiện tại là dữ liệu minh họa, chưa lấy từ CSDL.
+        // Hiển thị trang tổng quan; số liệu hiện tại là dữ liệu minh họa, chưa lấy từ
+        // CSDL.
         pageTitle.setText("Tổng quan");
         pageDescription.setText("Dữ liệu minh họa · Tình hình hoạt động phòng khám hôm nay");
         contentPanel.removeAll();
@@ -453,8 +484,10 @@ public final class MainFrame extends JFrame {
 
     /**
      * Chuyển sang màn hình tìm kiếm hồ sơ bệnh nhân.
-     * Khi người dùng chọn module "Tìm hồ sơ bệnh nhân" từ sidebar, frame sẽ thay đổi tiêu đề
-     * và render `PatientSearchPanel` vào `contentPanel` để thao tác tìm kiếm trực tiếp.
+     * Khi người dùng chọn module "Tìm hồ sơ bệnh nhân" từ sidebar, frame sẽ thay
+     * đổi tiêu đề
+     * và render `PatientSearchPanel` vào `contentPanel` để thao tác tìm kiếm trực
+     * tiếp.
      */
     private void showPatientSearch() {
         pageTitle.setText("Tìm hồ sơ bệnh nhân");
@@ -465,10 +498,22 @@ public final class MainFrame extends JFrame {
         contentPanel.repaint();
     }
 
+    /* trinhKiet */
+    private void showEmployeeSearch() {
+        pageTitle.setText("Tìm hồ sơ nhân viên");
+        pageDescription.setText("Tra cứu theo mã nhân viên, họ tên, chức vụ hoặc số điện thoại");
+        contentPanel.removeAll();
+        contentPanel.add(new EmployeeSearchPanel(), BorderLayout.CENTER);
+        contentPanel.revalidate();
+        contentPanel.repaint();
+    }
+
     /**
      * Kết hợp các thành phần chính của dashboard thành một bố cục thống nhất.
-     * Nội dung gồm lời chào, các thẻ thống kê tổng quan và bảng lịch hẹn sắp tới giúp nhân viên
-     * nắm nhanh tình hình hoạt động trong ngày mà không cần đọc từng chi tiết riêng lẻ.
+     * Nội dung gồm lời chào, các thẻ thống kê tổng quan và bảng lịch hẹn sắp tới
+     * giúp nhân viên
+     * nắm nhanh tình hình hoạt động trong ngày mà không cần đọc từng chi tiết riêng
+     * lẻ.
      */
     private JPanel createDashboardContent() {
         JPanel dashboard = new JPanel(new BorderLayout(0, 22));
@@ -485,7 +530,8 @@ public final class MainFrame extends JFrame {
 
     /**
      * Thêm phần lời chào trên đầu dashboard dựa trên tên người dùng đang đăng nhập.
-     * Thông tin ngày tháng cũng được hiển thị để tạo cảm giác thân thiện và làm rõ thời điểm
+     * Thông tin ngày tháng cũng được hiển thị để tạo cảm giác thân thiện và làm rõ
+     * thời điểm
      * dữ liệu trong màn hình hiện tại đang tương ứng với ngày nào.
      */
     private JPanel createGreeting() {
@@ -500,8 +546,7 @@ public final class MainFrame extends JFrame {
         JLabel description = new JLabel("Chúc bạn một ngày làm việc hiệu quả tại nha khoa Muse.");
         description.setFont(new Font("Arial", Font.PLAIN, 12));
         description.setForeground(MUTED);
-        text.add(greeting);
-        text.add(Box.createVerticalStrut(7));
+
         text.add(description);
         panel.add(text, BorderLayout.WEST);
 
@@ -512,21 +557,26 @@ public final class MainFrame extends JFrame {
         dateLabel.setForeground(MUTED);
         panel.add(dateLabel, BorderLayout.EAST);
         return panel;
+
     }
 
     /**
-     * Tạo bộ bốn thẻ thống kê nhanh trên dashboard: lịch hẹn, bệnh nhân mới, chờ tiếp đón, doanh thu.
-     * Mỗi thẻ tập trung vào một chỉ số cốt lõi của phòng khám, giúp người quản lý nhìn tổng quan
+     * Tạo bộ bốn thẻ thống kê nhanh trên dashboard: lịch hẹn, bệnh nhân mới, chờ
+     * tiếp đón, doanh thu.
+     * Mỗi thẻ tập trung vào một chỉ số cốt lõi của phòng khám, giúp người quản lý
+     * nhìn tổng quan
      * tình trạng hoạt động trong ngày ngay tại trang đầu tiên.
      */
     private JPanel createSummaryCards() {
         // Các thẻ tóm tắt những chỉ số vận hành chính theo menu dự án.
         JPanel cards = new JPanel(new GridLayout(1, 4, 14, 0));
         cards.setOpaque(false);
+
         cards.add(createSummaryCard("LỊCH HẸN HÔM NAY", "24", "+ 4 so với hôm qua", "LH", new Color(231, 246, 245)));
         cards.add(createSummaryCard("BỆNH NHÂN MỚI", "08", "Trong ngày hôm nay", "BN", new Color(237, 242, 255)));
         cards.add(createSummaryCard("CHỜ TIẾP ĐÓN", "05", "Cần được hỗ trợ", "TD", new Color(255, 246, 232)));
-        cards.add(createSummaryCard("DOANH THU HÔM NAY", "12,8 tr", "Tạm tính trong ngày", "DT", new Color(253, 237, 244)));
+        cards.add(createSummaryCard("DOANH THU HÔM NAY", "12,8 tr", "Tạm tính trong ngày", "DT",
+                new Color(253, 237, 244)));
         return cards;
     }
 
@@ -571,7 +621,8 @@ public final class MainFrame extends JFrame {
 
     /**
      * Tạo khu vực lịch hẹn sắp tới ở phần dưới dashboard.
-     * Mỗi hàng trong danh sách hiển thị giờ, tên bệnh nhân, nội dung khám và trạng thái xác nhận,
+     * Mỗi hàng trong danh sách hiển thị giờ, tên bệnh nhân, nội dung khám và trạng
+     * thái xác nhận,
      * giúp nhân viên chuẩn bị ca làm và làm việc hiệu quả hơn.
      */
     private JPanel createActivityPanel() {
@@ -599,19 +650,27 @@ public final class MainFrame extends JFrame {
         heading.add(viewAll, BorderLayout.EAST);
 
         JPanel appointmentList = new JPanel(new GridLayout(4, 1, 0, 0));
+
         appointmentList.setOpaque(false);
-        appointmentList.add(createAppointmentRow("09:00", "Nguyễn Minh Anh", "Khám tổng quát · BS. Tuấn", "Đang chờ", new Color(255, 246, 232)));
-        appointmentList.add(createAppointmentRow("09:30", "Trần Hoàng Nam", "Lấy cao răng · BS. Linh", "Đã xác nhận", new Color(231, 246, 245)));
-        appointmentList.add(createAppointmentRow("10:00", "Lê Ngọc Hà", "Tái khám · BS. Tuấn", "Đã xác nhận", new Color(231, 246, 245)));
-        appointmentList.add(createAppointmentRow("10:30", "Phạm Gia Bảo", "Tư vấn điều trị · BS. Minh", "Đang chờ", new Color(255, 246, 232)));
+
+        appointmentList.add(createAppointmentRow("09:00", "Nguyễn Minh Anh", "Khám tổng quát · BS. Tuấn", "Đang chờ",
+                new Color(255, 246, 232)));
+        appointmentList.add(createAppointmentRow("09:30", "Trần Hoàng Nam", "Lấy cao răng · BS. Linh", "Đã xác nhận",
+                new Color(231, 246, 245)));
+        appointmentList.add(createAppointmentRow("10:00", "Lê Ngọc Hà", "Tái khám · BS. Tuấn", "Đã xác nhận",
+                new Color(231, 246, 245)));
+        appointmentList.add(createAppointmentRow("10:30", "Phạm Gia Bảo", "Tư vấn điều trị · BS. Minh", "Đang chờ",
+                new Color(255, 246, 232)));
 
         panel.add(heading, BorderLayout.NORTH);
         panel.add(appointmentList, BorderLayout.CENTER);
         return panel;
+
     }
 
     // Dựng một dòng lịch hẹn với giờ, thông tin bệnh nhân và trạng thái.
-    private JPanel createAppointmentRow(String time, String patient, String detail, String status, Color statusBackground) {
+    private JPanel createAppointmentRow(String time, String patient, String detail, String status,
+            Color statusBackground) {
         JPanel row = new JPanel(new BorderLayout(14, 0));
         row.setOpaque(false);
         row.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, LINE));
@@ -644,12 +703,16 @@ public final class MainFrame extends JFrame {
         row.add(timeLabel, BorderLayout.WEST);
         row.add(patientInfo, BorderLayout.CENTER);
         row.add(statusLabel, BorderLayout.EAST);
+        //
         return row;
     }
+    //
 
-    // Thông báo rõ các màn hình nghiệp vụ chưa được nối với xử lý hoặc cơ sở dữ liệu.
+    // Thông báo rõ các màn hình nghiệp vụ chưa được nối với xử lý hoặc cơ sở dữ
+    // liệu.
     private void showModule(String title, String category) {
-        // Các chức năng nghiệp vụ chưa triển khai được báo rõ thay vì hiển thị dữ liệu giả.
+        // Các chức năng nghiệp vụ chưa triển khai được báo rõ thay vì hiển thị dữ liệu
+        // giả.
         pageTitle.setText(title);
         pageDescription.setText(category + " · Hệ thống quản lý phòng khám nha khoa Muse");
         JPanel placeholder = new JPanel(new GridBagLayout());
@@ -680,10 +743,12 @@ public final class MainFrame extends JFrame {
         contentPanel.removeAll();
         contentPanel.add(placeholder, BorderLayout.CENTER);
         contentPanel.revalidate();
+        //
         contentPanel.repaint();
     }
 
-    // Avatar dạng vòng tròn với chữ cái đầu tài khoản, không cần phụ thuộc icon font.
+    // Avatar dạng vòng tròn với chữ cái đầu tài khoản, không cần phụ thuộc icon
+    // font.
     private static final class AccountAvatar extends JPanel {
         private final String initials;
 
@@ -710,10 +775,12 @@ public final class MainFrame extends JFrame {
             int textY = (getHeight() - metrics.getHeight()) / 2 + metrics.getAscent();
             g.drawString(initials, textX, textY);
             g.dispose();
+            //
         }
     }
 
-    // Icon đăng xuất vẽ bằng nét vector để hiển thị nhất quán trên các font hệ thống.
+    // Icon đăng xuất vẽ bằng nét vector để hiển thị nhất quán trên các font hệ
+    // thống.
     private static final class LogoutIcon implements Icon {
         @Override
         public int getIconWidth() {
@@ -739,10 +806,12 @@ public final class MainFrame extends JFrame {
             g.drawLine(x + 10, y + 12, x + 14, y + 8);
             g.dispose();
         }
+
     }
 
     /**
-     * Icon menu vẽ chữ viết tắt ASCII trong huy hiệu màu, không phụ thuộc font icon.
+     * Icon menu vẽ chữ viết tắt ASCII trong huy hiệu màu, không phụ thuộc font
+     * icon.
      */
     private static final class MenuBadgeIcon implements Icon {
         private final String abbreviation;
@@ -824,10 +893,12 @@ public final class MainFrame extends JFrame {
                 g.drawLine(centerX, centerY - 4, centerX, centerY + 4);
             }
             g.dispose();
+            //
         }
     }
 
-    // Điểm khởi chạy độc lập để có thể mở trực tiếp dashboard khi phát triển giao diện.
+    // Điểm khởi chạy độc lập để có thể mở trực tiếp dashboard khi phát triển giao
+    // diện.
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
             try {

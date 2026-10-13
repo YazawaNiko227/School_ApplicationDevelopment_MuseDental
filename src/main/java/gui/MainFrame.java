@@ -340,6 +340,7 @@ public final class MainFrame extends JFrame {
         JLabel logo = new JLabel(new ImageIcon(icon.getImage().getScaledInstance(42, 42, java.awt.Image.SCALE_SMOOTH)));
         logo.setPreferredSize(new Dimension(42, 42));
         return logo;
+
     }
 
     /**
@@ -359,6 +360,7 @@ public final class MainFrame extends JFrame {
         contentPanel.setBorder(new EmptyBorder(28, 34, 34, 34));
         workspace.add(contentPanel, BorderLayout.CENTER);
         return workspace;
+
     }
 
     /**
@@ -429,6 +431,7 @@ public final class MainFrame extends JFrame {
             setSelectedNavigationButton(button);
         }
     }
+    //
 
     // Dùng chung kiểu nút cho menu chính và các mục con để giữ giao diện đồng nhất.
     private JButton createNavigationButton(String title) {
@@ -464,7 +467,8 @@ public final class MainFrame extends JFrame {
     /**
      * Hiển thị màn hình tổng quan của phòng khám với các chỉ số hoạt động chính.
      * Dữ liệu đang dùng ở đây là mock data để minh họa UI; khi tích hợp backend,
-     * phần này sẽ
+     * phần
+     * // này sẽ
      * được thay bằng dữ liệu thật từ cơ sở dữ liệu hoặc API của hệ thống.
      */
     private void showDashboard() {
@@ -504,8 +508,6 @@ public final class MainFrame extends JFrame {
         contentPanel.repaint();
     }
 
-    /* end trinhKiet */
-
     /**
      * Kết hợp các thành phần chính của dashboard thành một bố cục thống nhất.
      * Nội dung gồm lời chào, các thẻ thống kê tổng quan và bảng lịch hẹn sắp tới
@@ -544,8 +546,7 @@ public final class MainFrame extends JFrame {
         JLabel description = new JLabel("Chúc bạn một ngày làm việc hiệu quả tại nha khoa Muse.");
         description.setFont(new Font("Arial", Font.PLAIN, 12));
         description.setForeground(MUTED);
-        text.add(greeting);
-        text.add(Box.createVerticalStrut(7));
+
         text.add(description);
         panel.add(text, BorderLayout.WEST);
 
@@ -556,6 +557,7 @@ public final class MainFrame extends JFrame {
         dateLabel.setForeground(MUTED);
         panel.add(dateLabel, BorderLayout.EAST);
         return panel;
+
     }
 
     /**
@@ -569,6 +571,7 @@ public final class MainFrame extends JFrame {
         // Các thẻ tóm tắt những chỉ số vận hành chính theo menu dự án.
         JPanel cards = new JPanel(new GridLayout(1, 4, 14, 0));
         cards.setOpaque(false);
+
         cards.add(createSummaryCard("LỊCH HẸN HÔM NAY", "24", "+ 4 so với hôm qua", "LH", new Color(231, 246, 245)));
         cards.add(createSummaryCard("BỆNH NHÂN MỚI", "08", "Trong ngày hôm nay", "BN", new Color(237, 242, 255)));
         cards.add(createSummaryCard("CHỜ TIẾP ĐÓN", "05", "Cần được hỗ trợ", "TD", new Color(255, 246, 232)));
@@ -647,7 +650,9 @@ public final class MainFrame extends JFrame {
         heading.add(viewAll, BorderLayout.EAST);
 
         JPanel appointmentList = new JPanel(new GridLayout(4, 1, 0, 0));
+
         appointmentList.setOpaque(false);
+
         appointmentList.add(createAppointmentRow("09:00", "Nguyễn Minh Anh", "Khám tổng quát · BS. Tuấn", "Đang chờ",
                 new Color(255, 246, 232)));
         appointmentList.add(createAppointmentRow("09:30", "Trần Hoàng Nam", "Lấy cao răng · BS. Linh", "Đã xác nhận",
@@ -660,6 +665,7 @@ public final class MainFrame extends JFrame {
         panel.add(heading, BorderLayout.NORTH);
         panel.add(appointmentList, BorderLayout.CENTER);
         return panel;
+
     }
 
     // Dựng một dòng lịch hẹn với giờ, thông tin bệnh nhân và trạng thái.
@@ -697,8 +703,10 @@ public final class MainFrame extends JFrame {
         row.add(timeLabel, BorderLayout.WEST);
         row.add(patientInfo, BorderLayout.CENTER);
         row.add(statusLabel, BorderLayout.EAST);
+        //
         return row;
     }
+    //
 
     // Thông báo rõ các màn hình nghiệp vụ chưa được nối với xử lý hoặc cơ sở dữ
     // liệu.
@@ -735,6 +743,7 @@ public final class MainFrame extends JFrame {
         contentPanel.removeAll();
         contentPanel.add(placeholder, BorderLayout.CENTER);
         contentPanel.revalidate();
+        //
         contentPanel.repaint();
     }
 
@@ -766,6 +775,7 @@ public final class MainFrame extends JFrame {
             int textY = (getHeight() - metrics.getHeight()) / 2 + metrics.getAscent();
             g.drawString(initials, textX, textY);
             g.dispose();
+            //
         }
     }
 
@@ -796,6 +806,7 @@ public final class MainFrame extends JFrame {
             g.drawLine(x + 10, y + 12, x + 14, y + 8);
             g.dispose();
         }
+
     }
 
     /**
@@ -882,6 +893,7 @@ public final class MainFrame extends JFrame {
                 g.drawLine(centerX, centerY - 4, centerX, centerY + 4);
             }
             g.dispose();
+            //
         }
     }
 

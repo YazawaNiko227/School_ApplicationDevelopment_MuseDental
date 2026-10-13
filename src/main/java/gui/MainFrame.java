@@ -298,7 +298,7 @@ public final class MainFrame extends JFrame {
                 } else if ("Tra cứu hóa đơn / giao dịch".equals(item)) {
                     showInvoiceLookup();
                 } else if ("Tra cứu hồ sơ bệnh án".equals(item)) {
-
+                    showEMRSearch();
                 } else {
                     showModule(item, title);
                 }
@@ -529,6 +529,12 @@ public final class MainFrame extends JFrame {
         pageDescription.setText("Theo dõi hóa đơn, phương thức thanh toán và lịch sử giao dịch điều trị");
         contentPanel.removeAll();
         contentPanel.add(new InvokeLookupPanel().getMainPanel(), BorderLayout.CENTER);
+    // Mở màn hình tra cứu bệnh án điện tử EMR trong vùng nội dung chính.
+    private void showEMRSearch() {
+        pageTitle.setText("Tra cứu hồ sơ bệnh án");
+        pageDescription.setText("Tìm kiếm lần khám, chẩn đoán và nội dung bệnh án điện tử");
+        contentPanel.removeAll();
+        contentPanel.add(new EMRSearchPanel(), BorderLayout.CENTER);
         contentPanel.revalidate();
         contentPanel.repaint();
     }

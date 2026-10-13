@@ -295,6 +295,8 @@ public final class MainFrame extends JFrame {
                     /* end trinhKiet */
                 } else if ("Đặt lịch hẹn khám và nhắc lịch".equals(item)) {
                     showAppointmentManagement();
+                } else if ("Tra cứu hóa đơn / giao dịch".equals(item)) {
+                    showInvoiceLookup();
                 } else if ("Tra cứu hồ sơ bệnh án".equals(item)) {
                     showEMRSearch();
                 } else {
@@ -522,6 +524,11 @@ public final class MainFrame extends JFrame {
         contentPanel.repaint();
     }
 
+    private void showInvoiceLookup() {
+        pageTitle.setText("Tra cứu hóa đơn / giao dịch");
+        pageDescription.setText("Theo dõi hóa đơn, phương thức thanh toán và lịch sử giao dịch điều trị");
+        contentPanel.removeAll();
+        contentPanel.add(new InvokeLookupPanel().getMainPanel(), BorderLayout.CENTER);
     // Mở màn hình tra cứu bệnh án điện tử EMR trong vùng nội dung chính.
     private void showEMRSearch() {
         pageTitle.setText("Tra cứu hồ sơ bệnh án");

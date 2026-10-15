@@ -147,7 +147,6 @@ public final class MainFrame extends JFrame {
 
         addCollapsibleSection(navigation, "HỆ THỐNG", new String[] {
                 "Đổi mật khẩu",
-                "Quên mật khẩu",
                 "Phân quyền hệ thống RBAC"
         });
         addCollapsibleSection(navigation, "DANH MỤC", new String[] {

@@ -5,26 +5,24 @@
 
 package gui;
 
+import java.awt.BasicStroke;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.FontMetrics;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.GridLayout;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.GridBagLayout;
+import java.awt.GridLayout;
 import java.awt.RenderingHints;
-import java.awt.BasicStroke;
 import java.awt.event.ActionEvent;
 import java.net.URL;
 import java.text.Normalizer;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.Locale;
-
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
@@ -295,10 +293,12 @@ public final class MainFrame extends JFrame {
                     /* end trinhKiet */
                 } else if ("Đặt lịch hẹn khám và nhắc lịch".equals(item)) {
                     showAppointmentManagement();
-                } else if("Tra cứu hồ sơ bệnh án".equals(item)) {
-
-                } 
-                else {
+                } else if ("Tìm hồ sơ bệnh án EMR".equals(item)) {
+                    showEMRSearch();
+                } else if ("Chuẩn bị dụng cụ và cập nhật trạng thái phòng".equals(item)) {
+                    showRoomPreparationPanel();
+                }
+                    else {
                     showModule(item, title);
                 }
             });
@@ -519,6 +519,25 @@ public final class MainFrame extends JFrame {
         pageDescription.setText("Tra cứu theo mã nhân viên, họ tên, chức vụ hoặc số điện thoại");
         contentPanel.removeAll();
         contentPanel.add(new EmployeeSearchPanel(), BorderLayout.CENTER);
+        contentPanel.revalidate();
+        contentPanel.repaint();
+    }
+
+    // Mở màn hình tra cứu bệnh án điện tử EMR trong vùng nội dung chính.
+    private void showEMRSearch() {
+        pageTitle.setText("Tra cứu hồ sơ bệnh án");
+        pageDescription.setText("Tìm kiếm lần khám, chẩn đoán và nội dung bệnh án điện tử");
+        contentPanel.removeAll();
+        contentPanel.add(new EMRSearchPanel(), BorderLayout.CENTER);
+        contentPanel.revalidate();
+        contentPanel.repaint();
+    }
+
+
+    private void showRoomPreparationPanel() {
+        pageTitle.setText("Chuẩn bị dụng cụ và cập nhật trạng thái phòng");
+        contentPanel.removeAll();
+        contentPanel.add(new RoomPreparationPanel(), BorderLayout.CENTER);
         contentPanel.revalidate();
         contentPanel.repaint();
     }

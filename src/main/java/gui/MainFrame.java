@@ -299,6 +299,8 @@ public final class MainFrame extends JFrame {
                     showInvoiceLookup();
                 } else if ("Tra cứu hồ sơ bệnh án".equals(item)) {
                     showEMRSearch();
+                } else if ("Dashboard điều phối phòng khám".equals(item)) {
+                    showClinicDashboard();
                 } else {
                     showModule(item, title);
                 }
@@ -529,12 +531,26 @@ public final class MainFrame extends JFrame {
         pageDescription.setText("Theo dõi hóa đơn, phương thức thanh toán và lịch sử giao dịch điều trị");
         contentPanel.removeAll();
         contentPanel.add(new InvokeLookupPanel().getMainPanel(), BorderLayout.CENTER);
+        contentPanel.revalidate();
+        contentPanel.repaint();
+    }
+
     // Mở màn hình tra cứu bệnh án điện tử EMR trong vùng nội dung chính.
     private void showEMRSearch() {
         pageTitle.setText("Tra cứu hồ sơ bệnh án");
         pageDescription.setText("Tìm kiếm lần khám, chẩn đoán và nội dung bệnh án điện tử");
         contentPanel.removeAll();
         contentPanel.add(new EMRSearchPanel(), BorderLayout.CENTER);
+        contentPanel.revalidate();
+        contentPanel.repaint();
+    }
+
+    // Mở màn hình điều phối phòng khám: trạng thái phòng, hàng chờ, nha sĩ trực ca.
+    private void showClinicDashboard() {
+        pageTitle.setText("Dashboard điều phối phòng khám");
+        pageDescription.setText("Theo dõi trạng thái phòng khám, hàng chờ bệnh nhân và ca trực nha sĩ");
+        contentPanel.removeAll();
+        contentPanel.add(new ClinicDashboardPanel(), BorderLayout.CENTER);
         contentPanel.revalidate();
         contentPanel.repaint();
     }

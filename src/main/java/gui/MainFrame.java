@@ -299,6 +299,22 @@ public final class MainFrame extends JFrame {
                 } else {
                     showModule(item, title);
                 }
+
+                if ("Tìm hồ sơ bệnh nhân".equals(item)) {
+                    showPatientSearch();
+                    /* trinhKiet */
+                } else if ("Tìm hồ sơ nhân viên".equals(item)) {
+                    showEmployeeSearch();
+                } else if ("Dashboard phân công ca trực Y tá".equals(item)) {
+                    showNurseShiftDashboard();
+                    /* end trinhKiet */
+                } else if ("Đặt lịch hẹn khám và nhắc lịch".equals(item)) {
+                    showAppointmentManagement();
+                } else if ("Tìm hồ sơ bệnh án EMR".equals(item)) {
+                    showEMRSearch();
+                } else {
+                    showModule(item, title);
+                }
             });
             itemPanel.add(itemButton);
         }
@@ -530,6 +546,17 @@ public final class MainFrame extends JFrame {
         contentPanel.revalidate();
         contentPanel.repaint();
     }
+
+    /* trinhKiet */
+    private void showNurseShiftDashboard() {
+        pageTitle.setText("Dashboard phân công ca trực Y tá");
+        pageDescription.setText("Theo dõi, phân bổ ca trực và trạng thái tiếp nhận phòng khám");
+        contentPanel.removeAll();
+        contentPanel.add(new NurseShiftDashboardPanel(), BorderLayout.CENTER);
+        contentPanel.revalidate();
+        contentPanel.repaint();
+    }
+    /* end trinhKiet */
 
     /**
      * Kết hợp các thành phần chính của dashboard thành một bố cục thống nhất.

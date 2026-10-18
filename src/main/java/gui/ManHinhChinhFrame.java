@@ -179,10 +179,6 @@ public final class ManHinhChinhFrame extends JFrame {
                 "Đặt lịch hẹn khám và nhắc lịch"
         });
         addCollapsibleSection(navigation, "THỐNG KÊ", new String[] {
-                "Báo cáo doanh thu",
-                "Báo cáo hiệu suất nhân sự",
-                "Thống kê lượt khám và lịch hẹn",
-                "Báo cáo xuất / nhập / tồn kho",
                 "Báo cáo thống kê và KPI nha sĩ"
         });
         navigation.add(Box.createVerticalGlue());

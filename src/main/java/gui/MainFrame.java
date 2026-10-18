@@ -147,30 +147,26 @@ public final class MainFrame extends JFrame {
 
         addCollapsibleSection(navigation, "HỆ THỐNG", new String[] {
                 "Đổi mật khẩu",
-                "Sao lưu và phục hồi",
                 "Phân quyền hệ thống RBAC"
         });
         addCollapsibleSection(navigation, "DANH MỤC", new String[] {
                 "Hồ sơ nhân viên",
-                "Dịch vụ và bảng giá"
+                "Hồ sơ bệnh nhân",
+                "Thuốc và vật tư y tế",
+                "Danh mục dịch vụ và bảng giá"
         });
         addCollapsibleSection(navigation, "CẬP NHẬT", new String[] {
-                "Đặt lịch hẹn khám và nhắc lịch",
                 "Tiếp đón và check-in",
-                "Hồ sơ bệnh nhân",
                 "Hồ sơ bệnh án điện tử EMR",
-                "Khám lâm sàng và sơ đồ răng",
                 "Kê đơn thuốc điện tử",
                 "Phác đồ điều trị và dự toán chi phí",
                 "Ghi nhận vật tư tiêu hao",
-                "Lập hóa đơn và in hóa đơn",
-                "Công nợ và trả góp theo đợt",
-                "Kho thuốc và vật tư y tế"
+                "Công nợ và trả góp theo đợt"
         });
         addCollapsibleSection(navigation, "TÌM KIẾM", new String[] {
                 "Tìm hồ sơ bệnh nhân",
                 "Tìm hồ sơ nhân viên",
-                "Tra cứu hồ sơ bệnh án",
+                "Tìm hồ sơ bệnh án EMR",
                 "Tra cứu hóa đơn / giao dịch",
                 "Tra cứu tồn kho thuốc / dụng cụ"
         });
@@ -179,9 +175,12 @@ public final class MainFrame extends JFrame {
                 "Lịch làm việc cá nhân và báo bận",
                 "Dashboard phân công ca trực Y tá",
                 "Chuẩn bị dụng cụ và cập nhật trạng thái phòng",
-                "Phân công lịch làm việc và ca trực"
+                "Phân công lịch làm việc và ca trực",
+                "Lập hóa đơn",
+                "Khám lâm sàng và sơ đồ răng",
+                "Đặt lịch hẹn khám và nhắc lịch"
         });
-        addCollapsibleSection(navigation, "BÁO BIỂU", new String[] {
+        addCollapsibleSection(navigation, "THỐNG KÊ", new String[] {
                 "Báo cáo doanh thu",
                 "Báo cáo hiệu suất nhân sự",
                 "Thống kê lượt khám và lịch hẹn",

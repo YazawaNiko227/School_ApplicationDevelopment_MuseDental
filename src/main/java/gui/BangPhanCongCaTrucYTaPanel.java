@@ -28,7 +28,7 @@ import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.JTableHeader;
 
-public class NurseShiftDashboardPanel extends JPanel {
+public class BangPhanCongCaTrucYTaPanel extends JPanel {
 
     // Màu sắc chuẩn theo hệ thống Muse Dental
     private static final Color INK = new Color(32, 53, 68);
@@ -48,7 +48,7 @@ public class NurseShiftDashboardPanel extends JPanel {
     private JLabel lblAfternoonCount;
     private JLabel lblNightCount;
 
-    public NurseShiftDashboardPanel() {
+    public BangPhanCongCaTrucYTaPanel() {
         setLayout(new BorderLayout(0, 16));
         setBackground(CANVAS);
         setBorder(new EmptyBorder(0, 0, 0, 0));

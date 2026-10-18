@@ -24,7 +24,7 @@ import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.JTableHeader;
 
-public class EmployeeSearchPanel extends JPanel {
+public class TimKiemNhanVienPanel extends JPanel {
 
     // Các thành phần nhập liệu và bảng kết quả của màn hình tìm kiếm nhân viên.
     private JTextField txtSearch;
@@ -43,7 +43,7 @@ public class EmployeeSearchPanel extends JPanel {
     private static final Color BORDER_COLOR = new Color(222, 226, 230);
 
     // Khởi tạo giao diện, sau đó hiển thị danh sách nhân viên mẫu ban đầu.
-    public EmployeeSearchPanel() {
+    public TimKiemNhanVienPanel() {
         setLayout(new BorderLayout(15, 15));
         setBackground(BG_LIGHT);
         setBorder(new EmptyBorder(20, 20, 20, 20));

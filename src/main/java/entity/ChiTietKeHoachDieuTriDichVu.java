@@ -1,15 +1,15 @@
 package entity;
 
-public class KeHoachDieuTri_DichVu {
+public class ChiTietKeHoachDieuTriDichVu {
     private String maKeHoach;
     private String maDichVu;
     private int soLuong;
 
-    public KeHoachDieuTri_DichVu() {
+    public ChiTietKeHoachDieuTriDichVu() {
         this.soLuong = 1;
     }
 
-    public KeHoachDieuTri_DichVu(String maKeHoach, String maDichVu, int soLuong) {
+    public ChiTietKeHoachDieuTriDichVu(String maKeHoach, String maDichVu, int soLuong) {
         setMaKeHoach(maKeHoach);
         setMaDichVu(maDichVu);
         setSoLuong(soLuong);

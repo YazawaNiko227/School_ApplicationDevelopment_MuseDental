@@ -4,11 +4,11 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 
-public class ConnectDB {
+public class KetNoiCSDL {
 	private static volatile Connection con;
-	private static final ConnectDB instance = new ConnectDB();
+	private static final KetNoiCSDL instance = new KetNoiCSDL();
 
-	public static ConnectDB getInstance() {
+	public static KetNoiCSDL getInstance() {
 		return instance;
 	}
 

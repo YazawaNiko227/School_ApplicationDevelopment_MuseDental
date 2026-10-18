@@ -40,7 +40,7 @@ import javax.swing.UIManager;
 import javax.swing.border.EmptyBorder;
 
 /**
- * MainFrame là màn hình chính của hệ thống quản lý phòng khám Muse Dental.
+ * ManHinhChinhFrame là màn hình chính của hệ thống quản lý phòng khám Muse Dental.
  *
  * Giao diện này chứa ba phần cốt lõi: thanh điều hướng bên trái để chọn chức
  * năng,
@@ -55,7 +55,7 @@ import javax.swing.border.EmptyBorder;
  * không cần
  * khởi động lại ứng dụng hay mở thêm cửa sổ mới.
  */
-public final class MainFrame extends JFrame {
+public final class ManHinhChinhFrame extends JFrame {
     // Màu giao diện dùng chung cho thanh điều hướng và vùng nội dung.
     private static final Color INK = new Color(32, 53, 68);
     private static final Color MUTED = new Color(119, 139, 151);
@@ -73,7 +73,7 @@ public final class MainFrame extends JFrame {
     private JButton expandedSectionButton;
     private JPanel expandedSectionItems;
 
-    public MainFrame(String username) {
+    public ManHinhChinhFrame(String username) {
         super("Nha khoa Muse | Hệ thống quản lý phòng khám");
         this.username = username == null || username.trim().isEmpty() ? "Nhân viên" : username.trim();
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -348,7 +348,7 @@ public final class MainFrame extends JFrame {
      */
     private void logout() {
         dispose();
-        new LoginFrame().setVisible(true);
+        new DangNhapFrame().setVisible(true);
     }
 
     // Đọc logo từ resources để hiển thị nhận diện Muse ở đầu thanh điều hướng.
@@ -507,14 +507,14 @@ public final class MainFrame extends JFrame {
      * Chuyển sang màn hình tìm kiếm hồ sơ bệnh nhân.
      * Khi người dùng chọn module "Tìm hồ sơ bệnh nhân" từ sidebar, frame sẽ thay
      * đổi tiêu đề
-     * và render `PatientSearchPanel` vào `contentPanel` để thao tác tìm kiếm trực
+     * và render `TimKiemBenhNhanPanel` vào `contentPanel` để thao tác tìm kiếm trực
      * tiếp.
      */
     private void showPatientSearch() {
         showContentPanel(
                 "Tìm hồ sơ bệnh nhân",
                 "Tra cứu theo mã bệnh nhân, họ tên, số điện thoại hoặc CCCD",
-                new PatientSearchPanel());
+                new TimKiemBenhNhanPanel());
     }
 
     // Mở màn hình tạo và theo dõi lịch hẹn khám.
@@ -522,7 +522,7 @@ public final class MainFrame extends JFrame {
         showContentPanel(
                 "Đặt lịch hẹn khám và nhắc lịch",
                 "Quản lý lịch hẹn, trạng thái xác nhận và nhắc lịch bệnh nhân",
-                new AppointmentPanel());
+                new DatLichHenPanel());
     }
 
     /* trinhKiet */
@@ -530,7 +530,7 @@ public final class MainFrame extends JFrame {
         showContentPanel(
                 "Tìm hồ sơ nhân viên",
                 "Tra cứu theo mã nhân viên, họ tên, chức vụ hoặc số điện thoại",
-                new EmployeeSearchPanel());
+                new TimKiemNhanVienPanel());
     }
 
     // Mở màn hình tra cứu bệnh án điện tử EMR trong vùng nội dung chính.
@@ -538,7 +538,7 @@ public final class MainFrame extends JFrame {
         showContentPanel(
                 "Tra cứu hồ sơ bệnh án",
                 "Tìm kiếm lần khám, chẩn đoán và nội dung bệnh án điện tử",
-                new EMRSearchPanel());
+                new TraCuuBenhAnPanel());
     }
 
     // Hiển thị bảng theo dõi tiếp đón, hàng chờ và trạng thái các phòng khám.
@@ -546,7 +546,7 @@ public final class MainFrame extends JFrame {
         showContentPanel(
                 menuTitle,
                 "Theo dõi tiếp đón, hàng chờ bệnh nhân và tình trạng phòng",
-                new ClinicDashboardPanel());
+                new DieuPhoiPhongKhamPanel());
     }
 
     // Mở bảng ca trực và lịch làm việc nhân viên y tế.
@@ -554,7 +554,7 @@ public final class MainFrame extends JFrame {
         showContentPanel(
                 menuTitle,
                 "Theo dõi, lọc và phân công ca trực nhân viên",
-                new NurseShiftDashboardPanel());
+                new BangPhanCongCaTrucYTaPanel());
     }
 
     // Mở quản lý tồn kho và phiếu nhập thuốc, vật tư y tế.
@@ -562,12 +562,12 @@ public final class MainFrame extends JFrame {
         showContentPanel(
                 menuTitle,
                 "Tra cứu tồn kho và lập phiếu nhập thuốc, vật tư",
-                new KhoThuocPanel());
+                new QuanLyKhoThuocPanel());
     }
 
     // Màn hình hóa đơn hiện được thiết kế thành cửa sổ riêng, nên mở JFrame độc lập.
     private void showInvoiceLookup() {
-        new InvokeLookupPanel().setVisible(true);
+        new TraCuuHoaDonFrame().setVisible(true);
     }
 
     // Thay nội dung trung tâm bằng một panel nghiệp vụ và đồng bộ tiêu đề trang.
@@ -585,7 +585,7 @@ public final class MainFrame extends JFrame {
         showContentPanel(
                 "Chuẩn bị dụng cụ và cập nhật trạng thái phòng",
                 "Chuẩn bị dụng cụ và cập nhật trạng thái sử dụng của phòng",
-                new RoomPreparationPanel());
+                new ChuanBiPhongKhamPanel());
     }
 
     /**
@@ -986,7 +986,7 @@ public final class MainFrame extends JFrame {
             } catch (Exception exception) {
                 System.err.println("Không thể áp dụng giao diện hệ điều hành: " + exception.getMessage());
             }
-            new MainFrame("Nhân viên").setVisible(true);
+            new ManHinhChinhFrame("Nhân viên").setVisible(true);
         });
     }
 }

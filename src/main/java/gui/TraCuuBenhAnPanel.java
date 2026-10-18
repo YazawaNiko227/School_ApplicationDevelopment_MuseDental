@@ -1,6 +1,6 @@
 package gui;
 
-import entity.EMRRecord;
+import entity.BanGhiBenhAn;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Cursor;
@@ -31,7 +31,7 @@ import javax.swing.table.DefaultTableModel;
 import javax.swing.table.JTableHeader;
 
 
-public class EMRSearchPanel extends JPanel {
+public class TraCuuBenhAnPanel extends JPanel {
     private static final Color INK = new Color(32, 53, 68);
     private static final Color MUTED = new Color(119, 139, 151);
     private static final Color TEAL = new Color(26, 151, 151);
@@ -45,8 +45,8 @@ public class EMRSearchPanel extends JPanel {
             "Mã chẩn đoán", "Mã hồ sơ", "Bệnh nhân", "Ngày khám", "Nha sĩ", "Lý do khám"
     };
 
-    private final List<EMRRecord> allRecords = createSampleData();
-    private final List<EMRRecord> shownRecords = new ArrayList<>();
+    private final List<BanGhiBenhAn> allRecords = createSampleData();
+    private final List<BanGhiBenhAn> shownRecords = new ArrayList<>();
 
     private final JTextField keywordField = new JTextField();
     private final JComboBox<String> dentistCombo = new JComboBox<>();
@@ -67,7 +67,7 @@ public class EMRSearchPanel extends JPanel {
     private final JTextArea symptomArea = createReadOnlyArea();
     private final JTextArea conclusionArea = createReadOnlyArea();
 
-    public EMRSearchPanel() {
+    public TraCuuBenhAnPanel() {
         super(new BorderLayout(0, 16));
         setOpaque(false);
 
@@ -302,7 +302,7 @@ public class EMRSearchPanel extends JPanel {
             conclusionArea.setText("");
             return;
         }
-        EMRRecord record = shownRecords.get(viewRow);
+        BanGhiBenhAn record = shownRecords.get(viewRow);
         detailTitle.setText("Chi tiết lần khám " + record.getMaChanDoan() + " · " + record.getTenBenhNhan());
         reasonArea.setText(nullToEmpty(record.getLyDoKham()));
         symptomArea.setText(nullToEmpty(record.getTrieuChung()));
@@ -317,7 +317,7 @@ public class EMRSearchPanel extends JPanel {
     private void loadDentists() {
         dentistCombo.addItem(ALL_DENTISTS);
         List<String> seen = new ArrayList<>();
-        for (EMRRecord record : allRecords) {
+        for (BanGhiBenhAn record : allRecords) {
             if (!seen.contains(record.getTenNhaSi())) {
                 seen.add(record.getTenNhaSi());
                 dentistCombo.addItem(record.getTenNhaSi());
@@ -345,7 +345,7 @@ public class EMRSearchPanel extends JPanel {
 
         shownRecords.clear();
         tableModel.setRowCount(0);
-        for (EMRRecord record : allRecords) {
+        for (BanGhiBenhAn record : allRecords) {
             if (!matchesKeyword(record, keyword)) {
                 continue;
             }
@@ -372,7 +372,7 @@ public class EMRSearchPanel extends JPanel {
         showDetail(-1);
     }
 
-    private boolean matchesKeyword(EMRRecord record, String keyword) {
+    private boolean matchesKeyword(BanGhiBenhAn record, String keyword) {
         if (keyword.isEmpty()) {
             return true;
         }
@@ -414,29 +414,29 @@ public class EMRSearchPanel extends JPanel {
 
     // ===================== DỮ LIỆU MINH HỌA =====================
 
-    private static List<EMRRecord> createSampleData() {
-        List<EMRRecord> list = new ArrayList<>();
-        list.add(new EMRRecord("HS001", "CD001", "BN001", "Nguyễn Minh Anh", LocalDate.of(2026, 9, 20),
+    private static List<BanGhiBenhAn> createSampleData() {
+        List<BanGhiBenhAn> list = new ArrayList<>();
+        list.add(new BanGhiBenhAn("HS001", "CD001", "BN001", "Nguyễn Minh Anh", LocalDate.of(2026, 9, 20),
                 "NV002", "BS. Tuấn", "Đau răng hàm dưới bên phải",
                 "Ê buốt khi ăn nóng lạnh, đau âm ỉ về đêm",
                 "Sâu răng 46 độ 3, chỉ định điều trị tủy"));
-        list.add(new EMRRecord("HS002", "CD002", "BN002", "Trần Hoàng Nam", LocalDate.of(2026, 9, 25),
+        list.add(new BanGhiBenhAn("HS002", "CD002", "BN002", "Trần Hoàng Nam", LocalDate.of(2026, 9, 25),
                 "NV003", "BS. Linh", "Lấy cao răng định kỳ",
                 "Chảy máu chân răng khi chải",
                 "Viêm nướu nhẹ do cao răng, hướng dẫn vệ sinh răng miệng"));
-        list.add(new EMRRecord("HS003", "CD003", "BN003", "Lê Ngọc Hà", LocalDate.of(2026, 10, 1),
+        list.add(new BanGhiBenhAn("HS003", "CD003", "BN003", "Lê Ngọc Hà", LocalDate.of(2026, 10, 1),
                 "NV002", "BS. Tuấn", "Tái khám sau điều trị tủy",
                 "Không đau, răng ăn nhai bình thường",
                 "Răng 46 ổn định, hẹn làm mão sứ"));
-        list.add(new EMRRecord("HS004", "CD004", "BN004", "Phạm Gia Bảo", LocalDate.of(2026, 10, 5),
+        list.add(new BanGhiBenhAn("HS004", "CD004", "BN004", "Phạm Gia Bảo", LocalDate.of(2026, 10, 5),
                 "NV004", "BS. Minh", "Tư vấn niềng răng",
                 "Răng mọc chen chúc hàm trên, khớp cắn hở nhẹ",
                 "Lệch lạc khớp cắn loại I, đề xuất niềng mắc cài kim loại"));
-        list.add(new EMRRecord("HS005", "CD005", "BN001", "Nguyễn Minh Anh", LocalDate.of(2026, 10, 9),
+        list.add(new BanGhiBenhAn("HS005", "CD005", "BN001", "Nguyễn Minh Anh", LocalDate.of(2026, 10, 9),
                 "NV002", "BS. Tuấn", "Tái khám",
                 "Răng 46 còn hơi ê khi nhai mạnh",
                 "Theo dõi thêm, hẹn kiểm tra lại sau 2 tuần"));
-        list.add(new EMRRecord("HS006", "CD006", "BN005", "Võ Thanh Tâm", LocalDate.of(2026, 10, 12),
+        list.add(new BanGhiBenhAn("HS006", "CD006", "BN005", "Võ Thanh Tâm", LocalDate.of(2026, 10, 12),
                 "NV003", "BS. Linh", "Nhổ răng khôn",
                 "Sưng đau vùng răng 38, há miệng hạn chế",
                 "Răng khôn 38 mọc lệch, viêm quanh thân răng, chỉ định nhổ"));

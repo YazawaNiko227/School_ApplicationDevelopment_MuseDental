@@ -38,14 +38,14 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.text.JTextComponent;
 
 /**
- * LoginFrame là màn hình đăng nhập của ứng dụng Muse Dental.
+ * DangNhapFrame là màn hình đăng nhập của ứng dụng Muse Dental.
  *
  * Nó tập trung vào trải nghiệm xác thực ban đầu: hiển thị hình ảnh giới thiệu ở một nửa màn hình,
  * còn nửa bên phải chứa các trường tên đăng nhập, mật khẩu, checkbox ghi nhớ và nút đăng nhập.
- * Sau khi người dùng nhập thông tin hợp lệ, màn hình này sẽ chuyển sang `MainFrame` để vào dashboard
+ * Sau khi người dùng nhập thông tin hợp lệ, màn hình này sẽ chuyển sang `ManHinhChinhFrame` để vào dashboard
  * chính của hệ thống phòng khám.
  */
-public final class LoginFrame extends JFrame {
+public final class DangNhapFrame extends JFrame {
     // Bảng màu dùng chung để giữ giao diện nhất quán giữa các khu vực.
     private static final Color INK = new Color(32, 53, 68);
     private static final Color MUTED = new Color(119, 139, 151);
@@ -57,7 +57,7 @@ public final class LoginFrame extends JFrame {
     private final JPasswordField passwordField = new JPasswordField();
     private final JCheckBox rememberCheckBox = new JCheckBox("Ghi nhớ đăng nhập");
 
-    public LoginFrame() {
+    public DangNhapFrame() {
         super("Nha khoa Muse | Đăng nhập");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setMinimumSize(new Dimension(900, 620));
@@ -305,7 +305,7 @@ public final class LoginFrame extends JFrame {
             showValidationMessage("Vui lòng nhập mật khẩu.", passwordField);
         } else {
             // Màn hình đăng nhập hiện chưa kết nối xác thực; mở dashboard với tài khoản đã nhập.
-            new MainFrame(username).setVisible(true);
+            new ManHinhChinhFrame(username).setVisible(true);
             dispose();
         }
         // Xóa bản sao mật khẩu khỏi bộ nhớ sau khi xử lý.
@@ -378,7 +378,7 @@ public final class LoginFrame extends JFrame {
             } catch (Exception exception) {
                 System.err.println("Không thể áp dụng giao diện hệ điều hành: " + exception.getMessage());
             }
-            new LoginFrame().setVisible(true);
+            new DangNhapFrame().setVisible(true);
         });
     }
 }

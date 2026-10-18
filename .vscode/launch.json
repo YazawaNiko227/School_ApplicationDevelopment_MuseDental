@@ -5,7 +5,7 @@
             "type": "java",
             "name": "Run Muse Dental",
             "request": "launch",
-            "mainClass": "gui.LoginFrame",
+            "mainClass": "gui.DangNhapFrame",
             "classPaths": [
                 "${workspaceFolder}/out",
                 "${workspaceFolder}/lib/*"

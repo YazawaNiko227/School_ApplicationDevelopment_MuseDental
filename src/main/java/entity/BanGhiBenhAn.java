@@ -2,7 +2,7 @@ package entity;
 
 import java.time.LocalDate;
 
-public class EMRRecord {
+public class BanGhiBenhAn {
     private String maHoSo;
     private String maChanDoan;
     private String maBenhNhan;
@@ -14,10 +14,10 @@ public class EMRRecord {
     private String trieuChung;
     private String ketLuanChanDoan;
 
-    public EMRRecord() {
+    public BanGhiBenhAn() {
     }
 
-    public EMRRecord(String maHoSo, String maChanDoan, String maBenhNhan, String tenBenhNhan,
+    public BanGhiBenhAn(String maHoSo, String maChanDoan, String maBenhNhan, String tenBenhNhan,
             LocalDate ngayKham, String maNhaSi, String tenNhaSi,
             String lyDoKham, String trieuChung, String ketLuanChanDoan) {
         this.maHoSo = maHoSo;
@@ -114,6 +114,6 @@ public class EMRRecord {
 
     @Override
     public String toString() {
-        return "EMRRecord{" + maChanDoan + ", " + maHoSo + ", " + tenBenhNhan + ", " + ngayKham + "}";
+        return "BanGhiBenhAn{" + maChanDoan + ", " + maHoSo + ", " + tenBenhNhan + ", " + ngayKham + "}";
     }
 }

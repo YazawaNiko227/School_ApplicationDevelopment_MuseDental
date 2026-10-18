@@ -4,7 +4,7 @@ import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 
-public class KhoThuocPanel extends JPanel {
+public class QuanLyKhoThuocPanel extends JPanel {
 
     // Component tầng trên (Tồn kho)
     private JTabbedPane tabbedPane;
@@ -22,7 +22,7 @@ public class KhoThuocPanel extends JPanel {
     private JButton btnThemDong, btnLuuPhieu, btnHuyBo;
     private JLabel lblTongTien;
 
-    public KhoThuocPanel() {
+    public QuanLyKhoThuocPanel() {
         setLayout(new BorderLayout(5, 5));
         setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
@@ -150,12 +150,12 @@ public class KhoThuocPanel extends JPanel {
     // frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
     // frame.setSize(1100, 700);
     // frame.setLocationRelativeTo(null);
-    // frame.add(new KhoThuocPanel());
+    // frame.add(new QuanLyKhoThuocPanel());
     // frame.setVisible(true);
     // }
 
     // lệnh terminal để chạy test giao diện nhanh:
-    // javac -encoding UTF-8 -d out src/main/java/gui/KhoThuocPanel.java
-    // java -cp out gui.KhoThuocPanel
+    // javac -encoding UTF-8 -d out src/main/java/gui/QuanLyKhoThuocPanel.java
+    // java -cp out gui.QuanLyKhoThuocPanel
 
 }

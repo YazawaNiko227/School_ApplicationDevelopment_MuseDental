@@ -36,7 +36,7 @@ import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableCellRenderer;
 
 
-public final class RoomPreparationPanel extends JPanel {
+public final class ChuanBiPhongKhamPanel extends JPanel {
     private static final Color INK = new Color(32, 53, 68);
     private static final Color MUTED = new Color(119, 139, 151);
     private static final Color TEAL = new Color(26, 151, 151);
@@ -45,7 +45,7 @@ public final class RoomPreparationPanel extends JPanel {
     private static final Color WARNING = new Color(177, 125, 47);
     private static final Color SELECTED_BG = new Color(231, 246, 245);
 
-    // Mã nhân viên lập phiếu xuất; khi có đăng nhập thật thì truyền vào từ MainFrame.
+    // Mã nhân viên lập phiếu xuất; khi có đăng nhập thật thì truyền vào từ ManHinhChinhFrame.
     private static final String DEFAULT_NHAN_VIEN = "NV001";
 
     private static final String[] STATUS_LABELS = {
@@ -103,7 +103,7 @@ public final class RoomPreparationPanel extends JPanel {
         }
     };
 
-    public RoomPreparationPanel() {
+    public ChuanBiPhongKhamPanel() {
         setLayout(new BorderLayout(20, 0));
         setOpaque(false);
         loadSampleData();

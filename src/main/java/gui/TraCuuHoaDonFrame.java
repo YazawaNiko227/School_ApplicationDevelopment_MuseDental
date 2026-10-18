@@ -34,7 +34,7 @@ import javax.swing.SwingUtilities;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 
-public class InvokeLookupPanel extends JFrame implements ActionListener, MouseListener {
+public class TraCuuHoaDonFrame extends JFrame implements ActionListener, MouseListener {
     private static final long serialVersionUID = 1L;
 
     private JTextField txtMaHD, txtNgayLap, txtMaBN, txtTenBN, txtMaNV, txtTongTien;
@@ -54,7 +54,7 @@ public class InvokeLookupPanel extends JFrame implements ActionListener, MouseLi
     private final DecimalFormat df = new DecimalFormat("#,##0 VNĐ");
     private final DecimalFormat dfRaw = new DecimalFormat("#,##0");
 
-    public InvokeLookupPanel() {
+    public TraCuuHoaDonFrame() {
         setTitle("Tra Cứu Hóa Đơn / Giao Dịch - Muse Dental");
         setSize(1220, 720);
         setResizable(true);

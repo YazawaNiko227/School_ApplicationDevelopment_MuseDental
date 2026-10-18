@@ -33,14 +33,14 @@ import javax.swing.table.JTableHeader;
 import javax.swing.table.TableRowSorter;
 
 /**
- * PatientSearchPanel là giao diện tra cứu hồ sơ bệnh nhân theo các trường dữ liệu chính của hệ thống.
+ * TimKiemBenhNhanPanel là giao diện tra cứu hồ sơ bệnh nhân theo các trường dữ liệu chính của hệ thống.
  *
  * Panel này có nhiệm vụ hiển thị danh sách bệnh nhân, cho phép nhập từ khóa tìm kiếm, lọc theo
  * nhiều trường như mã bệnh nhân, tên, số điện thoại hoặc CCCD, và mở chi tiết hồ sơ bằng nhấp đúp.
- * Nó tạo thành một module độc lập có thể được nhúng trực tiếp vào `MainFrame` mà không cần mở màn hình
+ * Nó tạo thành một module độc lập có thể được nhúng trực tiếp vào `ManHinhChinhFrame` mà không cần mở màn hình
  * riêng biệt, giúp người dùng tìm kiếm nhanh và thao tác liền mạch trên cùng một workspace.
  */
-public final class PatientSearchPanel extends JPanel {
+public final class TimKiemBenhNhanPanel extends JPanel {
     // Bảng màu dùng chung cho chữ, nút và đường viền của màn hình.
     private static final Color INK = new Color(32, 53, 68);
     private static final Color MUTED = new Color(119, 139, 151);
@@ -68,7 +68,7 @@ public final class PatientSearchPanel extends JPanel {
      * Khi được render lần đầu, panel sẽ nạp toàn bộ dữ liệu mẫu và hiển thị ngay cho người dùng,
      * giúp kiểm tra UI mà không cần kết nối backend hoặc database.
      */
-    public PatientSearchPanel() {
+    public TimKiemBenhNhanPanel() {
         setLayout(new BorderLayout(0, 18));
         setBackground(new Color(244, 248, 249));
         setBorder(new EmptyBorder(0, 0, 0, 0));

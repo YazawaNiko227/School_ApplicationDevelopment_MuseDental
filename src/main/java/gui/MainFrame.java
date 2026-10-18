@@ -290,14 +290,31 @@ public final class MainFrame extends JFrame {
                 } else if ("Tìm hồ sơ nhân viên".equals(item)) {
                     showEmployeeSearch();
                     /* end trinhKiet */
+                } else if ("Hồ sơ bệnh nhân".equals(item)) {
+                    showPatientSearch();
+                } else if ("Hồ sơ nhân viên".equals(item)) {
+                    showEmployeeSearch();
+                } else if ("Hồ sơ bệnh án điện tử EMR".equals(item)) {
+                    showEMRSearch();
                 } else if ("Đặt lịch hẹn khám và nhắc lịch".equals(item)) {
                     showAppointmentManagement();
                 } else if ("Tìm hồ sơ bệnh án EMR".equals(item)) {
                     showEMRSearch();
                 } else if ("Chuẩn bị dụng cụ và cập nhật trạng thái phòng".equals(item)) {
                     showRoomPreparationPanel();
-                }
-                    else {
+                } else if ("Tiếp đón và check-in".equals(item)
+                        || "Dashboard điều phối phòng khám".equals(item)) {
+                    showClinicDashboard(item);
+                } else if ("Dashboard phân công ca trực Y tá".equals(item)
+                        || "Lịch làm việc cá nhân và báo bận".equals(item)
+                        || "Phân công lịch làm việc và ca trực".equals(item)) {
+                    showNurseShiftDashboard(item);
+                } else if ("Thuốc và vật tư y tế".equals(item)
+                        || "Tra cứu tồn kho thuốc / dụng cụ".equals(item)) {
+                    showMedicineInventory(item);
+                } else if ("Tra cứu hóa đơn / giao dịch".equals(item)) {
+                    showInvoiceLookup();
+                } else {
                     showModule(item, title);
                 }
             });
@@ -494,51 +511,81 @@ public final class MainFrame extends JFrame {
      * tiếp.
      */
     private void showPatientSearch() {
-        pageTitle.setText("Tìm hồ sơ bệnh nhân");
-        pageDescription.setText("Tra cứu theo mã bệnh nhân, họ tên, số điện thoại hoặc CCCD");
-        contentPanel.removeAll();
-        contentPanel.add(new PatientSearchPanel(), BorderLayout.CENTER);
-        contentPanel.revalidate();
-        contentPanel.repaint();
+        showContentPanel(
+                "Tìm hồ sơ bệnh nhân",
+                "Tra cứu theo mã bệnh nhân, họ tên, số điện thoại hoặc CCCD",
+                new PatientSearchPanel());
     }
 
     // Mở màn hình tạo và theo dõi lịch hẹn khám.
     private void showAppointmentManagement() {
-        pageTitle.setText("Đặt lịch hẹn khám và nhắc lịch");
-        pageDescription.setText("Quản lý lịch hẹn, trạng thái xác nhận và nhắc lịch bệnh nhân");
-        contentPanel.removeAll();
-        contentPanel.add(new AppointmentPanel(), BorderLayout.CENTER);
-        contentPanel.revalidate();
-        contentPanel.repaint();
+        showContentPanel(
+                "Đặt lịch hẹn khám và nhắc lịch",
+                "Quản lý lịch hẹn, trạng thái xác nhận và nhắc lịch bệnh nhân",
+                new AppointmentPanel());
     }
 
     /* trinhKiet */
     private void showEmployeeSearch() {
-        pageTitle.setText("Tìm hồ sơ nhân viên");
-        pageDescription.setText("Tra cứu theo mã nhân viên, họ tên, chức vụ hoặc số điện thoại");
-        contentPanel.removeAll();
-        contentPanel.add(new EmployeeSearchPanel(), BorderLayout.CENTER);
-        contentPanel.revalidate();
-        contentPanel.repaint();
+        showContentPanel(
+                "Tìm hồ sơ nhân viên",
+                "Tra cứu theo mã nhân viên, họ tên, chức vụ hoặc số điện thoại",
+                new EmployeeSearchPanel());
     }
 
     // Mở màn hình tra cứu bệnh án điện tử EMR trong vùng nội dung chính.
     private void showEMRSearch() {
-        pageTitle.setText("Tra cứu hồ sơ bệnh án");
-        pageDescription.setText("Tìm kiếm lần khám, chẩn đoán và nội dung bệnh án điện tử");
+        showContentPanel(
+                "Tra cứu hồ sơ bệnh án",
+                "Tìm kiếm lần khám, chẩn đoán và nội dung bệnh án điện tử",
+                new EMRSearchPanel());
+    }
+
+    // Hiển thị bảng theo dõi tiếp đón, hàng chờ và trạng thái các phòng khám.
+    private void showClinicDashboard(String menuTitle) {
+        showContentPanel(
+                menuTitle,
+                "Theo dõi tiếp đón, hàng chờ bệnh nhân và tình trạng phòng",
+                new ClinicDashboardPanel());
+    }
+
+    // Mở bảng ca trực và lịch làm việc nhân viên y tế.
+    private void showNurseShiftDashboard(String menuTitle) {
+        showContentPanel(
+                menuTitle,
+                "Theo dõi, lọc và phân công ca trực nhân viên",
+                new NurseShiftDashboardPanel());
+    }
+
+    // Mở quản lý tồn kho và phiếu nhập thuốc, vật tư y tế.
+    private void showMedicineInventory(String menuTitle) {
+        showContentPanel(
+                menuTitle,
+                "Tra cứu tồn kho và lập phiếu nhập thuốc, vật tư",
+                new KhoThuocPanel());
+    }
+
+    // Màn hình hóa đơn hiện được thiết kế thành cửa sổ riêng, nên mở JFrame độc lập.
+    private void showInvoiceLookup() {
+        new InvokeLookupPanel().setVisible(true);
+    }
+
+    // Thay nội dung trung tâm bằng một panel nghiệp vụ và đồng bộ tiêu đề trang.
+    private void showContentPanel(String title, String description, JPanel panel) {
+        pageTitle.setText(title);
+        pageDescription.setText(description);
         contentPanel.removeAll();
-        contentPanel.add(new EMRSearchPanel(), BorderLayout.CENTER);
+        contentPanel.add(panel, BorderLayout.CENTER);
         contentPanel.revalidate();
         contentPanel.repaint();
     }
 
 
     private void showRoomPreparationPanel() {
-        pageTitle.setText("Chuẩn bị dụng cụ và cập nhật trạng thái phòng");
-        contentPanel.removeAll();
-        contentPanel.add(new RoomPreparationPanel(), BorderLayout.CENTER);
-        contentPanel.revalidate();
-        contentPanel.repaint();
+        showContentPanel(
+                "Chuẩn bị dụng cụ và cập nhật trạng thái phòng",
+                "Chuẩn bị dụng cụ và cập nhật trạng thái sử dụng của phòng",
+                new RoomPreparationPanel());
     }
 
     /**

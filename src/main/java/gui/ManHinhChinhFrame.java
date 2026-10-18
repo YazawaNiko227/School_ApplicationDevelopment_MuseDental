@@ -284,7 +284,11 @@ public final class ManHinhChinhFrame extends JFrame {
             itemButton.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
             itemButton.addActionListener(event -> {
                 setSelectedNavigationButton(itemButton);
-                if ("Tìm hồ sơ bệnh nhân".equals(item)) {
+                if ("Đổi mật khẩu".equals(item)) {
+                    showPasswordChange();
+                } else if ("Phân quyền hệ thống RBAC".equals(item)) {
+                    showRolePermissions();
+                } else if ("Tìm hồ sơ bệnh nhân".equals(item)) {
                     showPatientSearch();
                     /* trinhKiet */
                 } else if ("Tìm hồ sơ nhân viên".equals(item)) {
@@ -586,6 +590,22 @@ public final class ManHinhChinhFrame extends JFrame {
                 "Chuẩn bị dụng cụ và cập nhật trạng thái phòng",
                 "Chuẩn bị dụng cụ và cập nhật trạng thái sử dụng của phòng",
                 new ChuanBiPhongKhamPanel());
+    }
+
+    // Mở biểu mẫu đổi mật khẩu cho tài khoản đang đăng nhập.
+    private void showPasswordChange() {
+        showContentPanel(
+                "Đổi mật khẩu",
+                "Thay đổi mật khẩu cho tài khoản " + username,
+                new DoiMatKhauPanel(username));
+    }
+
+    // Mở ma trận quyền truy cập theo vai trò người dùng.
+    private void showRolePermissions() {
+        showContentPanel(
+                "Phân quyền hệ thống RBAC",
+                "Xem và cấu hình quyền theo vai trò người dùng",
+                new PhanQuyenRbacPanel());
     }
 
     /**

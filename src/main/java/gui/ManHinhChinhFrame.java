@@ -565,9 +565,12 @@ public final class ManHinhChinhFrame extends JFrame {
                 new QuanLyKhoThuocPanel());
     }
 
-    // Màn hình hóa đơn hiện được thiết kế thành cửa sổ riêng, nên mở JFrame độc lập.
+    // Hiển thị chức năng tra cứu hóa đơn trong vùng nội dung chính.
     private void showInvoiceLookup() {
-        new TraCuuHoaDonFrame().setVisible(true);
+        showContentPanel(
+                "Tra cứu hóa đơn / giao dịch",
+                "Tìm kiếm hóa đơn và xem thông tin giao dịch",
+                new TraCuuHoaDonPanel());
     }
 
     // Thay nội dung trung tâm bằng một panel nghiệp vụ và đồng bộ tiêu đề trang.

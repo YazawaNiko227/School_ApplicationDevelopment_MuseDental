@@ -4,10 +4,12 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Cursor;
 import java.awt.Dimension;
+import java.awt.Dialog;
 import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.GridLayout;
 import java.awt.Rectangle;
+import java.awt.Window;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
@@ -22,7 +24,6 @@ import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JDialog;
-import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
@@ -34,7 +35,7 @@ import javax.swing.SwingUtilities;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 
-public class TraCuuHoaDonFrame extends JFrame implements ActionListener, MouseListener {
+public class TraCuuHoaDonPanel extends JPanel implements ActionListener, MouseListener {
     private static final long serialVersionUID = 1L;
 
     private JTextField txtMaHD, txtNgayLap, txtMaBN, txtTenBN, txtMaNV, txtTongTien;
@@ -54,12 +55,7 @@ public class TraCuuHoaDonFrame extends JFrame implements ActionListener, MouseLi
     private final DecimalFormat df = new DecimalFormat("#,##0 VNĐ");
     private final DecimalFormat dfRaw = new DecimalFormat("#,##0");
 
-    public TraCuuHoaDonFrame() {
-        setTitle("Tra Cứu Hóa Đơn / Giao Dịch - Muse Dental");
-        setSize(1220, 720);
-        setResizable(true);
-        setLocationRelativeTo(null);
-        setDefaultCloseOperation(DISPOSE_ON_CLOSE);
+    public TraCuuHoaDonPanel() {
         createGUI();
     }
 
@@ -244,7 +240,8 @@ public class TraCuuHoaDonFrame extends JFrame implements ActionListener, MouseLi
         pMain.add(Box.createVerticalStrut(6));
         pMain.add(pDuoi);
 
-        add(pMain);
+        setLayout(new BorderLayout());
+        add(new JScrollPane(pMain), BorderLayout.CENTER);
 
         btnTimKiem.addActionListener(this);
         btnXemChiTiet.addActionListener(this);
@@ -428,7 +425,11 @@ public class TraCuuHoaDonFrame extends JFrame implements ActionListener, MouseLi
         String tt = table.getValueAt(row, 6).toString();
         String tongTien = table.getValueAt(row, 7).toString();
 
-        JDialog dialog = new JDialog(this, "Chi tiết hóa đơn & Lịch sử giao dịch: " + maHD, true);
+        Window owner = SwingUtilities.getWindowAncestor(this);
+        JDialog dialog = new JDialog(
+                owner,
+                "Chi tiết hóa đơn & Lịch sử giao dịch: " + maHD,
+                Dialog.ModalityType.APPLICATION_MODAL);
         dialog.setSize(860, 560);
         dialog.setLocationRelativeTo(this);
         dialog.setLayout(new BorderLayout(10, 10));
@@ -545,7 +546,11 @@ public class TraCuuHoaDonFrame extends JFrame implements ActionListener, MouseLi
     }
 
     private void hienThiBangChonNgay(JTextField targetTxt) {
-        JDialog dlgCalendar = new JDialog(this, "Bảng chọn ngày, tháng, năm", true);
+        Window owner = SwingUtilities.getWindowAncestor(this);
+        JDialog dlgCalendar = new JDialog(
+                owner,
+                "Bảng chọn ngày, tháng, năm",
+                Dialog.ModalityType.APPLICATION_MODAL);
         dlgCalendar.setSize(390, 360);
         dlgCalendar.setLocationRelativeTo(this);
         dlgCalendar.setLayout(new BorderLayout(8, 8));

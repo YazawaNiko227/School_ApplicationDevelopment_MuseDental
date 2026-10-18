@@ -170,9 +170,11 @@ public class EMRSearchPanel extends JPanel {
         button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         button.setPreferredSize(new Dimension(110, 36));
         button.setOpaque(true);
-        button.setBackground(Color.BLACK);
-        button.setForeground(Color.BLACK);
-        button.setBorder(BorderFactory.createLineBorder(LINE));
+        button.setBackground(primary ? SELECT_BG : Color.WHITE);
+        button.setForeground(primary ? TEAL : INK);
+        button.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(primary ? SELECT_BG : LINE),
+                new EmptyBorder(0, 10, 0, 10)));
         return button;
     }
 

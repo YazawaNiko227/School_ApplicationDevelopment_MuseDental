@@ -5,26 +5,24 @@
 
 package gui;
 
+import java.awt.BasicStroke;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.FontMetrics;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.GridLayout;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.GridBagLayout;
+import java.awt.GridLayout;
 import java.awt.RenderingHints;
-import java.awt.BasicStroke;
 import java.awt.event.ActionEvent;
 import java.net.URL;
 import java.text.Normalizer;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.Locale;
-
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
@@ -294,13 +292,12 @@ public final class MainFrame extends JFrame {
                     /* end trinhKiet */
                 } else if ("Đặt lịch hẹn khám và nhắc lịch".equals(item)) {
                     showAppointmentManagement();
-                } else if ("Tra cứu hóa đơn / giao dịch".equals(item)) {
-                    showInvoiceLookup();
-                } else if ("Tra cứu hồ sơ bệnh án".equals(item)) {
+                } else if ("Tìm hồ sơ bệnh án EMR".equals(item)) {
                     showEMRSearch();
-                } else if ("Dashboard điều phối phòng khám".equals(item)) {
-                    showClinicDashboard();
-                } else {
+                } else if ("Chuẩn bị dụng cụ và cập nhật trạng thái phòng".equals(item)) {
+                    showRoomPreparationPanel();
+                }
+                    else {
                     showModule(item, title);
                 }
             });
@@ -525,15 +522,6 @@ public final class MainFrame extends JFrame {
         contentPanel.repaint();
     }
 
-    private void showInvoiceLookup() {
-        pageTitle.setText("Tra cứu hóa đơn / giao dịch");
-        pageDescription.setText("Theo dõi hóa đơn, phương thức thanh toán và lịch sử giao dịch điều trị");
-        contentPanel.removeAll();
-        contentPanel.add(new InvokeLookupPanel().getMainPanel(), BorderLayout.CENTER);
-        contentPanel.revalidate();
-        contentPanel.repaint();
-    }
-
     // Mở màn hình tra cứu bệnh án điện tử EMR trong vùng nội dung chính.
     private void showEMRSearch() {
         pageTitle.setText("Tra cứu hồ sơ bệnh án");
@@ -544,12 +532,11 @@ public final class MainFrame extends JFrame {
         contentPanel.repaint();
     }
 
-    // Mở màn hình điều phối phòng khám: trạng thái phòng, hàng chờ, nha sĩ trực ca.
-    private void showClinicDashboard() {
-        pageTitle.setText("Dashboard điều phối phòng khám");
-        pageDescription.setText("Theo dõi trạng thái phòng khám, hàng chờ bệnh nhân và ca trực nha sĩ");
+
+    private void showRoomPreparationPanel() {
+        pageTitle.setText("Chuẩn bị dụng cụ và cập nhật trạng thái phòng");
         contentPanel.removeAll();
-        contentPanel.add(new ClinicDashboardPanel(), BorderLayout.CENTER);
+        contentPanel.add(new RoomPreparationPanel(), BorderLayout.CENTER);
         contentPanel.revalidate();
         contentPanel.repaint();
     }

@@ -296,8 +296,9 @@ public final class MainFrame extends JFrame {
                     showEMRSearch();
                 } else if ("Chuẩn bị dụng cụ và cập nhật trạng thái phòng".equals(item)) {
                     showRoomPreparationPanel();
-                }
-                    else {
+                } else if ("Báo cáo doanh thu".equals(item))
+                    showRevenueReportPanel();
+                else {
                     showModule(item, title);
                 }
             });
@@ -532,11 +533,18 @@ public final class MainFrame extends JFrame {
         contentPanel.repaint();
     }
 
-
     private void showRoomPreparationPanel() {
         pageTitle.setText("Chuẩn bị dụng cụ và cập nhật trạng thái phòng");
         contentPanel.removeAll();
         contentPanel.add(new RoomPreparationPanel(), BorderLayout.CENTER);
+        contentPanel.revalidate();
+        contentPanel.repaint();
+    }
+
+    private void showRevenueReportPanel() {
+        pageTitle.setText("Báo cáo doanh thu");
+        contentPanel.removeAll();
+        contentPanel.add(new RevenueReportPanel(), BorderLayout.CENTER);
         contentPanel.revalidate();
         contentPanel.repaint();
     }

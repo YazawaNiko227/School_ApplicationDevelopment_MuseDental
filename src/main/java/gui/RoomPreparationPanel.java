@@ -1,4 +1,4 @@
-package gui;
+package gui; /*Võ Thành Tài */
 
 import entity.ChiTietXuatKho;
 import entity.PhieuXuatKho;

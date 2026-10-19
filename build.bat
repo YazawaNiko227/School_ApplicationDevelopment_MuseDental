@@ -9,7 +9,9 @@ if errorlevel 1 (
 )
 
 if not exist out mkdir out
-javac -encoding UTF-8 -sourcepath src\main\java -d out src\main\java\gui\LoginFrame.java src\main\java\gui\MainFrame.java src\main\java\gui\PatientSearchPanel.java src\main\java\gui\EmployeeSearchPanel.java src\main\java\gui\AppointmentPanel.java src\main\java\gui\EMRSearchPanel.java
+
+javac -encoding UTF-8 -cp "lib/*" -sourcepath src\main\java -d out src\main\java\gui\LoginFrame.java src\main\java\gui\MainFrame.java src\main\java\gui\PatientSearchPanel.java src\main\java\gui\EmployeeSearchPanel.java src\main\java\gui\AppointmentPanel.java src\main\java\gui\EMRSearchPanel.java
+
 if errorlevel 1 exit /b %errorlevel%
 
 xcopy /E /I /Y "src\main\resources\*" "out\" >nul

@@ -3,13 +3,14 @@
     "configurations": [
         {
             "type": "java",
-            "name": "Run Muse Dental",
+            "name": "Muse Dental",
             "request": "launch",
             "mainClass": "gui.LoginFrame",
             "classPaths": [
-                "${workspaceFolder}/out"
-            ],
-            "preLaunchTask": "Build Muse Dental"
+                "$Auto",
+                "${workspaceFolder}/out",
+                "${workspaceFolder}/lib/jcalendar-1.4.jar"
+            ]
         }
     ]
 }

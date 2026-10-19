@@ -96,7 +96,8 @@ public class InvokeLookupPanel extends JFrame implements ActionListener, MouseLi
 
         Font labelFont = new Font("Arial", Font.PLAIN, 12);
         Color labelColor = new Color(32, 53, 68);
-        for (JLabel label : new JLabel[] { lbMaHD, lbNgayLap, lbMaBN, lbTenBN, lbMaNV, lbPhuongThuc, lbTrangThai, lbTongTien }) {
+        for (JLabel label : new JLabel[] { lbMaHD, lbNgayLap, lbMaBN, lbTenBN, lbMaNV, lbPhuongThuc, lbTrangThai,
+                lbTongTien }) {
             label.setFont(labelFont);
             label.setForeground(labelColor);
         }
@@ -376,14 +377,23 @@ public class InvokeLookupPanel extends JFrame implements ActionListener, MouseLi
             String rowTong = String.valueOf(modelTable.getValueAt(i, 7));
 
             boolean match = true;
-            if (!maHD.isEmpty() && !rowMaHD.contains(maHD)) match = false;
-            if (!ngayLap.isEmpty() && !rowNgay.equals(ngayLap)) match = false;
-            if (!maBN.isEmpty() && !rowMaBN.contains(maBN)) match = false;
-            if (!tenBN.isEmpty() && !rowTenBN.contains(tenBN)) match = false;
-            if (!maNV.isEmpty() && !rowMaNV.contains(maNV)) match = false;
-            if (!pt.isEmpty() && !pt.equals("") && !rowPt.equals(pt)) match = false;
-            if (!tt.isEmpty() && !tt.equals("") && !rowTt.equals(tt)) match = false;
-            if (!txtTongTien.getText().trim().isEmpty() && !rowTong.contains(txtTongTien.getText().trim().replace(".", ""))) match = false;
+            if (!maHD.isEmpty() && !rowMaHD.contains(maHD))
+                match = false;
+            if (!ngayLap.isEmpty() && !rowNgay.equals(ngayLap))
+                match = false;
+            if (!maBN.isEmpty() && !rowMaBN.contains(maBN))
+                match = false;
+            if (!tenBN.isEmpty() && !rowTenBN.contains(tenBN))
+                match = false;
+            if (!maNV.isEmpty() && !rowMaNV.contains(maNV))
+                match = false;
+            if (!pt.isEmpty() && !pt.equals("") && !rowPt.equals(pt))
+                match = false;
+            if (!tt.isEmpty() && !tt.equals("") && !rowTt.equals(tt))
+                match = false;
+            if (!txtTongTien.getText().trim().isEmpty()
+                    && !rowTong.contains(txtTongTien.getText().trim().replace(".", "")))
+                match = false;
 
             if (match) {
                 filteredModel.addRow(new Object[] {
@@ -400,7 +410,11 @@ public class InvokeLookupPanel extends JFrame implements ActionListener, MouseLi
         }
 
         table.setModel(filteredModel);
-        table.getColumnModel().getColumn(7).setCellRenderer(new DefaultTableCellRenderer() {{ setHorizontalAlignment(JLabel.RIGHT); }});
+        table.getColumnModel().getColumn(7).setCellRenderer(new DefaultTableCellRenderer() {
+            {
+                setHorizontalAlignment(JLabel.RIGHT);
+            }
+        });
         table.getTableHeader().setFont(new Font("Arial", Font.BOLD, 12));
         table.setRowHeight(28);
 
@@ -472,7 +486,8 @@ public class InvokeLookupPanel extends JFrame implements ActionListener, MouseLi
 
         JPanel pBottom = new JPanel(new BorderLayout());
         pBottom.setBackground(Color.WHITE);
-        JLabel lbTong = new JLabel("TỔNG GIÁ TRỊ HÓA ĐƠN: " + df.format(Double.parseDouble(tongTien.replace(",", ""))) + "   ");
+        JLabel lbTong = new JLabel(
+                "TỔNG GIÁ TRỊ HÓA ĐƠN: " + df.format(Double.parseDouble(tongTien.replace(",", ""))) + "   ");
         lbTong.setFont(new Font("Arial", Font.BOLD, 14));
         lbTong.setForeground(new Color(26, 151, 151));
 
@@ -713,7 +728,8 @@ public class InvokeLookupPanel extends JFrame implements ActionListener, MouseLi
         String ngayLap = txtNgayLap.getText().trim();
         String maBN = txtMaBN.getText().trim();
         String maNV = txtMaNV.getText().trim();
-        String tongTienStr = txtTongTien.getText().trim().replace(",", "").replace(".", "").replace(" VNĐ", "").replace("VND", "");
+        String tongTienStr = txtTongTien.getText().trim().replace(",", "").replace(".", "").replace(" VNĐ", "")
+                .replace("VND", "");
 
         if (maHD.length() > 0 && !maHD.matches("(?i)HD\\d{3}")) {
             showMessage("Error: Mã hóa đơn phải theo mẫu: HDxxx (ví dụ: HD001)", txtMaHD);

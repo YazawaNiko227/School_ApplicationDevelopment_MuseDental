@@ -1,6 +1,5 @@
-package gui;
+package gui; /*Võ Thành Tài */
 
-import entity.EMRRecord;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Cursor;
@@ -8,8 +7,9 @@ import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
 import java.time.LocalDate;
+import java.util.Date;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
 import javax.swing.BorderFactory;
@@ -30,6 +30,8 @@ import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.JTableHeader;
 
+import com.toedter.calendar.JDateChooser;
+import entity.EMRRecord;
 
 public class EMRSearchPanel extends JPanel {
     private static final Color INK = new Color(32, 53, 68);
@@ -50,8 +52,8 @@ public class EMRSearchPanel extends JPanel {
 
     private final JTextField keywordField = new JTextField();
     private final JComboBox<String> dentistCombo = new JComboBox<>();
-    private final JTextField fromDateField = new JTextField();
-    private final JTextField toDateField = new JTextField();
+    private final JDateChooser fromDateField = new JDateChooser();
+    private final JDateChooser toDateField = new JDateChooser();
 
     private final DefaultTableModel tableModel = new DefaultTableModel(COLUMNS, 0) {
         @Override
@@ -101,9 +103,11 @@ public class EMRSearchPanel extends JPanel {
         styleField(keywordField, 260);
         keywordField.setToolTipText("Mã hồ sơ, mã chẩn đoán, mã/tên bệnh nhân, lý do khám, kết luận...");
         styleCombo(dentistCombo, 190);
-        styleField(fromDateField, 110);
+
+        fromDateField.setPreferredSize(new Dimension(190, 36));
+        toDateField.setPreferredSize(new Dimension(190, 36));
+
         fromDateField.setToolTipText("Định dạng dd/MM/yyyy");
-        styleField(toDateField, 110);
         toDateField.setToolTipText("Định dạng dd/MM/yyyy");
 
         row.add(createLabeledField("Từ khóa", keywordField));
@@ -119,8 +123,8 @@ public class EMRSearchPanel extends JPanel {
         searchButton.addActionListener(event -> applyFilter());
         resetButton.addActionListener(event -> resetFilter());
         keywordField.addActionListener(event -> applyFilter());
-        fromDateField.addActionListener(event -> applyFilter());
-        toDateField.addActionListener(event -> applyFilter());
+        fromDateField.getDateEditor().addPropertyChangeListener("date", event -> applyFilter());
+        toDateField.getDateEditor().addPropertyChangeListener("date", event -> applyFilter());
         buttons.add(searchButton);
         buttons.add(resetButton);
 
@@ -325,18 +329,24 @@ public class EMRSearchPanel extends JPanel {
         }
     }
 
+    private LocalDate toLocalDate(Date date) {
+        if (date == null) {
+            return null;
+        }
+
+        return date.toInstant()
+                .atZone(ZoneId.systemDefault())
+                .toLocalDate();
+    }
+
     private void applyFilter() {
-        LocalDate from = parseDate(fromDateField.getText(), "Từ ngày");
-        LocalDate to = parseDate(toDateField.getText(), "Đến ngày");
-        if (from == null && !fromDateField.getText().trim().isEmpty()) {
-            return;
-        }
-        if (to == null && !toDateField.getText().trim().isEmpty()) {
-            return;
-        }
+        LocalDate from = toLocalDate(fromDateField.getDate());
+        LocalDate to = toLocalDate(toDateField.getDate());
         if (from != null && to != null && from.isAfter(to)) {
-            JOptionPane.showMessageDialog(this, "Ngày bắt đầu không được sau ngày kết thúc.",
-                    "Khoảng ngày không hợp lệ", JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(this,
+                    "Ngày bắt đầu không được sau ngày kết thúc.",
+                    "Khoảng ngày không hợp lệ",
+                    JOptionPane.WARNING_MESSAGE);
             return;
         }
 
@@ -385,26 +395,11 @@ public class EMRSearchPanel extends JPanel {
         return haystack.contains(keyword);
     }
 
-    private LocalDate parseDate(String text, String fieldName) {
-        String trimmed = text == null ? "" : text.trim();
-        if (trimmed.isEmpty()) {
-            return null;
-        }
-        try {
-            return LocalDate.parse(trimmed, DATE_FORMAT);
-        } catch (DateTimeParseException exception) {
-            JOptionPane.showMessageDialog(this,
-                    fieldName + " không đúng định dạng dd/MM/yyyy (ví dụ 25/09/2026).",
-                    "Ngày không hợp lệ", JOptionPane.WARNING_MESSAGE);
-            return null;
-        }
-    }
-
     private void resetFilter() {
         keywordField.setText("");
         dentistCombo.setSelectedIndex(0);
-        fromDateField.setText("");
-        toDateField.setText("");
+        fromDateField.setDate(null);
+        toDateField.setDate(null);
         applyFilter();
     }
 

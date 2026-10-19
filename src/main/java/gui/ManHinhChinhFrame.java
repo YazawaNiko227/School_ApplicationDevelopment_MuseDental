@@ -322,7 +322,10 @@ public final class ManHinhChinhFrame extends JFrame {
                 } else if ("Công nợ và trả góp theo đợt".equals(item)) {
                     showDebtInstallment();
                     /* end trinhKiet */
-
+                } else if ("Lập hóa đơn".equals(item)) {
+                    showLapHoaDon();
+                } else if ("Khám lâm sàng và sơ đồ răng".equals(item)) {
+                    showKhamLamSangVaSoDoRang();
                 } else {
                     showModule(item, title);
                 }
@@ -633,6 +636,20 @@ public final class ManHinhChinhFrame extends JFrame {
         contentPanel.add(new CongNoTraGopPanel(), BorderLayout.CENTER);
         contentPanel.revalidate();
         contentPanel.repaint();
+    }
+
+    private void showLapHoaDon() {
+        showContentPanel(
+                "Lập hóa đơn",
+                "Lập hóa đơn điều trị, tính tiền dịch vụ & đơn thuốc, ghi nhận thanh toán",
+                new LapHoaDonPanel());
+    }
+
+    private void showKhamLamSangVaSoDoRang() {
+        showContentPanel(
+                "Khám lâm sàng và sơ đồ răng",
+                "Ghi nhận triệu chứng lâm sàng, chẩn đoán bệnh lý và trực quan hóa sơ đồ răng",
+                new KhamLamSangVaSoDoRangPanel());
     }
 
     /* end trinhKiet */

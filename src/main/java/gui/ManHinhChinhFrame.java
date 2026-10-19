@@ -40,7 +40,8 @@ import javax.swing.UIManager;
 import javax.swing.border.EmptyBorder;
 
 /**
- * ManHinhChinhFrame là màn hình chính của hệ thống quản lý phòng khám Muse Dental.
+ * ManHinhChinhFrame là màn hình chính của hệ thống quản lý phòng khám Muse
+ * Dental.
  *
  * Giao diện này chứa ba phần cốt lõi: thanh điều hướng bên trái để chọn chức
  * năng,
@@ -314,9 +315,18 @@ public final class ManHinhChinhFrame extends JFrame {
                     showMedicineInventory(item);
                 } else if ("Tra cứu hóa đơn / giao dịch".equals(item)) {
                     showInvoiceLookup();
+
+                    /* trinhKiet */
+                } else if ("Ghi nhận vật tư tiêu hao".equals(item)) {
+                    showGhiNhanVatTu();
+                } else if ("Công nợ và trả góp theo đợt".equals(item)) {
+                    showDebtInstallment();
+                    /* end trinhKiet */
+
                 } else {
                     showModule(item, title);
                 }
+
             });
             itemPanel.add(itemButton);
         }
@@ -583,7 +593,6 @@ public final class ManHinhChinhFrame extends JFrame {
         contentPanel.repaint();
     }
 
-
     private void showRoomPreparationPanel() {
         showContentPanel(
                 "Chuẩn bị dụng cụ và cập nhật trạng thái phòng",
@@ -607,6 +616,26 @@ public final class ManHinhChinhFrame extends JFrame {
                 new PhanQuyenRbacPanel());
     }
 
+    /* trinhKiet */
+    private void showGhiNhanVatTu() {
+        pageTitle.setText("Ghi nhận vật tư tiêu hao");
+        pageDescription.setText("Theo dõi xuất dùng vật tư y tế, vật liệu tiêu hao tại từng phòng khám");
+        contentPanel.removeAll();
+        contentPanel.add(new GhiNhanVatTuTieuHaoPanel(), BorderLayout.CENTER);
+        contentPanel.revalidate();
+        contentPanel.repaint();
+    }
+
+    private void showDebtInstallment() {
+        pageTitle.setText("Công nợ và trả góp theo đợt");
+        pageDescription.setText("Quản lý hồ sơ trả góp, kỳ hạn thanh toán và nhắc nợ bệnh nhân");
+        contentPanel.removeAll();
+        contentPanel.add(new CongNoTraGopPanel(), BorderLayout.CENTER);
+        contentPanel.revalidate();
+        contentPanel.repaint();
+    }
+
+    /* end trinhKiet */
     /**
      * Kết hợp các thành phần chính của dashboard thành một bố cục thống nhất.
      * Nội dung gồm lời chào, các thẻ thống kê tổng quan và bảng lịch hẹn sắp tới

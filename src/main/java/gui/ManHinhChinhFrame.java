@@ -306,10 +306,20 @@ public final class ManHinhChinhFrame extends JFrame {
                 } else if ("Tiếp đón và check-in".equals(item)
                         || "Dashboard điều phối phòng khám".equals(item)) {
                     showClinicDashboard(item);
+                    /* vy */
+                } else if ("Kê đơn thuốc điện tử".equals(item)) {
+                    showPrescriptionPanel();
+                } else if ("Phác đồ điều trị và dự toán chi phí".equals(item)) {
+                    showTreatmentPlanPanel();
+                    /* end vy */
                 } else if ("Dashboard phân công ca trực Y tá".equals(item)
                         || "Lịch làm việc cá nhân và báo bận".equals(item)
                         || "Phân công lịch làm việc và ca trực".equals(item)) {
                     showNurseShiftDashboard(item);
+                    /* vy */
+                } else if ("Lịch làm việc cá nhân và báo bận".equals(item)) {
+                    showTimKiemLichLamViecCaNhanVaBaoBan();
+                    /* end vy */
                 } else if ("Thuốc và vật tư y tế".equals(item)
                         || "Tra cứu tồn kho thuốc / dụng cụ".equals(item)) {
                     showMedicineInventory(item);
@@ -541,6 +551,30 @@ public final class ManHinhChinhFrame extends JFrame {
                 "Tìm hồ sơ nhân viên",
                 "Tra cứu theo mã nhân viên, họ tên, chức vụ hoặc số điện thoại",
                 new TimKiemNhanVienPanel());
+    }
+
+    /* Vy */
+    private void showTimKiemLichLamViecCaNhanVaBaoBan() {
+        showContentPanel(
+                "Lịch làm việc cá nhân và báo bận",
+                "Theo dõi lịch trực hàng tuần, quản lý bệnh nhân hẹn khám và gửi yêu cầu xin nghỉ đột xuất",
+                new TimKiemLichLamViecCaNhanVaBaoBan());
+    }
+
+    /* Vy */
+    private void showPrescriptionPanel() {
+        showContentPanel(
+                "Kê đơn thuốc điện tử",
+                "Lập, kiểm tra và phát hành đơn thuốc điện tử cho bệnh nhân (UC013)",
+                new KeDonThuocDienTu());
+    }
+
+    /* Vy */
+    private void showTreatmentPlanPanel() {
+        showContentPanel(
+                "Phác đồ điều trị và dự toán chi phí",
+                "Lập kế hoạch điều trị đa đợt, dự toán chi phí và hẹn lịch tái khám",
+                new PhacDoDieuTriVaDuToanChiPhi());
     }
 
     // Mở màn hình tra cứu bệnh án điện tử EMR trong vùng nội dung chính.

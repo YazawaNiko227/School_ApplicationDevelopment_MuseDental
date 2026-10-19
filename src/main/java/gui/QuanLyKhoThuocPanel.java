@@ -3,159 +3,178 @@ package gui;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Date;
 
 public class QuanLyKhoThuocPanel extends JPanel {
 
-    // Component tầng trên (Tồn kho)
-    private JTabbedPane tabbedPane;
-    private JTextField txtTimKiemVatTu;
-    private JComboBox<String> cbLoaiVatTu;
-    private JButton btnTimKiem, btnLapPhieuNhapMoi;
-    private JTable tableTonKho;
-    private DefaultTableModel modelTonKho;
+        // Component tầng trên (Tồn kho)
+        private JTabbedPane tabbedPane;
+        private JTextField txtTimKiemVatTu;
+        private JComboBox<String> cbLoaiVatTu;
+        private JButton btnTimKiem, btnLapPhieuNhapMoi;
+        private JTable tableTonKho;
+        private DefaultTableModel modelTonKho;
 
-    // Component tầng dưới (Lập phiếu nhập kho)
-    private JComboBox<String> cbNhaCungCap;
-    private JTextField txtSoHD, txtNgayNhap;
-    private JTable tableNhapKho;
-    private DefaultTableModel modelNhapKho;
-    private JButton btnThemDong, btnLuuPhieu, btnHuyBo;
-    private JLabel lblTongTien;
+        // Component tầng dưới (Lập phiếu nhập kho)
+        private JComboBox<String> cbNhaCungCap;
+        private JTextField txtSoHD;
+        private JSpinner spinnerNgayNhap; // Đã đổi thành JSpinner
+        private JTable tableNhapKho;
+        private DefaultTableModel modelNhapKho;
+        private JButton btnThemDong, btnLuuPhieu, btnHuyBo;
+        private JLabel lblTongTien;
 
-    public QuanLyKhoThuocPanel() {
-        setLayout(new BorderLayout(5, 5));
-        setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        public QuanLyKhoThuocPanel() {
+                setLayout(new BorderLayout(5, 5));
+                setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+                // Đặt font mặc định cho toàn bộ Panel để hiển thị tốt tiếng Việt
+                setFont(new Font("Segoe UI", Font.PLAIN, 14));
 
-        // ----------------------------------------------------
-        // 1. TIÊU ĐỀ CHÍNH
-        // ----------------------------------------------------
-        JLabel lblHeader = new JLabel("Quan ly Kho thuoc & Vat tu Y te");
-        lblHeader.setFont(new Font("Arial", Font.BOLD, 18));
-        add(lblHeader, BorderLayout.NORTH);
+                // ----------------------------------------------------
+                // 1. TIÊU ĐỀ CHÍNH
+                // ----------------------------------------------------
+                JLabel lblHeader = new JLabel("Quản lý Kho thuốc & Vật tư Y tế");
+                lblHeader.setFont(new Font("Arial", Font.BOLD, 18));
+                lblHeader.setForeground(new Color(0, 102, 204)); // Thêm màu cho đẹp
+                add(lblHeader, BorderLayout.NORTH);
 
-        // Tạo Panel chính chứa cả 2 phần (dùng JSplitPane để co giãn 2 phần trên/dưới)
-        JSplitPane mainSplitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT);
-        mainSplitPane.setResizeWeight(0.5);
+                JSplitPane mainSplitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT);
+                mainSplitPane.setResizeWeight(0.5);
 
-        // ----------------------------------------------------
-        // 2. TẦNG TRÊN: TAB & BẢNG TỒN KHO THỜI GIAN THỰC
-        // ----------------------------------------------------
-        JPanel panelTopContainer = new JPanel(new BorderLayout(5, 5));
-        tabbedPane = new JTabbedPane();
+                // ----------------------------------------------------
+                // 2. TẦNG TRÊN: TAB & BẢNG TỒN KHO THỜI GIAN THỰC
+                // ----------------------------------------------------
+                JPanel panelTopContainer = new JPanel(new BorderLayout(5, 5));
+                tabbedPane = new JTabbedPane();
 
-        JPanel panelTonKho = new JPanel(new BorderLayout(5, 5));
+                JPanel panelTonKho = new JPanel(new BorderLayout(5, 5));
 
-        // 2.1 Thanh lọc & Tìm kiếm (Filter Bar)
-        JPanel pnlFilter = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 5));
-        pnlFilter.add(new JLabel("Tim kiem vat tu"));
-        txtTimKiemVatTu = new JTextField("Ten vat tu, hoat chat...", 15);
-        pnlFilter.add(txtTimKiemVatTu);
+                // 2.1 Thanh lọc & Tìm kiếm (Filter Bar)
+                JPanel pnlFilter = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 5));
+                pnlFilter.add(new JLabel("Tìm kiếm vật tư:"));
+                txtTimKiemVatTu = new JTextField("Tên vật tư, hoạt chất...", 15);
+                pnlFilter.add(txtTimKiemVatTu);
 
-        pnlFilter.add(new JLabel("Loai vat tu:"));
-        cbLoaiVatTu = new JComboBox<>(new String[] { "Tat ca", "Thuoc", "Vat tu y te" });
-        pnlFilter.add(cbLoaiVatTu);
+                pnlFilter.add(new JLabel("Loại vật tư:"));
+                cbLoaiVatTu = new JComboBox<>(new String[] { "Tất cả", "Thuốc", "Vật tư y tế" });
+                pnlFilter.add(cbLoaiVatTu);
 
-        btnTimKiem = new JButton("Tim kiem");
-        btnLapPhieuNhapMoi = new JButton("+ Lap phieu nhap kho moi");
-        pnlFilter.add(btnTimKiem);
-        pnlFilter.add(btnLapPhieuNhapMoi);
+                btnTimKiem = new JButton("Tìm kiếm");
+                btnLapPhieuNhapMoi = new JButton("+ Lập phiếu nhập kho mới");
+                pnlFilter.add(btnTimKiem);
+                pnlFilter.add(btnLapPhieuNhapMoi);
 
-        panelTonKho.add(pnlFilter, BorderLayout.NORTH);
+                panelTonKho.add(pnlFilter, BorderLayout.NORTH);
 
-        // 2.2 Bảng dữ liệu Tồn kho
-        String[] colsTonKho = { "Ten vat tu", "Don vi", "SL ton", "Nguong toi thieu", "Han su dung", "Nha CC",
-                "Trang thai", "Thao tac" };
-        Object[][] dataTonKho = {
-                { "Kim tiem 25G", "Cai", "850", "200", "12/2027", "Cty A", "OK", "Xem chi tiet" },
-                { "Bong gac vo trung", "Goi", "320", "100", "06/2027", "Cty B", "OK", "Xem chi tiet" },
-                { "Gang tay khong bot (M)", "Doi", "95", "200", "09/2026", "Cty A", "! CANH BAO THAP", "Xem chi tiet" },
-                { "Composite A2", "Tuyp", "12", "20", "03/2027", "Cty C", "! CANH BAO THAP", "Xem chi tiet" },
-                { "Thuoc te NaCl 0.9%", "Chai", "450", "50", "08/2027", "Cty D", "OK", "Xem chi tiet" },
-                { "Cao xu nieng rang (lot)", "Tui", "8", "30", "01/2027", "Cty C", "! CANH BAO THAP", "Xem chi tiet" },
-                { "Mask y te 3 lop", "Cai", "1200", "500", "05/2028", "Cty B", "OK", "Xem chi tiet" }
-        };
-        modelTonKho = new DefaultTableModel(dataTonKho, colsTonKho);
-        tableTonKho = new JTable(modelTonKho);
-        panelTonKho.add(new JScrollPane(tableTonKho), BorderLayout.CENTER);
+                // 2.2 Bảng dữ liệu Tồn kho
+                String[] colsTonKho = { "Tên vật tư", "Đơn vị", "SL tồn", "Ngưỡng tối thiểu", "Hạn sử dụng", "Nhà CC",
+                                "Trạng thái", "Thao tác" };
+                Object[][] dataTonKho = {
+                                { "Kim tiêm 25G", "Cái", "850", "200", "12/2027", "Cty A", "OK", "Xem chi tiết" },
+                                { "Bông gạc vô trùng", "Gói", "320", "100", "06/2027", "Cty B", "OK", "Xem chi tiết" },
+                                { "Găng tay không bột (M)", "Đôi", "95", "200", "09/2026", "Cty A", "! CẢNH BÁO THẤP",
+                                                "Xem chi tiết" },
+                                { "Composite A2", "Tuýp", "12", "20", "03/2027", "Cty C", "! CẢNH BÁO THẤP",
+                                                "Xem chi tiết" },
+                                { "Thuốc tê NaCl 0.9%", "Chai", "450", "50", "08/2027", "Cty D", "OK", "Xem chi tiết" },
+                                { "Cao xu niềng răng (lọt)", "Túi", "8", "30", "01/2027", "Cty C", "! CẢNH BÁO THẤP",
+                                                "Xem chi tiết" },
+                                { "Mask y tế 3 lớp", "Cái", "1200", "500", "05/2028", "Cty B", "OK", "Xem chi tiết" }
+                };
+                modelTonKho = new DefaultTableModel(dataTonKho, colsTonKho);
+                tableTonKho = new JTable(modelTonKho);
+                panelTonKho.add(new JScrollPane(tableTonKho), BorderLayout.CENTER);
 
-        // Add vào TabbedPane
-        tabbedPane.addTab("Ton kho thoi gian thuc", panelTonKho);
-        tabbedPane.addTab("Nhap kho", new JPanel());
-        tabbedPane.addTab("Kiem ke & Dieu chinh", new JPanel());
-        tabbedPane.addTab("Nhat ky lich su", new JPanel());
+                // Add vào TabbedPane
+                tabbedPane.addTab("Tồn kho thời gian thực", panelTonKho);
+                tabbedPane.addTab("Nhập kho", new JPanel());
+                tabbedPane.addTab("Kiểm kê & Điều chỉnh", new JPanel());
+                tabbedPane.addTab("Nhật ký lịch sử", new JPanel());
 
-        panelTopContainer.add(tabbedPane, BorderLayout.CENTER);
+                panelTopContainer.add(tabbedPane, BorderLayout.CENTER);
 
-        // ----------------------------------------------------
-        // 3. TẦNG DƯỚI: LẬP PHIẾU NHẬP KHO TỪ NHÀ CUNG CẤP
-        // ----------------------------------------------------
-        JPanel panelBottomContainer = new JPanel(new BorderLayout(5, 5));
-        panelBottomContainer.setBorder(BorderFactory.createTitledBorder("LAP PHIEU NHAP KHO TU NHA CUNG CAP"));
+                // ----------------------------------------------------
+                // 3. TẦNG DƯỚI: LẬP PHIẾU NHẬP KHO TỪ NHÀ CUNG CẤP
+                // ----------------------------------------------------
+                JPanel panelBottomContainer = new JPanel(new BorderLayout(5, 5));
+                panelBottomContainer.setBorder(BorderFactory.createTitledBorder("LẬP PHIẾU NHẬP KHO TỪ NHÀ CUNG CẤP"));
 
-        // 3.1 Form thông tin nhà cung cấp & hóa đơn
-        JPanel pnlPhieuHeader = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 5));
-        pnlPhieuHeader.add(new JLabel("Nha cung cap:"));
-        cbNhaCungCap = new JComboBox<>(new String[] { "Cty TNHH Y te A", "Cty B", "Cty C" });
-        pnlPhieuHeader.add(cbNhaCungCap);
+                // 3.1 Form thông tin nhà cung cấp & hóa đơn
+                JPanel pnlPhieuHeader = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 5));
+                pnlPhieuHeader.add(new JLabel("Nhà cung cấp:"));
+                cbNhaCungCap = new JComboBox<>(new String[] { "Cty TNHH Y tế A", "Cty B", "Cty C" });
+                pnlPhieuHeader.add(cbNhaCungCap);
 
-        pnlPhieuHeader.add(new JLabel("So HD/PO:"));
-        txtSoHD = new JTextField("PO2026-0089", 10);
-        pnlPhieuHeader.add(txtSoHD);
+                pnlPhieuHeader.add(new JLabel("Số HĐ/PO:"));
+                txtSoHD = new JTextField("PO2026-0089", 10);
+                pnlPhieuHeader.add(txtSoHD);
 
-        pnlPhieuHeader.add(new JLabel("Ngay nhap:"));
-        txtNgayNhap = new JTextField("27/09/2026", 8);
-        pnlPhieuHeader.add(txtNgayNhap);
+                pnlPhieuHeader.add(new JLabel("Ngày nhập:"));
 
-        panelBottomContainer.add(pnlPhieuHeader, BorderLayout.NORTH);
+                // --- SỬ DỤNG JSPINNER ĐỂ CHỌN NGÀY ---
+                spinnerNgayNhap = new JSpinner(new SpinnerDateModel());
+                JSpinner.DateEditor dateEditor = new JSpinner.DateEditor(spinnerNgayNhap, "dd/MM/yyyy");
+                spinnerNgayNhap.setEditor(dateEditor);
+                spinnerNgayNhap.setValue(new Date()); // Set mặc định là ngày hôm nay
+                pnlPhieuHeader.add(spinnerNgayNhap);
 
-        // 3.2 Bảng chi tiết mặt hàng nhập kho
-        String[] colsNhapKho = { "Ten vat tu", "Don vi", "So luong nhap", "Don gia nhap", "Thanh tien", "Han SD",
-                "Xoa" };
-        Object[][] dataNhapKho = {
-                { "Gang tay khong bot (M)", "Doi", "500", "3.500 VND", "1.750.000 VND", "09/2027", "true" },
-                { "Composite A2", "Tuyp", "30", "45.000 VND", "1.350.000 VND", "12/2027", "true" }
-        };
-        modelNhapKho = new DefaultTableModel(dataNhapKho, colsNhapKho);
-        tableNhapKho = new JTable(modelNhapKho);
-        panelBottomContainer.add(new JScrollPane(tableNhapKho), BorderLayout.CENTER);
+                panelBottomContainer.add(pnlPhieuHeader, BorderLayout.NORTH);
 
-        // 3.3 Bottom Action Bar (Footer)
-        JPanel pnlFooter = new JPanel(new BorderLayout());
-        btnThemDong = new JButton("+ Them dong vat tu");
-        pnlFooter.add(btnThemDong, BorderLayout.WEST);
+                // 3.2 Bảng chi tiết mặt hàng nhập kho
+                String[] colsNhapKho = { "Tên vật tư", "Đơn vị", "Số lượng nhập", "Đơn giá nhập", "Thành tiền",
+                                "Hạn SD",
+                                "Xóa" };
+                Object[][] dataNhapKho = {
+                                { "Găng tay không bột (M)", "Đôi", "500", "3.500 VND", "1.750.000 VND", "09/2027",
+                                                "true" },
+                                { "Composite A2", "Tuýp", "30", "45.000 VND", "1.350.000 VND", "12/2027", "true" }
+                };
+                modelNhapKho = new DefaultTableModel(dataNhapKho, colsNhapKho);
+                tableNhapKho = new JTable(modelNhapKho);
+                panelBottomContainer.add(new JScrollPane(tableNhapKho), BorderLayout.CENTER);
 
-        JPanel pnlRightFooter = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 5));
-        lblTongTien = new JLabel("Tong tien: 3.100.000 VND  ");
-        lblTongTien.setFont(new Font("Arial", Font.BOLD, 13));
-        btnLuuPhieu = new JButton("Luu phieu");
-        btnHuyBo = new JButton("Huy bo");
+                // 3.3 Bottom Action Bar (Footer)
+                JPanel pnlFooter = new JPanel(new BorderLayout());
+                btnThemDong = new JButton("+ Thêm dòng vật tư");
+                pnlFooter.add(btnThemDong, BorderLayout.WEST);
 
-        pnlRightFooter.add(lblTongTien);
-        pnlRightFooter.add(btnLuuPhieu);
-        pnlRightFooter.add(btnHuyBo);
+                JPanel pnlRightFooter = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 5));
+                lblTongTien = new JLabel("Tổng tiền: 3.100.000 VND  ");
+                lblTongTien.setFont(new Font("Arial", Font.BOLD, 14));
+                lblTongTien.setForeground(Color.RED);
+                btnLuuPhieu = new JButton("Lưu phiếu");
+                btnHuyBo = new JButton("Hủy bỏ");
 
-        pnlFooter.add(pnlRightFooter, BorderLayout.EAST);
-        panelBottomContainer.add(pnlFooter, BorderLayout.SOUTH);
+                pnlRightFooter.add(lblTongTien);
+                pnlRightFooter.add(btnLuuPhieu);
+                pnlRightFooter.add(btnHuyBo);
 
-        // Add 2 phần vào SplitPane
-        mainSplitPane.setTopComponent(panelTopContainer);
-        mainSplitPane.setBottomComponent(panelBottomContainer);
+                pnlFooter.add(pnlRightFooter, BorderLayout.EAST);
+                panelBottomContainer.add(pnlFooter, BorderLayout.SOUTH);
 
-        add(mainSplitPane, BorderLayout.CENTER);
-    }
+                // Add 2 phần vào SplitPane
+                mainSplitPane.setTopComponent(panelTopContainer);
+                mainSplitPane.setBottomComponent(panelBottomContainer);
 
-    // // Hàm main test độc lập nhanh giao diện
-    // public static void main(String[] args) {
-    // JFrame frame = new JFrame("Test Kho Thuoc & Vat Tu Y Te");
-    // frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-    // frame.setSize(1100, 700);
-    // frame.setLocationRelativeTo(null);
-    // frame.add(new QuanLyKhoThuocPanel());
-    // frame.setVisible(true);
-    // }
+                add(mainSplitPane, BorderLayout.CENTER);
+        }
 
-    // lệnh terminal để chạy test giao diện nhanh:
-    // javac -encoding UTF-8 -d out src/main/java/gui/QuanLyKhoThuocPanel.java
-    // java -cp out gui.QuanLyKhoThuocPanel
+        // Hàm main test độc lập nhanh giao diện (Đã mở comment)
+        public static void main(String[] args) {
+                // Cài đặt Look and Feel cho giống hệ điều hành (giúp UI đẹp hơn)
+                try {
+                        UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+                } catch (Exception e) {
+                        e.printStackTrace();
+                }
 
+                JFrame frame = new JFrame("Test Kho Thuốc & Vật Tư Y Tế");
+                frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+                frame.setSize(1100, 700);
+                frame.setLocationRelativeTo(null);
+                frame.add(new QuanLyKhoThuocPanel());
+                frame.setVisible(true);
+        }
 }

@@ -1,6 +1,5 @@
 /*
     Người làm phần này: Tran thanh nhut
-   1
 */
 
 package gui;
@@ -20,7 +19,7 @@ import javax.swing.border.*;
 import javax.swing.table.*;
 
 /**
- * ClinicDashboardPanel — Màn hình điều phối phòng khám.
+ * DieuPhoiPhongKhamPanel — Màn hình điều phối phòng khám.
  *
  * Giao diện này cho phép nhân viên lễ tân / điều phối viên theo dõi
  * toàn bộ hoạt động phòng khám trong ngày theo thời gian thực:
@@ -30,7 +29,7 @@ import javax.swing.table.*;
  * · Các thống kê nhanh trong ngày (tổng lịch, đã hoàn thành, đang chờ…)
  * · Nút hành động nhanh: check-in, phân công phòng, cập nhật trạng thái
  */
-public final class ClinicDashboardPanel extends JPanel {
+public final class DieuPhoiPhongKhamPanel extends JPanel {
 
     // Bảng màu nhất quán với toàn ứng dụng
     private static final Color INK = new Color(32, 53, 68);
@@ -65,7 +64,7 @@ public final class ClinicDashboardPanel extends JPanel {
     private final JLabel inRoomLabel;
 
     // ─── Constructor ──────────────────────────────────────────────────────────
-    public ClinicDashboardPanel() {
+    public DieuPhoiPhongKhamPanel() {
         setLayout(new BorderLayout(0, 18));
         setOpaque(false);
 
@@ -526,7 +525,7 @@ public final class ClinicDashboardPanel extends JPanel {
             Container parent = getParent();
             if (parent == null)
                 return;
-            ClinicDashboardPanel fresh = new ClinicDashboardPanel();
+            DieuPhoiPhongKhamPanel fresh = new DieuPhoiPhongKhamPanel();
             fresh.rooms.clear();
             fresh.rooms.addAll(rooms);
             fresh.dentists.clear();
@@ -854,7 +853,7 @@ public final class ClinicDashboardPanel extends JPanel {
                         model.getValueAt(row, 2), model.getValueAt(row, 3),
                         model.getValueAt(row, 4), model.getValueAt(row, 5),
                         model.getValueAt(row, 1), model.getValueAt(row, 6));
-                JOptionPane.showMessageDialog(ClinicDashboardPanel.this, msg,
+                JOptionPane.showMessageDialog(DieuPhoiPhongKhamPanel.this, msg,
                         "Chi tiết lịch hẹn", JOptionPane.INFORMATION_MESSAGE);
                 fireEditingStopped();
             });

@@ -43,7 +43,7 @@ import javax.swing.table.JTableHeader;
 /**
  * Màn hình đặt lịch và theo dõi nhắc lịch, sử dụng dữ liệu demo trong bộ nhớ.
  */
-public final class AppointmentPanel extends JPanel {
+public final class DatLichHenPanel extends JPanel {
     private static final Color INK = new Color(32, 53, 68);
     private static final Color MUTED = new Color(102, 119, 130);
     private static final Color ACCENT = new Color(218, 241, 239);
@@ -70,7 +70,7 @@ public final class AppointmentPanel extends JPanel {
     };
     private final JTable appointmentTable = new JTable(tableModel);
 
-    public AppointmentPanel() {
+    public DatLichHenPanel() {
         setLayout(new BorderLayout(0, 16));
         setOpaque(false);
         add(createToolbar(), BorderLayout.NORTH);

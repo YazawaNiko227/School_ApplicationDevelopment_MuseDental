@@ -1,6 +1,7 @@
 package entity;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 public class HoaDon {
     private String maHoaDon;
@@ -9,19 +10,21 @@ public class HoaDon {
     private String phuongThucThanhToan;
     private String maNhanVien;
     private String maBenhNhan;
+    private String maChanDoan;
 
     public HoaDon() {
-        this.ngayLap = LocalDate.now();
         this.trangThaiThanhToan = "Chua thanh toan";
+        this.ngayLap = LocalDate.now();
     }
 
-    public HoaDon(String maHoaDon, LocalDate ngayLap, String trangThaiThanhToan, String phuongThucThanhToan, String maNhanVien, String maBenhNhan) {
+    public HoaDon(String maHoaDon, LocalDate ngayLap, String trangThaiThanhToan, String phuongThucThanhToan, String maNhanVien, String maBenhNhan, String maChanDoan) {
         setMaHoaDon(maHoaDon);
         setNgayLap(ngayLap);
         setTrangThaiThanhToan(trangThaiThanhToan);
         setPhuongThucThanhToan(phuongThucThanhToan);
         setMaNhanVien(maNhanVien);
         setMaBenhNhan(maBenhNhan);
+        setMaChanDoan(maChanDoan);
     }
 
     public String getMaHoaDon() {
@@ -29,8 +32,8 @@ public class HoaDon {
     }
 
     public void setMaHoaDon(String maHoaDon) {
-        if (maHoaDon == null) throw new IllegalArgumentException("MaHoaDon không được null.");
-        if (maHoaDon != null && maHoaDon.length() > 20) throw new IllegalArgumentException("MaHoaDon tối đa 20 ký tự.");
+        if (maHoaDon == null || maHoaDon.trim().isEmpty()) throw new IllegalArgumentException("maHoaDon không được để trống");
+        if (maHoaDon != null && maHoaDon.length() > 20) throw new IllegalArgumentException("maHoaDon tối đa 20 ký tự");
         this.maHoaDon = maHoaDon;
     }
 
@@ -39,7 +42,7 @@ public class HoaDon {
     }
 
     public void setNgayLap(LocalDate ngayLap) {
-        if (ngayLap == null) throw new IllegalArgumentException("NgayLap không được null.");
+        if (ngayLap == null) throw new IllegalArgumentException("ngayLap không được null");
         this.ngayLap = ngayLap;
     }
 
@@ -48,8 +51,8 @@ public class HoaDon {
     }
 
     public void setTrangThaiThanhToan(String trangThaiThanhToan) {
-        if (trangThaiThanhToan == null) throw new IllegalArgumentException("TrangThaiThanhToan không được null.");
-        if (trangThaiThanhToan != null && trangThaiThanhToan.length() > 30) throw new IllegalArgumentException("TrangThaiThanhToan tối đa 30 ký tự.");
+        if (trangThaiThanhToan == null || trangThaiThanhToan.trim().isEmpty()) throw new IllegalArgumentException("trangThaiThanhToan không được để trống");
+        if (trangThaiThanhToan != null && trangThaiThanhToan.length() > 30) throw new IllegalArgumentException("trangThaiThanhToan tối đa 30 ký tự");
         this.trangThaiThanhToan = trangThaiThanhToan;
     }
 
@@ -58,7 +61,7 @@ public class HoaDon {
     }
 
     public void setPhuongThucThanhToan(String phuongThucThanhToan) {
-        if (phuongThucThanhToan != null && phuongThucThanhToan.length() > 30) throw new IllegalArgumentException("PhuongThucThanhToan tối đa 30 ký tự.");
+        if (phuongThucThanhToan != null && phuongThucThanhToan.length() > 30) throw new IllegalArgumentException("phuongThucThanhToan tối đa 30 ký tự");
         this.phuongThucThanhToan = phuongThucThanhToan;
     }
 
@@ -67,8 +70,8 @@ public class HoaDon {
     }
 
     public void setMaNhanVien(String maNhanVien) {
-        if (maNhanVien == null) throw new IllegalArgumentException("MaNhanVien không được null.");
-        if (maNhanVien != null && maNhanVien.length() > 20) throw new IllegalArgumentException("MaNhanVien tối đa 20 ký tự.");
+        if (maNhanVien == null || maNhanVien.trim().isEmpty()) throw new IllegalArgumentException("maNhanVien không được để trống");
+        if (maNhanVien != null && maNhanVien.length() > 20) throw new IllegalArgumentException("maNhanVien tối đa 20 ký tự");
         this.maNhanVien = maNhanVien;
     }
 
@@ -77,9 +80,18 @@ public class HoaDon {
     }
 
     public void setMaBenhNhan(String maBenhNhan) {
-        if (maBenhNhan == null) throw new IllegalArgumentException("MaBenhNhan không được null.");
-        if (maBenhNhan != null && maBenhNhan.length() > 20) throw new IllegalArgumentException("MaBenhNhan tối đa 20 ký tự.");
+        if (maBenhNhan == null || maBenhNhan.trim().isEmpty()) throw new IllegalArgumentException("maBenhNhan không được để trống");
+        if (maBenhNhan != null && maBenhNhan.length() > 20) throw new IllegalArgumentException("maBenhNhan tối đa 20 ký tự");
         this.maBenhNhan = maBenhNhan;
+    }
+
+    public String getMaChanDoan() {
+        return maChanDoan;
+    }
+
+    public void setMaChanDoan(String maChanDoan) {
+        if (maChanDoan != null && maChanDoan.length() > 20) throw new IllegalArgumentException("maChanDoan tối đa 20 ký tự");
+        this.maChanDoan = maChanDoan;
     }
 
 }

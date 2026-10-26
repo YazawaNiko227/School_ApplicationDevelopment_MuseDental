@@ -1,6 +1,7 @@
 package entity;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 public class VatTu {
     private String maVatTu;
@@ -10,33 +11,20 @@ public class VatTu {
     private int soLuongTon;
     private int nguongToiThieu;
     private LocalDate hanSuDung;
+    private double donGiaBan;
 
     public VatTu() {
     }
 
-    public VatTu(String maVatTu, String tenVatTu, String loaiVatTu, String donViTinh,
-            int soLuongTon, int nguongToiThieu, LocalDate hanSuDung) {
-        this.maVatTu = maVatTu;
-        this.tenVatTu = tenVatTu;
-        this.loaiVatTu = loaiVatTu;
-        this.donViTinh = donViTinh;
-        this.soLuongTon = soLuongTon;
-        this.nguongToiThieu = nguongToiThieu;
-        this.hanSuDung = hanSuDung;
-    }
-
-    /** Tồn kho đã chạm hoặc thấp hơn ngưỡng tối thiểu. */
-    public boolean isSapHetHang() {
-        return soLuongTon <= nguongToiThieu;
-    }
-
-    public boolean isHetHan() {
-        return hanSuDung != null && hanSuDung.isBefore(LocalDate.now());
-    }
-
-    /** Còn hạn nhưng sẽ hết trong vòng 30 ngày tới. */
-    public boolean isSapHetHan() {
-        return hanSuDung != null && !isHetHan() && hanSuDung.isBefore(LocalDate.now().plusDays(30));
+    public VatTu(String maVatTu, String tenVatTu, String loaiVatTu, String donViTinh, int soLuongTon, int nguongToiThieu, LocalDate hanSuDung, double donGiaBan) {
+        setMaVatTu(maVatTu);
+        setTenVatTu(tenVatTu);
+        setLoaiVatTu(loaiVatTu);
+        setDonViTinh(donViTinh);
+        setSoLuongTon(soLuongTon);
+        setNguongToiThieu(nguongToiThieu);
+        setHanSuDung(hanSuDung);
+        setDonGiaBan(donGiaBan);
     }
 
     public String getMaVatTu() {
@@ -44,6 +32,8 @@ public class VatTu {
     }
 
     public void setMaVatTu(String maVatTu) {
+        if (maVatTu == null || maVatTu.trim().isEmpty()) throw new IllegalArgumentException("maVatTu không được để trống");
+        if (maVatTu != null && maVatTu.length() > 20) throw new IllegalArgumentException("maVatTu tối đa 20 ký tự");
         this.maVatTu = maVatTu;
     }
 
@@ -52,6 +42,8 @@ public class VatTu {
     }
 
     public void setTenVatTu(String tenVatTu) {
+        if (tenVatTu == null || tenVatTu.trim().isEmpty()) throw new IllegalArgumentException("tenVatTu không được để trống");
+        if (tenVatTu != null && tenVatTu.length() > 150) throw new IllegalArgumentException("tenVatTu tối đa 150 ký tự");
         this.tenVatTu = tenVatTu;
     }
 
@@ -60,6 +52,7 @@ public class VatTu {
     }
 
     public void setLoaiVatTu(String loaiVatTu) {
+        if (loaiVatTu != null && loaiVatTu.length() > 50) throw new IllegalArgumentException("loaiVatTu tối đa 50 ký tự");
         this.loaiVatTu = loaiVatTu;
     }
 
@@ -68,6 +61,7 @@ public class VatTu {
     }
 
     public void setDonViTinh(String donViTinh) {
+        if (donViTinh != null && donViTinh.length() > 20) throw new IllegalArgumentException("donViTinh tối đa 20 ký tự");
         this.donViTinh = donViTinh;
     }
 
@@ -76,6 +70,7 @@ public class VatTu {
     }
 
     public void setSoLuongTon(int soLuongTon) {
+        if (soLuongTon < 0) throw new IllegalArgumentException("soLuongTon phải >= 0");
         this.soLuongTon = soLuongTon;
     }
 
@@ -94,4 +89,15 @@ public class VatTu {
     public void setHanSuDung(LocalDate hanSuDung) {
         this.hanSuDung = hanSuDung;
     }
+
+    public double getDonGiaBan() {
+        return donGiaBan;
+    }
+
+    public void setDonGiaBan(double donGiaBan) {
+        if (donGiaBan < 0) throw new IllegalArgumentException("donGiaBan phải >= 0");
+        if (!Double.isFinite(donGiaBan)) throw new IllegalArgumentException("donGiaBan phải là số hữu hạn");
+        this.donGiaBan = donGiaBan;
+    }
+
 }

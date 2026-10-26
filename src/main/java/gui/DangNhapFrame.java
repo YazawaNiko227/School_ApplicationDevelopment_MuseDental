@@ -37,12 +37,17 @@ import javax.swing.UIManager;
 import javax.swing.border.EmptyBorder;
 import javax.swing.text.JTextComponent;
 
+import connectDB.ConnectDB;
+
 /**
  * DangNhapFrame là màn hình đăng nhập của ứng dụng Muse Dental.
  *
- * Nó tập trung vào trải nghiệm xác thực ban đầu: hiển thị hình ảnh giới thiệu ở một nửa màn hình,
- * còn nửa bên phải chứa các trường tên đăng nhập, mật khẩu, checkbox ghi nhớ và nút đăng nhập.
- * Sau khi người dùng nhập thông tin hợp lệ, màn hình này sẽ chuyển sang `ManHinhChinhFrame` để vào dashboard
+ * Nó tập trung vào trải nghiệm xác thực ban đầu: hiển thị hình ảnh giới thiệu ở
+ * một nửa màn hình,
+ * còn nửa bên phải chứa các trường tên đăng nhập, mật khẩu, checkbox ghi nhớ và
+ * nút đăng nhập.
+ * Sau khi người dùng nhập thông tin hợp lệ, màn hình này sẽ chuyển sang
+ * `ManHinhChinhFrame` để vào dashboard
  * chính của hệ thống phòng khám.
  */
 public final class DangNhapFrame extends JFrame {
@@ -71,7 +76,8 @@ public final class DangNhapFrame extends JFrame {
 
     /**
      * Tạo toàn bộ bố cục của màn hình đăng nhập.
-     * Đây là bước khởi tạo giao diện cho cả hai vùng: phần ảnh chào mừng ở trái và phần form đăng nhập
+     * Đây là bước khởi tạo giao diện cho cả hai vùng: phần ảnh chào mừng ở trái và
+     * phần form đăng nhập
      * ở phải, tạo cảm giác thẩm mỹ và đồng bộ với thiết kế hệ thống nha khoa.
      */
     private JPanel createContent() {
@@ -97,7 +103,8 @@ public final class DangNhapFrame extends JFrame {
 
     /**
      * Tải ảnh nền phía trái màn hình để tạo cảnh quan thương hiệu cho ứng dụng.
-     * Nếu resource không tồn tại, hệ thống sẽ ném lỗi ngay để lập trình viên biết asset chưa được
+     * Nếu resource không tồn tại, hệ thống sẽ ném lỗi ngay để lập trình viên biết
+     * asset chưa được
      * thêm vào `resources/images`, tránh lỗi giao diện ẩn ở runtime.
      */
     private JPanel createWelcomePanel() {
@@ -110,9 +117,11 @@ public final class DangNhapFrame extends JFrame {
     }
 
     /**
-     * Xây dựng form đăng nhập bao gồm tiêu đề, nhãn trường nhập liệu, nút hiển thị/ẩn mật khẩu,
+     * Xây dựng form đăng nhập bao gồm tiêu đề, nhãn trường nhập liệu, nút hiển
+     * thị/ẩn mật khẩu,
      * checkbox ghi nhớ và nút đăng nhập.
-     * Mỗi hàng trong layout được đặt theo thứ tự logic để người dùng thao tác theo luồng tự nhiên:
+     * Mỗi hàng trong layout được đặt theo thứ tự logic để người dùng thao tác theo
+     * luồng tự nhiên:
      * nhập username -> password -> lưu tùy chọn -> bấm đăng nhập.
      */
     private JPanel createLoginPanel() {
@@ -233,7 +242,8 @@ public final class DangNhapFrame extends JFrame {
 
     /**
      * Tạo nhãn cho từng trường thông tin nhập liệu như tên đăng nhập và mật khẩu.
-     * Hàm này giúp form có độ rõ ràng cao hơn và đồng bộ về kiểu chữ, khoảng cách và màu sắc.
+     * Hàm này giúp form có độ rõ ràng cao hơn và đồng bộ về kiểu chữ, khoảng cách
+     * và màu sắc.
      */
     private void addFieldLabel(JPanel panel, GridBagConstraints c, String text, int row) {
         JLabel label = new JLabel(text);
@@ -246,7 +256,8 @@ public final class DangNhapFrame extends JFrame {
 
     /**
      * Tạo khung nhập liệu dùng chung cho cả username và password.
-     * `icon` đặt ở đầu ô nhập để nhận diện trường, còn `trailing` dùng để chèn nút hành động như
+     * `icon` đặt ở đầu ô nhập để nhận diện trường, còn `trailing` dùng để chèn nút
+     * hành động như
      * "Hiện/Ẩn" cho mật khẩu mà không làm mất cấu trúc của form.
      */
     private JPanel createInputContainer(JTextComponent input, String icon, JComponent trailing) {
@@ -274,7 +285,8 @@ public final class DangNhapFrame extends JFrame {
 
     /**
      * Tạo nút đăng nhập với màu nổi bật và kích thước chuẩn để người dùng dễ bấm.
-     * Khi nhấn, nút sẽ gọi `submitLogin` để kiểm tra nội dung nhập và điều hướng sang dashboard.
+     * Khi nhấn, nút sẽ gọi `submitLogin` để kiểm tra nội dung nhập và điều hướng
+     * sang dashboard.
      */
     private JButton createLoginButton() {
         JButton button = new JButton("ĐĂNG NHẬP");
@@ -291,8 +303,10 @@ public final class DangNhapFrame extends JFrame {
 
     /**
      * Xử lý sự kiện đăng nhập khi người dùng bấm nút hoặc nhấn Enter.
-     * Hàm này kiểm tra tính hợp lệ của dữ liệu đầu vào trước khi cho phép chuyển sang màn hình chính.
-     * Ở phiên bản hiện tại, đây là bước xác thực sơ bộ trên UI; logic xác thực phía backend sẽ được bổ sung sau.
+     * Hàm này kiểm tra tính hợp lệ của dữ liệu đầu vào trước khi cho phép chuyển
+     * sang màn hình chính.
+     * Ở phiên bản hiện tại, đây là bước xác thực sơ bộ trên UI; logic xác thực phía
+     * backend sẽ được bổ sung sau.
      */
     private void submitLogin(ActionEvent event) {
         String username = usernameField.getText().trim();
@@ -304,7 +318,8 @@ public final class DangNhapFrame extends JFrame {
         } else if (password.length == 0) {
             showValidationMessage("Vui lòng nhập mật khẩu.", passwordField);
         } else {
-            // Màn hình đăng nhập hiện chưa kết nối xác thực; mở dashboard với tài khoản đã nhập.
+            // Màn hình đăng nhập hiện chưa kết nối xác thực; mở dashboard với tài khoản đã
+            // nhập.
             new ManHinhChinhFrame(username).setVisible(true);
             dispose();
         }
@@ -314,7 +329,8 @@ public final class DangNhapFrame extends JFrame {
 
     /**
      * Hiển thị hộp cảnh báo và đặt con trỏ vào trường đang thiếu dữ liệu.
-     * Cách làm này giúp người dùng biết chính xác trường nào chưa được nhập và sửa ngay trên màn hình
+     * Cách làm này giúp người dùng biết chính xác trường nào chưa được nhập và sửa
+     * ngay trên màn hình
      * mà không phải mất thời gian tìm kiếm lỗi trong toàn bộ form.
      */
     private void showValidationMessage(String message, JComponent field) {
@@ -324,7 +340,8 @@ public final class DangNhapFrame extends JFrame {
 
     /**
      * Hiển thị hướng dẫn hỗ trợ khi người dùng quên mật khẩu.
-     * Thay vì xử lý reset mật khẩu trực tiếp trong UI, hệ thống chỉ ra hướng liên hệ quản trị viên,
+     * Thay vì xử lý reset mật khẩu trực tiếp trong UI, hệ thống chỉ ra hướng liên
+     * hệ quản trị viên,
      * phù hợp với mô hình bảo mật và giúp giảm rủi ro truy cập trái phép.
      */
     private void showForgotPasswordMessage(ActionEvent event) {
@@ -371,12 +388,13 @@ public final class DangNhapFrame extends JFrame {
     }
 
     public static void main(String[] args) {
-        // Khởi tạo Swing trên Event Dispatch Thread để giao diện hoạt động an toàn.
         SwingUtilities.invokeLater(() -> {
             try {
                 UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-            } catch (Exception exception) {
-                System.err.println("Không thể áp dụng giao diện hệ điều hành: " + exception.getMessage());
+                ConnectDB.getInstance().connect();
+            } catch (Exception e) {
+                JOptionPane.showMessageDialog(null, "Không kết nối được CSDL:\n" + e.getMessage());
+                return;
             }
             new DangNhapFrame().setVisible(true);
         });

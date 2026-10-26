@@ -1,28 +1,18 @@
 package entity;
 
 public class PhongKham {
-    public static final String SAN_SANG = "San sang";
-    public static final String DANG_CHUAN_BI = "Dang chuan bi";
-    public static final String DANG_SU_DUNG = "Dang su dung";
-    public static final String DANG_VE_SINH = "Dang ve sinh";
-    public static final String BAO_TRI = "Bao tri";
-
-    public static final String[] CAC_TRANG_THAI = {
-            SAN_SANG, DANG_CHUAN_BI, DANG_SU_DUNG, DANG_VE_SINH, BAO_TRI
-    };
-
     private String maPhong;
     private String tenPhong;
     private String trangThai;
 
     public PhongKham() {
-        this.trangThai = SAN_SANG;
+        this.trangThai = "San sang";
     }
 
     public PhongKham(String maPhong, String tenPhong, String trangThai) {
-        this.maPhong = maPhong;
-        this.tenPhong = tenPhong;
-        this.trangThai = trangThai;
+        setMaPhong(maPhong);
+        setTenPhong(tenPhong);
+        setTrangThai(trangThai);
     }
 
     public String getMaPhong() {
@@ -30,6 +20,10 @@ public class PhongKham {
     }
 
     public void setMaPhong(String maPhong) {
+        if (maPhong == null || maPhong.trim().isEmpty())
+            throw new IllegalArgumentException("maPhong không được để trống");
+        if (maPhong != null && maPhong.length() > 20)
+            throw new IllegalArgumentException("maPhong tối đa 20 ký tự");
         this.maPhong = maPhong;
     }
 
@@ -38,6 +32,10 @@ public class PhongKham {
     }
 
     public void setTenPhong(String tenPhong) {
+        if (tenPhong == null || tenPhong.trim().isEmpty())
+            throw new IllegalArgumentException("tenPhong không được để trống");
+        if (tenPhong != null && tenPhong.length() > 100)
+            throw new IllegalArgumentException("tenPhong tối đa 100 ký tự");
         this.tenPhong = tenPhong;
     }
 
@@ -46,11 +44,14 @@ public class PhongKham {
     }
 
     public void setTrangThai(String trangThai) {
+        if (trangThai == null || trangThai.trim().isEmpty())
+            throw new IllegalArgumentException("trangThai không được để trống");
+        if (trangThai != null && trangThai.length() > 30)
+            throw new IllegalArgumentException("trangThai tối đa 30 ký tự");
+        if (!"San sang".equals(trangThai) && !"Dang kham".equals(trangThai) && !"Can ve sinh".equals(trangThai)
+                && !"Bao tri".equals(trangThai))
+            throw new IllegalArgumentException("trangThai không thuộc trạng thái hợp lệ");
         this.trangThai = trangThai;
     }
 
-    @Override
-    public String toString() {
-        return maPhong + " - " + tenPhong;
-    }
 }

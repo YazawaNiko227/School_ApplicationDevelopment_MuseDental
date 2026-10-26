@@ -23,7 +23,7 @@ import javax.swing.border.EmptyBorder;
 /**
  * Biểu mẫu đổi mật khẩu hiện tại; việc lưu cần được nối với dịch vụ xác thực.
  */
-public final class DoiMatKhauPanel extends JPanel {
+public final class HeThongDoiMatKhauPanel extends JPanel {
     private static final Color INK = new Color(32, 53, 68);
     private static final Color MUTED = new Color(102, 119, 130);
     private static final Color LINE = new Color(226, 234, 237);
@@ -35,7 +35,7 @@ public final class DoiMatKhauPanel extends JPanel {
     private final JPasswordField confirmPassword = new JPasswordField();
     private final JLabel feedback = new JLabel("Mật khẩu mới nên có ít nhất 8 ký tự.");
 
-    public DoiMatKhauPanel(String username) {
+    public HeThongDoiMatKhauPanel(String username) {
         this.username = username;
         setLayout(new BorderLayout());
         setOpaque(false);

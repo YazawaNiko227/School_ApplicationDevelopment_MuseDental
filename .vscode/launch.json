@@ -3,21 +3,20 @@
     "configurations": [
         {
             "type": "java",
-            "name": "ManHinhChinhFrame",
-            "request": "launch",
-            "mainClass": "gui.ManHinhChinhFrame",
-            "projectName": "School_ApplicationDevelopment_MuseDental_e7a1fd25"
-        },
-        {
-            "type": "java",
-            "name": "Run Muse Dental",
+            "name": "Muse Dental",
             "request": "launch",
             "mainClass": "gui.DangNhapFrame",
             "classPaths": [
+                "$Auto",
                 "${workspaceFolder}/out",
-                "${workspaceFolder}/lib/*"
+                "${workspaceFolder}/lib/jcalendar-1.4.jar",
+                "${workspaceFolder}/lib/pdfbox-app-3.0.8.jar",
+                "${workspaceFolder}/lib/mssql-jdbc-14.1.0.jre11-preview.jar"
             ],
-            "preLaunchTask": "Build Muse Dental"
+            "env": {
+                "MUSE_DB_USER": "sa",
+                "MUSE_DB_PASSWORD": "mat_khau_cua_ban"
+            }
         }
     ]
 }

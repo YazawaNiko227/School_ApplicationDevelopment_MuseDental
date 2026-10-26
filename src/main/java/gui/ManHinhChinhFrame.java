@@ -149,38 +149,34 @@ public final class ManHinhChinhFrame extends JFrame {
                 "Phân quyền hệ thống RBAC"
         });
         addCollapsibleSection(navigation, "DANH MỤC", new String[] {
-                "Hồ sơ nhân viên",
-                "Hồ sơ bệnh nhân",
-                "Thuốc và vật tư y tế",
-                "Danh mục dịch vụ và bảng giá"
+                "Quản lý nhân viên",
+                "Quản lý bệnh nhân",
+                "Quản lý thuốc",
+                "Quản lý vật tư y tế",
+                "Quản lý dịch vụ và bảng giá"
         });
         addCollapsibleSection(navigation, "CẬP NHẬT", new String[] {
-                "Tiếp đón và check-in",
-                "Hồ sơ bệnh án điện tử EMR",
                 "Kê đơn thuốc điện tử",
                 "Phác đồ điều trị và dự toán chi phí",
                 "Ghi nhận vật tư tiêu hao",
                 "Công nợ và trả góp theo đợt"
         });
         addCollapsibleSection(navigation, "TÌM KIẾM", new String[] {
-                "Tìm hồ sơ bệnh nhân",
-                "Tìm hồ sơ nhân viên",
                 "Tìm hồ sơ bệnh án EMR",
                 "Tra cứu hóa đơn / giao dịch",
-                "Tra cứu tồn kho thuốc / dụng cụ"
+                "Lịch làm việc cá nhân"
         });
         addCollapsibleSection(navigation, "XỬ LÝ", new String[] {
                 "Dashboard điều phối phòng khám",
-                "Lịch làm việc cá nhân và báo bận",
-                "Dashboard phân công ca trực Y tá",
+                "Đặt lịch hẹn khám",
                 "Chuẩn bị dụng cụ và cập nhật trạng thái phòng",
                 "Phân công lịch làm việc và ca trực",
-                "Lập hóa đơn",
                 "Khám lâm sàng và sơ đồ răng",
-                "Đặt lịch hẹn khám và nhắc lịch"
+                "Lập hóa đơn",
+
         });
         addCollapsibleSection(navigation, "THỐNG KÊ", new String[] {
-                "Báo cáo thống kê và KPI nha sĩ"
+                "Báo cáo doanh thu"
         });
         navigation.add(Box.createVerticalGlue());
 
@@ -285,57 +281,49 @@ public final class ManHinhChinhFrame extends JFrame {
                     showPasswordChange();
                 } else if ("Phân quyền hệ thống RBAC".equals(item)) {
                     showRolePermissions();
-                } else if ("Tìm hồ sơ bệnh nhân".equals(item)) {
+                } else if ("Quản lý nhân viên".equals(item)) {
+                    showQuanLyNhanVien();
+                } else if ("Quản lý bệnh nhân".equals(item)) {
                     showPatientSearch();
-                    /* trinhKiet */
-                } else if ("Tìm hồ sơ nhân viên".equals(item)) {
-                    showEmployeeSearch();
-                    /* end trinhKiet */
-                } else if ("Hồ sơ bệnh nhân".equals(item)) {
-                    showPatientSearch();
-                } else if ("Hồ sơ nhân viên".equals(item)) {
-                    showEmployeeSearch();
+                } else if ("Quản lý thuốc".equals(item)) {
+                    showMedicineInventory(item);
+                } else if ("Quản lý vật tư y tế".equals(item)) {
+                    showVatTuYTe();
+                } else if ("Quản lý dịch vụ và bảng giá".equals(item)) {
+                    showServiceManagement();
                 } else if ("Hồ sơ bệnh án điện tử EMR".equals(item)) {
                     showEMRSearch();
-                } else if ("Đặt lịch hẹn khám và nhắc lịch".equals(item)) {
-                    showAppointmentManagement();
-                } else if ("Tìm hồ sơ bệnh án EMR".equals(item)) {
-                    showEMRSearch();
-                } else if ("Chuẩn bị dụng cụ và cập nhật trạng thái phòng".equals(item)) {
-                    showRoomPreparationPanel();
-                } else if ("Tiếp đón và check-in".equals(item)
-                        || "Dashboard điều phối phòng khám".equals(item)) {
-                    showClinicDashboard(item);
-                    /* vy */
+
                 } else if ("Kê đơn thuốc điện tử".equals(item)) {
                     showPrescriptionPanel();
                 } else if ("Phác đồ điều trị và dự toán chi phí".equals(item)) {
                     showTreatmentPlanPanel();
-                    /* end vy */
-                } else if ("Dashboard phân công ca trực Y tá".equals(item)
-                        || "Lịch làm việc cá nhân và báo bận".equals(item)
-                        || "Phân công lịch làm việc và ca trực".equals(item)) {
-                    showNurseShiftDashboard(item);
-                    /* vy */
-                } else if ("Lịch làm việc cá nhân và báo bận".equals(item)) {
-                    showTimKiemLichLamViecCaNhanVaBaoBan();
-                    /* end vy */
-                } else if ("Thuốc và vật tư y tế".equals(item)
-                        || "Tra cứu tồn kho thuốc / dụng cụ".equals(item)) {
-                    showMedicineInventory(item);
-                } else if ("Tra cứu hóa đơn / giao dịch".equals(item)) {
-                    showInvoiceLookup();
 
-                    /* trinhKiet */
                 } else if ("Ghi nhận vật tư tiêu hao".equals(item)) {
                     showGhiNhanVatTu();
                 } else if ("Công nợ và trả góp theo đợt".equals(item)) {
                     showDebtInstallment();
-                    /* end trinhKiet */
+
+                } else if ("Tìm hồ sơ bệnh án EMR".equals(item)) {
+                    showEMRSearch();
+                } else if ("Tra cứu hóa đơn / giao dịch".equals(item)) {
+                    showInvoiceLookup();
+                } else if ("Dashboard điều phối phòng khám".equals(item)) {
+                    showClinicDashboard(item);
+                } else if ("Lịch làm việc cá nhân".equals(item)) {
+                    showTimKiemLichLamViecCaNhan();
+                } else if ("Chuẩn bị dụng cụ và cập nhật trạng thái phòng".equals(item)) {
+                    showRoomPreparationPanel();
+                } else if ("Phân công lịch làm việc và ca trực".equals(item)) {
+                    showNurseShiftDashboard(item);
                 } else if ("Lập hóa đơn".equals(item)) {
                     showLapHoaDon();
                 } else if ("Khám lâm sàng và sơ đồ răng".equals(item)) {
                     showKhamLamSangVaSoDoRang();
+                } else if ("Đặt lịch hẹn khám".equals(item)) {
+                    showAppointmentManagement();
+                } else if ("Báo cáo doanh thu".equals(item)) {
+                    showRevenueReportPanel();
                 } else {
                     showModule(item, title);
                 }
@@ -526,82 +514,45 @@ public final class ManHinhChinhFrame extends JFrame {
         contentPanel.repaint();
     }
 
+    // HỆ THỐNG
+    // Mở biểu mẫu đổi mật khẩu cho tài khoản đang đăng nhập.
+    private void showPasswordChange() {
+        showContentPanel(
+                "Đổi mật khẩu",
+                "Thay đổi mật khẩu cho tài khoản " + username,
+                new HeThongDoiMatKhauPanel(username));
+    }
+
+    // Mở ma trận quyền truy cập theo vai trò người dùng.
+    private void showRolePermissions() {
+        showContentPanel(
+                "Phân quyền hệ thống RBAC",
+                "Xem và cấu hình quyền theo vai trò người dùng",
+                new HeThongPhanQuyenRbacPanel());
+    }
+
+    // DANH MỤC
+    /* trinhKiet */
+    private void showQuanLyNhanVien() {
+        showContentPanel(
+                "Tìm hồ sơ nhân viên",
+                "Tra cứu theo mã nhân viên, họ tên, chức vụ hoặc số điện thoại",
+                new DanhMucQuanLyNhanVienPanel());
+    }
+
     /**
      * Chuyển sang màn hình tìm kiếm hồ sơ bệnh nhân.
      * Khi người dùng chọn module "Tìm hồ sơ bệnh nhân" từ sidebar, frame sẽ thay
      * đổi tiêu đề
-     * và render `TimKiemBenhNhanPanel` vào `contentPanel` để thao tác tìm kiếm trực
+     * và render `DanhMucTimKiemBenhNhanPanel` vào `contentPanel` để thao tác tìm
+     * kiếm trực
      * tiếp.
      */
     private void showPatientSearch() {
         showContentPanel(
                 "Tìm hồ sơ bệnh nhân",
                 "Tra cứu theo mã bệnh nhân, họ tên, số điện thoại hoặc CCCD",
-                new TimKiemBenhNhanPanel());
-    }
-
-    // Mở màn hình tạo và theo dõi lịch hẹn khám.
-    private void showAppointmentManagement() {
-        showContentPanel(
-                "Đặt lịch hẹn khám và nhắc lịch",
-                "Quản lý lịch hẹn, trạng thái xác nhận và nhắc lịch bệnh nhân",
-                new DatLichHenPanel());
-    }
-
-    /* trinhKiet */
-    private void showEmployeeSearch() {
-        showContentPanel(
-                "Tìm hồ sơ nhân viên",
-                "Tra cứu theo mã nhân viên, họ tên, chức vụ hoặc số điện thoại",
-                new TimKiemNhanVienPanel());
-    }
-
-    /* Vy */
-    private void showTimKiemLichLamViecCaNhanVaBaoBan() {
-        showContentPanel(
-                "Lịch làm việc cá nhân và báo bận",
-                "Theo dõi lịch trực hàng tuần, quản lý bệnh nhân hẹn khám và gửi yêu cầu xin nghỉ đột xuất",
-                new TimKiemLichLamViecCaNhanVaBaoBan());
-    }
-
-    /* Vy */
-    private void showPrescriptionPanel() {
-        showContentPanel(
-                "Kê đơn thuốc điện tử",
-                "Lập, kiểm tra và phát hành đơn thuốc điện tử cho bệnh nhân (UC013)",
-                new KeDonThuocDienTu());
-    }
-
-    /* Vy */
-    private void showTreatmentPlanPanel() {
-        showContentPanel(
-                "Phác đồ điều trị và dự toán chi phí",
-                "Lập kế hoạch điều trị đa đợt, dự toán chi phí và hẹn lịch tái khám",
-                new PhacDoDieuTriVaDuToanChiPhi());
-    }
-
-    // Mở màn hình tra cứu bệnh án điện tử EMR trong vùng nội dung chính.
-    private void showEMRSearch() {
-        showContentPanel(
-                "Tra cứu hồ sơ bệnh án",
-                "Tìm kiếm lần khám, chẩn đoán và nội dung bệnh án điện tử",
-                new TraCuuBenhAnPanel());
-    }
-
-    // Hiển thị bảng theo dõi tiếp đón, hàng chờ và trạng thái các phòng khám.
-    private void showClinicDashboard(String menuTitle) {
-        showContentPanel(
-                menuTitle,
-                "Theo dõi tiếp đón, hàng chờ bệnh nhân và tình trạng phòng",
-                new DieuPhoiPhongKhamPanel());
-    }
-
-    // Mở bảng ca trực và lịch làm việc nhân viên y tế.
-    private void showNurseShiftDashboard(String menuTitle) {
-        showContentPanel(
-                menuTitle,
-                "Theo dõi, lọc và phân công ca trực nhân viên",
-                new BangPhanCongCaTrucYTaPanel());
+                new DanhMucQuanLyBenhNhanPanel());
     }
 
     // Mở quản lý tồn kho và phiếu nhập thuốc, vật tư y tế.
@@ -609,18 +560,135 @@ public final class ManHinhChinhFrame extends JFrame {
         showContentPanel(
                 menuTitle,
                 "Tra cứu tồn kho và lập phiếu nhập thuốc, vật tư",
-                new QuanLyKhoThuocPanel());
+                new DanhMucQuanLyThuocPanel());
     }
 
+    private void showVatTuYTe() {
+        showContentPanel(
+                "Danh mục quản lý vật tư y tế",
+                "Tìm kiếm lần khám, chẩn đoán và nội dung bệnh án điện tử",
+                new DanhMucQuanLyVatTuYTePanel());
+    }
+
+    private void showServiceManagement() {
+        showContentPanel(
+                "Quản lý dịch vụ và bảng giá",
+                "Thêm, sửa, xóa dịch vụ nha khoa và cập nhật bảng giá",
+                new DanhMucQuanLyDichVuPanel());
+    }
+
+    // CẬP NHẬT
+    // Hiển thị bảng theo dõi tiếp đón, hàng chờ và trạng thái các phòng khám.
+    private void showClinicDashboard(String menuTitle) {
+        showContentPanel(
+                menuTitle,
+                "Theo dõi tiếp đón, hàng chờ bệnh nhân và tình trạng phòng",
+                new XuLyDieuPhoiPhongKhamPanel());
+    }
+
+    // Mở màn hình tra cứu bệnh án điện tử EMR trong vùng nội dung chính.
+    private void showEMRSearch() {
+        showContentPanel(
+                "Tra cứu hồ sơ bệnh án",
+                "Tìm kiếm lần khám, chẩn đoán và nội dung bệnh án điện tử",
+                new TimKiemTraCuuBenhAnPanel());
+    }
+
+    /* Vy */
+    private void showPrescriptionPanel() {
+        showContentPanel(
+                "Kê đơn thuốc điện tử",
+                "Lập, kiểm tra và phát hành đơn thuốc điện tử cho bệnh nhân (UC013)",
+                new CapNhatKeDonThuocDienTuPanel());
+    }
+
+    /* Vy */
+    private void showTreatmentPlanPanel() {
+        showContentPanel(
+                "Phác đồ điều trị và dự toán chi phí",
+                "Lập kế hoạch điều trị đa đợt, dự toán chi phí và hẹn lịch tái khám",
+                new CapNhatPhacDoDieuTriVaDuToanChiPhiPanel());
+    }
+
+    /* trinhKiet */
+    private void showGhiNhanVatTu() {
+        showContentPanel(
+                "Ghi nhận vật tư tiêu hao",
+                "Theo dõi xuất dùng vật tư y tế, vật liệu tiêu hao tại từng phòng khám",
+                new CapNhatGhiNhanVatTuTieuHaoPanel());
+    }
+
+    private void showDebtInstallment() {
+        showContentPanel(
+                "Công nợ và trả góp theo đợt",
+                "Quản lý hồ sơ trả góp, kỳ hạn thanh toán và nhắc nợ bệnh nhân",
+                new CapNhatCongNoTraGopPanel());
+    }
+
+    // TÌM KIẾM
     // Hiển thị chức năng tra cứu hóa đơn trong vùng nội dung chính.
     private void showInvoiceLookup() {
         showContentPanel(
                 "Tra cứu hóa đơn / giao dịch",
                 "Tìm kiếm hóa đơn và xem thông tin giao dịch",
-                new TraCuuHoaDonPanel());
+                new TimKiemTraCuuHoaDonPanel());
     }
 
-    // Thay nội dung trung tâm bằng một panel nghiệp vụ và đồng bộ tiêu đề trang.
+    // XỬ LÝ
+    /* Vy */
+    private void showTimKiemLichLamViecCaNhan() {
+        showContentPanel(
+                "Lịch làm việc cá nhân",
+                "Theo dõi lịch trực hàng tuần và bệnh nhân hẹn khám",
+                new XuLyTimKiemLichLamViecCaNhanPanel());
+    }
+
+    // Mở bảng ca trực và lịch làm việc nhân viên y tế.
+    private void showNurseShiftDashboard(String menuTitle) {
+        showContentPanel(
+                menuTitle,
+                "Theo dõi, lọc và phân công ca trực nhân viên",
+                new XuLyBangPhanCongCaTrucYTaPanel());
+    }
+
+    private void showRoomPreparationPanel() {
+        showContentPanel(
+                "Chuẩn bị dụng cụ và cập nhật trạng thái phòng",
+                "Chuẩn bị dụng cụ và cập nhật trạng thái sử dụng của phòng",
+                new XuLyChuanBiPhongKhamPanel());
+    }
+
+    private void showLapHoaDon() {
+        showContentPanel(
+                "Lập hóa đơn",
+                "Lập hóa đơn điều trị, tính tiền dịch vụ & đơn thuốc, ghi nhận thanh toán",
+                new XuLyLapHoaDonPanel());
+    }
+
+    private void showKhamLamSangVaSoDoRang() {
+        showContentPanel(
+                "Khám lâm sàng và sơ đồ răng",
+                "Ghi nhận triệu chứng lâm sàng, chẩn đoán bệnh lý và trực quan hóa sơ đồ răng",
+                new XuLyKhamLamSangVaSoDoRangPanel());
+    }
+
+    // Mở màn hình tạo và theo dõi lịch hẹn khám.
+    private void showAppointmentManagement() {
+        showContentPanel(
+                "Đặt lịch hẹn khám và nhắc lịch",
+                "Quản lý lịch hẹn, trạng thái xác nhận và nhắc lịch bệnh nhân",
+                new XuLyDatLichHenPanel());
+    }
+
+    // THỐNG KÊ
+    private void showRevenueReportPanel() {
+        showContentPanel(
+                "Báo cáo doanh thu",
+                "Thống kê doanh thu theo thời gian",
+                new ThongKeRevenueReportPanel());
+    }
+
+    // Các hàm dùng chung cho những màn hình trong menu.
     private void showContentPanel(String title, String description, JPanel panel) {
         pageTitle.setText(title);
         pageDescription.setText(description);
@@ -630,63 +698,45 @@ public final class ManHinhChinhFrame extends JFrame {
         contentPanel.repaint();
     }
 
-    private void showRoomPreparationPanel() {
-        showContentPanel(
-                "Chuẩn bị dụng cụ và cập nhật trạng thái phòng",
-                "Chuẩn bị dụng cụ và cập nhật trạng thái sử dụng của phòng",
-                new ChuanBiPhongKhamPanel());
-    }
+    // Thông báo rõ các màn hình nghiệp vụ chưa được nối với xử lý hoặc cơ sở dữ
+    // liệu.
+    private void showModule(String title, String category) {
+        // Các chức năng nghiệp vụ chưa triển khai được báo rõ thay vì hiển thị dữ liệu
+        // giả.
+        pageTitle.setText(title);
+        pageDescription.setText(category + " · Hệ thống quản lý phòng khám nha khoa Muse");
+        JPanel placeholder = new JPanel(new GridBagLayout());
+        placeholder.setBackground(Color.WHITE);
+        placeholder.setBorder(BorderFactory.createLineBorder(LINE));
+        JPanel message = new JPanel();
+        message.setOpaque(false);
+        message.setLayout(new BoxLayout(message, BoxLayout.Y_AXIS));
+        JLabel icon = new JLabel("i", SwingConstants.CENTER);
+        icon.setAlignmentX(CENTER_ALIGNMENT);
+        icon.setFont(new Font("Arial", Font.PLAIN, 32));
+        icon.setForeground(TEAL);
+        JLabel heading = new JLabel("Đang xây dựng chức năng");
+        heading.setAlignmentX(CENTER_ALIGNMENT);
+        heading.setFont(new Font("Arial", Font.BOLD, 18));
+        heading.setForeground(INK);
+        JLabel description = new JLabel("Mục \"" + title + "\" sẽ được triển khai theo menu dự án.");
+        description.setAlignmentX(CENTER_ALIGNMENT);
+        description.setFont(new Font("Arial", Font.PLAIN, 12));
+        description.setForeground(MUTED);
+        message.add(icon);
+        message.add(Box.createVerticalStrut(12));
+        message.add(heading);
+        message.add(Box.createVerticalStrut(8));
+        message.add(description);
+        placeholder.add(message);
 
-    // Mở biểu mẫu đổi mật khẩu cho tài khoản đang đăng nhập.
-    private void showPasswordChange() {
-        showContentPanel(
-                "Đổi mật khẩu",
-                "Thay đổi mật khẩu cho tài khoản " + username,
-                new DoiMatKhauPanel(username));
-    }
-
-    // Mở ma trận quyền truy cập theo vai trò người dùng.
-    private void showRolePermissions() {
-        showContentPanel(
-                "Phân quyền hệ thống RBAC",
-                "Xem và cấu hình quyền theo vai trò người dùng",
-                new PhanQuyenRbacPanel());
-    }
-
-    /* trinhKiet */
-    private void showGhiNhanVatTu() {
-        pageTitle.setText("Ghi nhận vật tư tiêu hao");
-        pageDescription.setText("Theo dõi xuất dùng vật tư y tế, vật liệu tiêu hao tại từng phòng khám");
         contentPanel.removeAll();
-        contentPanel.add(new GhiNhanVatTuTieuHaoPanel(), BorderLayout.CENTER);
+        contentPanel.add(placeholder, BorderLayout.CENTER);
         contentPanel.revalidate();
+        //
         contentPanel.repaint();
     }
 
-    private void showDebtInstallment() {
-        pageTitle.setText("Công nợ và trả góp theo đợt");
-        pageDescription.setText("Quản lý hồ sơ trả góp, kỳ hạn thanh toán và nhắc nợ bệnh nhân");
-        contentPanel.removeAll();
-        contentPanel.add(new CongNoTraGopPanel(), BorderLayout.CENTER);
-        contentPanel.revalidate();
-        contentPanel.repaint();
-    }
-
-    private void showLapHoaDon() {
-        showContentPanel(
-                "Lập hóa đơn",
-                "Lập hóa đơn điều trị, tính tiền dịch vụ & đơn thuốc, ghi nhận thanh toán",
-                new LapHoaDonPanel());
-    }
-
-    private void showKhamLamSangVaSoDoRang() {
-        showContentPanel(
-                "Khám lâm sàng và sơ đồ răng",
-                "Ghi nhận triệu chứng lâm sàng, chẩn đoán bệnh lý và trực quan hóa sơ đồ răng",
-                new KhamLamSangVaSoDoRangPanel());
-    }
-
-    /* end trinhKiet */
     /**
      * Kết hợp các thành phần chính của dashboard thành một bố cục thống nhất.
      * Nội dung gồm lời chào, các thẻ thống kê tổng quan và bảng lịch hẹn sắp tới
@@ -886,45 +936,6 @@ public final class ManHinhChinhFrame extends JFrame {
         return row;
     }
     //
-
-    // Thông báo rõ các màn hình nghiệp vụ chưa được nối với xử lý hoặc cơ sở dữ
-    // liệu.
-    private void showModule(String title, String category) {
-        // Các chức năng nghiệp vụ chưa triển khai được báo rõ thay vì hiển thị dữ liệu
-        // giả.
-        pageTitle.setText(title);
-        pageDescription.setText(category + " · Hệ thống quản lý phòng khám nha khoa Muse");
-        JPanel placeholder = new JPanel(new GridBagLayout());
-        placeholder.setBackground(Color.WHITE);
-        placeholder.setBorder(BorderFactory.createLineBorder(LINE));
-        JPanel message = new JPanel();
-        message.setOpaque(false);
-        message.setLayout(new BoxLayout(message, BoxLayout.Y_AXIS));
-        JLabel icon = new JLabel("i", SwingConstants.CENTER);
-        icon.setAlignmentX(CENTER_ALIGNMENT);
-        icon.setFont(new Font("Arial", Font.PLAIN, 32));
-        icon.setForeground(TEAL);
-        JLabel heading = new JLabel("Đang xây dựng chức năng");
-        heading.setAlignmentX(CENTER_ALIGNMENT);
-        heading.setFont(new Font("Arial", Font.BOLD, 18));
-        heading.setForeground(INK);
-        JLabel description = new JLabel("Mục \"" + title + "\" sẽ được triển khai theo menu dự án.");
-        description.setAlignmentX(CENTER_ALIGNMENT);
-        description.setFont(new Font("Arial", Font.PLAIN, 12));
-        description.setForeground(MUTED);
-        message.add(icon);
-        message.add(Box.createVerticalStrut(12));
-        message.add(heading);
-        message.add(Box.createVerticalStrut(8));
-        message.add(description);
-        placeholder.add(message);
-
-        contentPanel.removeAll();
-        contentPanel.add(placeholder, BorderLayout.CENTER);
-        contentPanel.revalidate();
-        //
-        contentPanel.repaint();
-    }
 
     // Avatar dạng vòng tròn với chữ cái đầu tài khoản, không cần phụ thuộc icon
     // font.

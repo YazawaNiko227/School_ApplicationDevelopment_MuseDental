@@ -1,7 +1,13 @@
 package entity;
 
 import java.time.LocalDate;
+import java.util.Objects;
 
+/**
+ * Entity ánh xạ bảng NhanVien trong CSDL QuanLyPhongKhamMuse.
+ * Nếu project đã có sẵn lớp này thì chỉ cần đảm bảo có đủ constructor và
+ * getter/setter như bên dưới để DanhMucQuanLyNhanVienPanel biên dịch được.
+ */
 public class NhanVien {
     private String maNhanVien;
     private String hoTen;
@@ -16,21 +22,22 @@ public class NhanVien {
     private String soChungChiHanhNghe;
 
     public NhanVien() {
-        this.trangThaiLamViec = "Dang lam viec";
     }
 
-    public NhanVien(String maNhanVien, String hoTen, LocalDate ngaySinh, String gioiTinh, String soDienThoai, String email, String diaChi, LocalDate ngayVaoLam, String trangThaiLamViec, String chuyenMon, String soChungChiHanhNghe) {
-        setMaNhanVien(maNhanVien);
-        setHoTen(hoTen);
-        setNgaySinh(ngaySinh);
-        setGioiTinh(gioiTinh);
-        setSoDienThoai(soDienThoai);
-        setEmail(email);
-        setDiaChi(diaChi);
-        setNgayVaoLam(ngayVaoLam);
-        setTrangThaiLamViec(trangThaiLamViec);
-        setChuyenMon(chuyenMon);
-        setSoChungChiHanhNghe(soChungChiHanhNghe);
+    public NhanVien(String maNhanVien, String hoTen, LocalDate ngaySinh, String gioiTinh,
+            String soDienThoai, String email, String diaChi, LocalDate ngayVaoLam,
+            String trangThaiLamViec, String chuyenMon, String soChungChiHanhNghe) {
+        this.maNhanVien = maNhanVien;
+        this.hoTen = hoTen;
+        this.ngaySinh = ngaySinh;
+        this.gioiTinh = gioiTinh;
+        this.soDienThoai = soDienThoai;
+        this.email = email;
+        this.diaChi = diaChi;
+        this.ngayVaoLam = ngayVaoLam;
+        this.trangThaiLamViec = trangThaiLamViec;
+        this.chuyenMon = chuyenMon;
+        this.soChungChiHanhNghe = soChungChiHanhNghe;
     }
 
     public String getMaNhanVien() {
@@ -38,8 +45,6 @@ public class NhanVien {
     }
 
     public void setMaNhanVien(String maNhanVien) {
-        if (maNhanVien == null) throw new IllegalArgumentException("MaNhanVien không được null.");
-        if (maNhanVien != null && maNhanVien.length() > 20) throw new IllegalArgumentException("MaNhanVien tối đa 20 ký tự.");
         this.maNhanVien = maNhanVien;
     }
 
@@ -48,8 +53,6 @@ public class NhanVien {
     }
 
     public void setHoTen(String hoTen) {
-        if (hoTen == null) throw new IllegalArgumentException("HoTen không được null.");
-        if (hoTen != null && hoTen.length() > 100) throw new IllegalArgumentException("HoTen tối đa 100 ký tự.");
         this.hoTen = hoTen;
     }
 
@@ -66,7 +69,6 @@ public class NhanVien {
     }
 
     public void setGioiTinh(String gioiTinh) {
-        if (gioiTinh != null && gioiTinh.length() > 10) throw new IllegalArgumentException("GioiTinh tối đa 10 ký tự.");
         this.gioiTinh = gioiTinh;
     }
 
@@ -75,7 +77,6 @@ public class NhanVien {
     }
 
     public void setSoDienThoai(String soDienThoai) {
-        if (soDienThoai != null && soDienThoai.length() > 15) throw new IllegalArgumentException("SoDienThoai tối đa 15 ký tự.");
         this.soDienThoai = soDienThoai;
     }
 
@@ -84,7 +85,6 @@ public class NhanVien {
     }
 
     public void setEmail(String email) {
-        if (email != null && email.length() > 100) throw new IllegalArgumentException("Email tối đa 100 ký tự.");
         this.email = email;
     }
 
@@ -93,7 +93,6 @@ public class NhanVien {
     }
 
     public void setDiaChi(String diaChi) {
-        if (diaChi != null && diaChi.length() > 200) throw new IllegalArgumentException("DiaChi tối đa 200 ký tự.");
         this.diaChi = diaChi;
     }
 
@@ -110,8 +109,6 @@ public class NhanVien {
     }
 
     public void setTrangThaiLamViec(String trangThaiLamViec) {
-        if (trangThaiLamViec == null) throw new IllegalArgumentException("TrangThaiLamViec không được null.");
-        if (trangThaiLamViec != null && trangThaiLamViec.length() > 30) throw new IllegalArgumentException("TrangThaiLamViec tối đa 30 ký tự.");
         this.trangThaiLamViec = trangThaiLamViec;
     }
 
@@ -120,7 +117,6 @@ public class NhanVien {
     }
 
     public void setChuyenMon(String chuyenMon) {
-        if (chuyenMon != null && chuyenMon.length() > 100) throw new IllegalArgumentException("ChuyenMon tối đa 100 ký tự.");
         this.chuyenMon = chuyenMon;
     }
 
@@ -129,8 +125,22 @@ public class NhanVien {
     }
 
     public void setSoChungChiHanhNghe(String soChungChiHanhNghe) {
-        if (soChungChiHanhNghe != null && soChungChiHanhNghe.length() > 50) throw new IllegalArgumentException("SoChungChiHanhNghe tối đa 50 ký tự.");
         this.soChungChiHanhNghe = soChungChiHanhNghe;
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof NhanVien)) {
+            return false;
+        }
+        return Objects.equals(maNhanVien, ((NhanVien) o).maNhanVien);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(maNhanVien);
+    }
 }

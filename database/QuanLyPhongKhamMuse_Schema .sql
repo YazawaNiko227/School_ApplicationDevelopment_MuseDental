@@ -16,7 +16,9 @@ CREATE TABLE PhongKham (
     MaPhong     NVARCHAR(20)  NOT NULL,
     TenPhong    NVARCHAR(100) NOT NULL,
     TrangThai   NVARCHAR(30)  NOT NULL DEFAULT (N'San sang'),
-    CONSTRAINT PK_PhongKham PRIMARY KEY (MaPhong)
+    CONSTRAINT PK_PhongKham PRIMARY KEY (MaPhong),
+    /* [MOI] rang buoc cac trang thai phong theo luong kham */
+    CONSTRAINT CK_PhongKham_TrangThai CHECK (TrangThai IN (N'San sang', N'Dang kham', N'Can ve sinh', N'Bao tri'))
 );
 GO
 
@@ -36,15 +38,28 @@ CREATE TABLE NhanVien (
 );
 GO
 
+/* [MOI] Bang vai tro: chi luu danh sach vai tro.
+   Ma tran quyen theo menu duoc cau hinh trong code Java (PhanQuyenMenu),
+   khong luu xuong DB. */
+CREATE TABLE VaiTro (
+    MaVaiTro    NVARCHAR(20)  NOT NULL,
+    TenVaiTro   NVARCHAR(50)  NOT NULL,
+    CONSTRAINT PK_VaiTro PRIMARY KEY (MaVaiTro)
+);
+GO
+
+/* [MOI] MaVaiTro: vai tro cua tai khoan, dung de an/hien menu. */
 CREATE TABLE TaiKhoan (
     TenDangNhap        NVARCHAR(50)   NOT NULL,
     MatKhauMaHoa       NVARCHAR(255)  NOT NULL,
     TrangThaiTaiKhoan  NVARCHAR(20)   NOT NULL DEFAULT (N'Kich hoat'),
     LanDangNhapCuoi    DATETIME2(0)   NULL,
     MaNhanVien         NVARCHAR(20)   NOT NULL,
+    MaVaiTro           NVARCHAR(20)   NOT NULL,
     CONSTRAINT PK_TaiKhoan PRIMARY KEY (TenDangNhap),
     CONSTRAINT UQ_TaiKhoan_NhanVien UNIQUE (MaNhanVien),
-    CONSTRAINT FK_TaiKhoan_NhanVien FOREIGN KEY (MaNhanVien) REFERENCES NhanVien(MaNhanVien)
+    CONSTRAINT FK_TaiKhoan_NhanVien FOREIGN KEY (MaNhanVien) REFERENCES NhanVien(MaNhanVien),
+    CONSTRAINT FK_TaiKhoan_VaiTro FOREIGN KEY (MaVaiTro) REFERENCES VaiTro(MaVaiTro)
 );
 GO
 
@@ -104,15 +119,22 @@ CREATE TABLE SoDoRang (
 );
 GO
 
+/* [MOI] TrangThai: 'Nhap' khi nha si bam "Vao kham", 'Da chot' khi bam "Hoan tat".
+   [MOI] MaLichHen: lich hen sinh ra lan kham nay (NULL cho lan kham khong qua lich hen).
+   FK cua MaLichHen duoc them bang ALTER TABLE sau khi tao bang LichHen
+   (tranh vong phu thuoc ChanDoan -> LichHen -> KeHoachDieuTri -> ChanDoan). */
 CREATE TABLE ChanDoan (
     MaChanDoan          NVARCHAR(20)  NOT NULL,
     NgayKham            DATE          NOT NULL,
     LyDoKham            NVARCHAR(500) NULL,
     TrieuChung          NVARCHAR(1000) NULL,
     KetLuanChanDoan     NVARCHAR(1000) NULL,
+    TrangThai           NVARCHAR(20)  NOT NULL DEFAULT (N'Nhap'),
+    MaLichHen           NVARCHAR(20)  NULL,
     MaHoSo              NVARCHAR(20)  NOT NULL,
     MaNhaSi             NVARCHAR(20)  NOT NULL,
     CONSTRAINT PK_ChanDoan PRIMARY KEY (MaChanDoan),
+    CONSTRAINT CK_ChanDoan_TrangThai CHECK (TrangThai IN (N'Nhap', N'Da chot')),
     CONSTRAINT FK_ChanDoan_HoSoBenhAn FOREIGN KEY (MaHoSo) REFERENCES HoSoBenhAn(MaHoSo),
     CONSTRAINT FK_ChanDoan_NhanVien FOREIGN KEY (MaNhaSi) REFERENCES NhanVien(MaNhanVien)
 );
@@ -181,17 +203,22 @@ GO
    (UC003-UC006)
    ===================================================================== */
 
+/* [MOI] TrangThai: them 'Da check-in', 'Dang kham', 'Huy', 'Vang' (rang buoc CHECK).
+   [MOI] ThoiGianCheckIn: gio benh nhan den, de dashboard dieu phoi tinh thoi gian cho. */
 CREATE TABLE LichHen (
     MaLichHen          NVARCHAR(20)  NOT NULL,
     ThoiGianHen        DATETIME2(0)  NOT NULL,
     TrangThai          NVARCHAR(30)  NOT NULL DEFAULT (N'Cho xac nhan'),
     NgayTao            DATE          NOT NULL DEFAULT (CAST(GETDATE() AS DATE)),
+    ThoiGianCheckIn    DATETIME2(0)  NULL,
     MaNhanVienLap      NVARCHAR(20)  NOT NULL,
     MaNhaSiPhuTrach    NVARCHAR(20)  NOT NULL,
     MaBenhNhan         NVARCHAR(20)  NOT NULL,
     MaPhong            NVARCHAR(20)  NOT NULL,
     MaKeHoach          NVARCHAR(20)  NULL,
     CONSTRAINT PK_LichHen PRIMARY KEY (MaLichHen),
+    CONSTRAINT CK_LichHen_TrangThai CHECK (TrangThai IN
+        (N'Cho xac nhan', N'Da xac nhan', N'Da check-in', N'Dang kham', N'Hoan thanh', N'Huy', N'Vang')),
     CONSTRAINT FK_LichHen_NhanVienLap FOREIGN KEY (MaNhanVienLap) REFERENCES NhanVien(MaNhanVien),
     CONSTRAINT FK_LichHen_NhaSiPhuTrach FOREIGN KEY (MaNhaSiPhuTrach) REFERENCES NhanVien(MaNhanVien),
     CONSTRAINT FK_LichHen_BenhNhan FOREIGN KEY (MaBenhNhan) REFERENCES BenhNhan(MaBenhNhan),
@@ -200,11 +227,22 @@ CREATE TABLE LichHen (
 );
 GO
 
+/* [MOI] Noi ChanDoan -> LichHen (them sau khi LichHen da ton tai).
+   Mot lich hen chi sinh ra toi da 1 lan kham -> unique co dieu kien (bo qua NULL). */
+ALTER TABLE ChanDoan
+    ADD CONSTRAINT FK_ChanDoan_LichHen FOREIGN KEY (MaLichHen) REFERENCES LichHen(MaLichHen);
+GO
+
+CREATE UNIQUE INDEX UQ_ChanDoan_LichHen ON ChanDoan(MaLichHen) WHERE MaLichHen IS NOT NULL;
+GO
+
 /* =====================================================================
    6. PHAN HE TAI CHINH, HOA DON & CONG NO TRA GOP
    (UC021-UC023)
    ===================================================================== */
 
+/* [MOI] MaChanDoan: hoa don thuoc lan kham nao (NULL cho hoa don le khong qua kham).
+   Khong rang buoc unique vi mot lan kham co the lap nhieu hoa don (vd. thanh toan tach). */
 CREATE TABLE HoaDon (
     MaHoaDon               NVARCHAR(20)  NOT NULL,
     NgayLap                DATE          NOT NULL DEFAULT (CAST(GETDATE() AS DATE)),
@@ -212,9 +250,11 @@ CREATE TABLE HoaDon (
     PhuongThucThanhToan    NVARCHAR(30)  NULL,
     MaNhanVien             NVARCHAR(20)  NOT NULL,
     MaBenhNhan             NVARCHAR(20)  NOT NULL,
+    MaChanDoan             NVARCHAR(20)  NULL,
     CONSTRAINT PK_HoaDon PRIMARY KEY (MaHoaDon),
     CONSTRAINT FK_HoaDon_NhanVien FOREIGN KEY (MaNhanVien) REFERENCES NhanVien(MaNhanVien),
-    CONSTRAINT FK_HoaDon_BenhNhan FOREIGN KEY (MaBenhNhan) REFERENCES BenhNhan(MaBenhNhan)
+    CONSTRAINT FK_HoaDon_BenhNhan FOREIGN KEY (MaBenhNhan) REFERENCES BenhNhan(MaBenhNhan),
+    CONSTRAINT FK_HoaDon_ChanDoan FOREIGN KEY (MaChanDoan) REFERENCES ChanDoan(MaChanDoan)
 );
 GO
 
@@ -260,6 +300,8 @@ GO
    (UC019, UC020, UC028)
    ===================================================================== */
 
+/* [MOI] DonGiaBan: gia ban cho benh nhan, dung khi tinh tien thuoc tren hoa don
+   (0 voi vat tu chi dung noi bo, khong tinh tien rieng). */
 CREATE TABLE VatTu (
     MaVatTu           NVARCHAR(20)  NOT NULL,
     TenVatTu          NVARCHAR(150) NOT NULL,
@@ -268,6 +310,7 @@ CREATE TABLE VatTu (
     SoLuongTon        INT           NOT NULL DEFAULT (0) CHECK (SoLuongTon >= 0),
     NguongToiThieu    INT           NOT NULL DEFAULT (0),
     HanSuDung         DATE          NULL,
+    DonGiaBan         FLOAT         NOT NULL DEFAULT (0) CHECK (DonGiaBan >= 0),
     CONSTRAINT PK_VatTu PRIMARY KEY (MaVatTu)
 );
 GO
@@ -283,6 +326,19 @@ CREATE TABLE ChiTietDonThuoc (
     CONSTRAINT PK_ChiTietDonThuoc PRIMARY KEY (MaDonThuoc, MaVatTu),
     CONSTRAINT FK_ChiTietDonThuoc_DonThuoc FOREIGN KEY (MaDonThuoc) REFERENCES DonThuoc(MaDonThuoc),
     CONSTRAINT FK_ChiTietDonThuoc_VatTu FOREIGN KEY (MaVatTu) REFERENCES VatTu(MaVatTu)
+);
+GO
+
+/* [MOI] Tien thuoc tren hoa don (dich vu nam o ChiTietHoaDon, thuoc nam o day).
+   Khoa chinh phuc hop (MaHoaDon, MaVatTu) giong cac bang chi tiet khac. */
+CREATE TABLE ChiTietHoaDonThuoc (
+    MaHoaDon             NVARCHAR(20)  NOT NULL,
+    MaVatTu              NVARCHAR(20)  NOT NULL,
+    SoLuong              INT           NOT NULL CHECK (SoLuong > 0),
+    DonGiaTaiThoiDiem    FLOAT         NOT NULL CHECK (DonGiaTaiThoiDiem >= 0),
+    CONSTRAINT PK_ChiTietHoaDonThuoc PRIMARY KEY (MaHoaDon, MaVatTu),
+    CONSTRAINT FK_CTHDThuoc_HoaDon FOREIGN KEY (MaHoaDon) REFERENCES HoaDon(MaHoaDon),
+    CONSTRAINT FK_CTHDThuoc_VatTu FOREIGN KEY (MaVatTu) REFERENCES VatTu(MaVatTu)
 );
 GO
 
@@ -344,20 +400,35 @@ INSERT INTO PhongKham (MaPhong, TenPhong, TrangThai) VALUES
 (N'P03', N'Phong tieu phau', N'Bao tri');
 GO
 
+/* [MOI] Them NV006 (Y ta) va NV007 (Quan tri) de test du 6 vai tro. */
 INSERT INTO NhanVien (MaNhanVien, HoTen, NgaySinh, GioiTinh, SoDienThoai, Email, DiaChi, NgayVaoLam, TrangThaiLamViec, ChuyenMon, SoChungChiHanhNghe) VALUES
 (N'NV001', N'Nguyen Van An',   '1985-03-12', N'Nam', N'0901000001', N'an.nguyen@muse.vn',   N'Quan 1, TP.HCM',       '2020-01-05', N'Dang lam viec', N'Nha si - Nho rang',        N'CCHN-001'),
 (N'NV002', N'Tran Thi Binh',   '1988-07-25', N'Nu',  N'0901000002', N'binh.tran@muse.vn',   N'Quan 3, TP.HCM',       '2021-02-10', N'Dang lam viec', N'Nha si - Chinh nha',       N'CCHN-002'),
 (N'NV003', N'Le Minh Chau',    '1996-11-02', N'Nu',  N'0901000003', N'chau.le@muse.vn',     N'Quan Binh Thanh',      '2022-06-01', N'Dang lam viec', N'Le tan',                   NULL),
 (N'NV004', N'Pham Quoc Dung',  '1994-05-18', N'Nam', N'0901000004', N'dung.pham@muse.vn',   N'Quan Go Vap',          '2022-09-15', N'Dang lam viec', N'Thu ngan',                 NULL),
-(N'NV005', N'Hoang Thi Em',    '1992-12-30', N'Nu',  N'0901000005', N'em.hoang@muse.vn',    N'Quan Tan Binh',        '2023-03-20', N'Dang lam viec', N'Thu kho',                  NULL);
+(N'NV005', N'Hoang Thi Em',    '1992-12-30', N'Nu',  N'0901000005', N'em.hoang@muse.vn',    N'Quan Tan Binh',        '2023-03-20', N'Dang lam viec', N'Thu kho',                  NULL),
+(N'NV006', N'Do Thi Phuong',   '1997-02-14', N'Nu',  N'0901000006', N'phuong.do@muse.vn',   N'Quan Phu Nhuan',       '2023-08-01', N'Dang lam viec', N'Y ta',                     NULL),
+(N'NV007', N'Bui Van Giang',   '1990-09-09', N'Nam', N'0901000007', N'giang.bui@muse.vn',   N'Quan 5, TP.HCM',       '2019-05-10', N'Dang lam viec', N'Quan tri he thong',        NULL);
 GO
 
-INSERT INTO TaiKhoan (TenDangNhap, MatKhauMaHoa, TrangThaiTaiKhoan, LanDangNhapCuoi, MaNhanVien) VALUES
-(N'nv001', N'$2a$10$mauMaHoaBcryptNV001xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', N'Kich hoat', '2026-10-16 08:15:00', N'NV001'),
-(N'nv002', N'$2a$10$mauMaHoaBcryptNV002xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', N'Kich hoat', '2026-10-16 08:30:00', N'NV002'),
-(N'nv003', N'$2a$10$mauMaHoaBcryptNV003xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', N'Kich hoat', '2026-10-17 07:50:00', N'NV003'),
-(N'nv004', N'$2a$10$mauMaHoaBcryptNV004xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', N'Kich hoat', '2026-10-17 07:55:00', N'NV004'),
-(N'nv005', N'$2a$10$mauMaHoaBcryptNV005xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', N'Kich hoat', NULL,                  N'NV005');
+/* [MOI] Danh sach vai tro (chen truoc TaiKhoan do khoa ngoai). */
+INSERT INTO VaiTro (MaVaiTro, TenVaiTro) VALUES
+(N'QUAN_TRI', N'Quan tri vien'),
+(N'BAC_SI',   N'Bac si'),
+(N'Y_TA',     N'Y ta'),
+(N'LE_TAN',   N'Le tan'),
+(N'THU_NGAN', N'Thu ngan'),
+(N'THU_KHO',  N'Nhan vien kho');
+GO
+
+INSERT INTO TaiKhoan (TenDangNhap, MatKhauMaHoa, TrangThaiTaiKhoan, LanDangNhapCuoi, MaNhanVien, MaVaiTro) VALUES
+(N'nv001', N'$2a$10$mauMaHoaBcryptNV001xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', N'Kich hoat', '2026-10-16 08:15:00', N'NV001', N'BAC_SI'),
+(N'nv002', N'$2a$10$mauMaHoaBcryptNV002xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', N'Kich hoat', '2026-10-16 08:30:00', N'NV002', N'BAC_SI'),
+(N'nv003', N'$2a$10$mauMaHoaBcryptNV003xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', N'Kich hoat', '2026-10-17 07:50:00', N'NV003', N'LE_TAN'),
+(N'nv004', N'$2a$10$mauMaHoaBcryptNV004xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', N'Kich hoat', '2026-10-17 07:55:00', N'NV004', N'THU_NGAN'),
+(N'nv005', N'$2a$10$mauMaHoaBcryptNV005xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', N'Kich hoat', NULL,                  N'NV005', N'THU_KHO'),
+(N'nv006', N'$2a$10$mauMaHoaBcryptNV006xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', N'Kich hoat', NULL,                  N'NV006', N'Y_TA'),
+(N'admin', N'$2a$10$mauMaHoaBcryptNV007xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', N'Kich hoat', NULL,                  N'NV007', N'QUAN_TRI');
 GO
 
 INSERT INTO CaTruc (MaCa, Ngay, GioBatDau, GioKetThuc, LoaiCa, MaNhanVien, MaPhong) VALUES
@@ -392,11 +463,12 @@ INSERT INTO SoDoRang (MaHoSo, MaRang, LoaiRang, TinhTrangBenhLy, GhiChu) VALUES
 (N'HS004', 55, N'Rang sua',    N'Sau rang',        NULL);
 GO
 
-INSERT INTO ChanDoan (MaChanDoan, NgayKham, LyDoKham, TrieuChung, KetLuanChanDoan, MaHoSo, MaNhaSi) VALUES
-(N'CD001', '2026-09-01', N'Dau nhuc rang ham duoi', N'Dau khi an nhai, e buot', N'Sau rang so 16, cao rang nhieu',       N'HS001', N'NV001'),
-(N'CD002', '2026-09-05', N'Rang cua bi me',         N'Me rang, mat tham my',    N'Me rang cua so 11, can boc su',        N'HS002', N'NV002'),
-(N'CD003', '2026-09-10', N'Dau rang dem',           N'Dau am i, sung loi',      N'Viem tuy rang so 46',                  N'HS003', N'NV001'),
-(N'CD004', '2026-10-01', N'Kham dinh ky cho be',    N'Khong',                   N'Sau rang sua so 55 muc do nhe',        N'HS004', N'NV002');
+/* MaLichHen cua ChanDoan duoc gan bang UPDATE sau khi chen LichHen (xem muc 5). */
+INSERT INTO ChanDoan (MaChanDoan, NgayKham, LyDoKham, TrieuChung, KetLuanChanDoan, TrangThai, MaHoSo, MaNhaSi) VALUES
+(N'CD001', '2026-09-01', N'Dau nhuc rang ham duoi', N'Dau khi an nhai, e buot', N'Sau rang so 16, cao rang nhieu',       N'Da chot', N'HS001', N'NV001'),
+(N'CD002', '2026-09-05', N'Rang cua bi me',         N'Me rang, mat tham my',    N'Me rang cua so 11, can boc su',        N'Da chot', N'HS002', N'NV002'),
+(N'CD003', '2026-09-10', N'Dau rang dem',           N'Dau am i, sung loi',      N'Viem tuy rang so 46',                  N'Da chot', N'HS003', N'NV001'),
+(N'CD004', '2026-10-01', N'Kham dinh ky cho be',    N'Khong',                   N'Sau rang sua so 55 muc do nhe',        N'Da chot', N'HS004', N'NV002');
 GO
 
 /* ---------- 3. Don thuoc ---------- */
@@ -433,20 +505,25 @@ INSERT INTO KeHoachDieuTri_DichVu (MaKeHoach, MaDichVu, SoLuong) VALUES
 GO
 
 /* ---------- 5. Lich hen ---------- */
-INSERT INTO LichHen (MaLichHen, ThoiGianHen, TrangThai, NgayTao, MaNhanVienLap, MaNhaSiPhuTrach, MaBenhNhan, MaPhong, MaKeHoach) VALUES
-(N'LH001', '2026-09-01 09:00:00', N'Hoan thanh',   '2026-08-28', N'NV003', N'NV001', N'BN001', N'P01', N'KH001'),
-(N'LH002', '2026-09-05 14:00:00', N'Hoan thanh',   '2026-09-02', N'NV003', N'NV002', N'BN002', N'P02', N'KH002'),
-(N'LH003', '2026-10-19 08:30:00', N'Da xac nhan',  '2026-10-15', N'NV003', N'NV001', N'BN003', N'P01', N'KH003'),
-(N'LH004', '2026-10-19 14:00:00', N'Cho xac nhan', '2026-10-16', N'NV003', N'NV002', N'BN002', N'P02', N'KH002'),
-(N'LH005', '2026-10-20 09:00:00', N'Cho xac nhan', '2026-10-17', N'NV003', N'NV002', N'BN004', N'P02', N'KH004');
+INSERT INTO LichHen (MaLichHen, ThoiGianHen, TrangThai, NgayTao, ThoiGianCheckIn, MaNhanVienLap, MaNhaSiPhuTrach, MaBenhNhan, MaPhong, MaKeHoach) VALUES
+(N'LH001', '2026-09-01 09:00:00', N'Hoan thanh',   '2026-08-28', '2026-09-01 08:50:00', N'NV003', N'NV001', N'BN001', N'P01', N'KH001'),
+(N'LH002', '2026-09-05 14:00:00', N'Hoan thanh',   '2026-09-02', '2026-09-05 13:50:00', N'NV003', N'NV002', N'BN002', N'P02', N'KH002'),
+(N'LH003', '2026-10-19 08:30:00', N'Da xac nhan',  '2026-10-15', NULL,                  N'NV003', N'NV001', N'BN003', N'P01', N'KH003'),
+(N'LH004', '2026-10-19 14:00:00', N'Cho xac nhan', '2026-10-16', NULL,                  N'NV003', N'NV002', N'BN002', N'P02', N'KH002'),
+(N'LH005', '2026-10-20 09:00:00', N'Cho xac nhan', '2026-10-17', NULL,                  N'NV003', N'NV002', N'BN004', N'P02', N'KH004');
+GO
+
+/* Gan lich hen da sinh ra lan kham (chi 2 lan kham dau co lich hen tuong ung). */
+UPDATE ChanDoan SET MaLichHen = N'LH001' WHERE MaChanDoan = N'CD001';
+UPDATE ChanDoan SET MaLichHen = N'LH002' WHERE MaChanDoan = N'CD002';
 GO
 
 /* ---------- 6. Hoa don & cong no tra gop ---------- */
-INSERT INTO HoaDon (MaHoaDon, NgayLap, TrangThaiThanhToan, PhuongThucThanhToan, MaNhanVien, MaBenhNhan) VALUES
-(N'HD001', '2026-09-01', N'Da thanh toan',   N'Tien mat',     N'NV004', N'BN001'),
-(N'HD002', '2026-09-05', N'Da thanh toan',   N'Chuyen khoan', N'NV004', N'BN002'),
-(N'HD003', '2026-09-10', N'Dang tra gop',    N'Tra gop',      N'NV004', N'BN002'),
-(N'HD004', '2026-10-01', N'Chua thanh toan', NULL,            N'NV004', N'BN004');
+INSERT INTO HoaDon (MaHoaDon, NgayLap, TrangThaiThanhToan, PhuongThucThanhToan, MaNhanVien, MaBenhNhan, MaChanDoan) VALUES
+(N'HD001', '2026-09-01', N'Da thanh toan',   N'Tien mat',     N'NV004', N'BN001', N'CD001'),
+(N'HD002', '2026-09-05', N'Da thanh toan',   N'Chuyen khoan', N'NV004', N'BN002', N'CD002'),
+(N'HD003', '2026-09-10', N'Dang tra gop',    N'Tra gop',      N'NV004', N'BN002', N'CD002'),
+(N'HD004', '2026-10-01', N'Chua thanh toan', NULL,            N'NV004', N'BN004', N'CD004');
 GO
 
 INSERT INTO ChiTietHoaDon (MaHoaDon, MaDichVu, SoLuong, DonGiaTaiThoiDiem) VALUES
@@ -468,13 +545,13 @@ INSERT INTO DotThanhToan (MaDot, NgayDenHan, SoTienDot, TrangThai, NgayThanhToan
 GO
 
 /* ---------- 7. Kho vat tu ---------- */
-INSERT INTO VatTu (MaVatTu, TenVatTu, LoaiVatTu, DonViTinh, SoLuongTon, NguongToiThieu, HanSuDung) VALUES
-(N'VT001', N'Amoxicillin 500mg',        N'Thuoc',    N'Vien', 200, 50,  '2027-06-30'),
-(N'VT002', N'Paracetamol 500mg',        N'Thuoc',    N'Vien', 500, 100, '2027-12-31'),
-(N'VT003', N'Gang tay y te',            N'Tieu hao', N'Hop',  40,  10,  '2028-01-01'),
-(N'VT004', N'Composite tram rang',      N'Vat lieu', N'Tuyp', 25,  5,   '2027-03-15'),
-(N'VT005', N'Thuoc te Lidocaine 2%',    N'Thuoc',    N'Ong',  60,  20,  '2027-02-28'),
-(N'VT006', N'Mu su (rang su)',          N'Vat lieu', N'Cai',  15,  5,   NULL);
+INSERT INTO VatTu (MaVatTu, TenVatTu, LoaiVatTu, DonViTinh, SoLuongTon, NguongToiThieu, HanSuDung, DonGiaBan) VALUES
+(N'VT001', N'Amoxicillin 500mg',        N'Thuoc',    N'Vien', 200, 50,  '2027-06-30', 5000),
+(N'VT002', N'Paracetamol 500mg',        N'Thuoc',    N'Vien', 500, 100, '2027-12-31', 1500),
+(N'VT003', N'Gang tay y te',            N'Tieu hao', N'Hop',  40,  10,  '2028-01-01', 0),
+(N'VT004', N'Composite tram rang',      N'Vat lieu', N'Tuyp', 25,  5,   '2027-03-15', 0),
+(N'VT005', N'Thuoc te Lidocaine 2%',    N'Thuoc',    N'Ong',  60,  20,  '2027-02-28', 0),
+(N'VT006', N'Mu su (rang su)',          N'Vat lieu', N'Cai',  15,  5,   NULL,         0);
 GO
 
 INSERT INTO ChiTietDonThuoc (MaDonThuoc, MaVatTu, LieuDung, DuongDung, SoLuong) VALUES
@@ -483,6 +560,12 @@ INSERT INTO ChiTietDonThuoc (MaDonThuoc, MaVatTu, LieuDung, DuongDung, SoLuong) 
 (N'DT002', N'VT002', N'1 vien khi dau',      N'Uong', 6),
 (N'DT003', N'VT001', N'1 vien x 2 lan/ngay', N'Uong', 14),
 (N'DT003', N'VT002', N'1 vien khi dau',      N'Uong', 10);
+GO
+
+/* Tien thuoc cua HD001 theo don thuoc DT001 (mau). */
+INSERT INTO ChiTietHoaDonThuoc (MaHoaDon, MaVatTu, SoLuong, DonGiaTaiThoiDiem) VALUES
+(N'HD001', N'VT001', 15, 5000),
+(N'HD001', N'VT002', 10, 1500);
 GO
 
 INSERT INTO PhieuNhapKho (MaPhieuNhap, NgayNhap, NhaCungCap, MaNhanVien) VALUES

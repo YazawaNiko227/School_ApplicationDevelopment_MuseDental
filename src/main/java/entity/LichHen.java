@@ -3,12 +3,12 @@ package entity;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
-
 public class LichHen {
     private String maLichHen;
     private LocalDateTime thoiGianHen;
     private String trangThai;
     private LocalDate ngayTao;
+    private LocalDateTime thoiGianCheckIn;
     private String maNhanVienLap;
     private String maNhaSiPhuTrach;
     private String maBenhNhan;
@@ -20,11 +20,12 @@ public class LichHen {
         this.ngayTao = LocalDate.now();
     }
 
-    public LichHen(String maLichHen, LocalDateTime thoiGianHen, String trangThai, LocalDate ngayTao, String maNhanVienLap, String maNhaSiPhuTrach, String maBenhNhan, String maPhong, String maKeHoach) {
+    public LichHen(String maLichHen, LocalDateTime thoiGianHen, String trangThai, LocalDate ngayTao, LocalDateTime thoiGianCheckIn, String maNhanVienLap, String maNhaSiPhuTrach, String maBenhNhan, String maPhong, String maKeHoach) {
         setMaLichHen(maLichHen);
         setThoiGianHen(thoiGianHen);
         setTrangThai(trangThai);
         setNgayTao(ngayTao);
+        setThoiGianCheckIn(thoiGianCheckIn);
         setMaNhanVienLap(maNhanVienLap);
         setMaNhaSiPhuTrach(maNhaSiPhuTrach);
         setMaBenhNhan(maBenhNhan);
@@ -37,8 +38,8 @@ public class LichHen {
     }
 
     public void setMaLichHen(String maLichHen) {
-        if (maLichHen == null) throw new IllegalArgumentException("MaLichHen không được null.");
-        if (maLichHen != null && maLichHen.length() > 20) throw new IllegalArgumentException("MaLichHen tối đa 20 ký tự.");
+        if (maLichHen == null || maLichHen.trim().isEmpty()) throw new IllegalArgumentException("maLichHen không được để trống");
+        if (maLichHen != null && maLichHen.length() > 20) throw new IllegalArgumentException("maLichHen tối đa 20 ký tự");
         this.maLichHen = maLichHen;
     }
 
@@ -47,7 +48,7 @@ public class LichHen {
     }
 
     public void setThoiGianHen(LocalDateTime thoiGianHen) {
-        if (thoiGianHen == null) throw new IllegalArgumentException("ThoiGianHen không được null.");
+        if (thoiGianHen == null) throw new IllegalArgumentException("thoiGianHen không được null");
         this.thoiGianHen = thoiGianHen;
     }
 
@@ -56,8 +57,9 @@ public class LichHen {
     }
 
     public void setTrangThai(String trangThai) {
-        if (trangThai == null) throw new IllegalArgumentException("TrangThai không được null.");
-        if (trangThai != null && trangThai.length() > 30) throw new IllegalArgumentException("TrangThai tối đa 30 ký tự.");
+        if (trangThai == null || trangThai.trim().isEmpty()) throw new IllegalArgumentException("trangThai không được để trống");
+        if (trangThai != null && trangThai.length() > 30) throw new IllegalArgumentException("trangThai tối đa 30 ký tự");
+        if (!"Cho xac nhan".equals(trangThai) && !"Da xac nhan".equals(trangThai) && !"Da check-in".equals(trangThai) && !"Dang kham".equals(trangThai) && !"Hoan thanh".equals(trangThai) && !"Huy".equals(trangThai) && !"Vang".equals(trangThai)) throw new IllegalArgumentException("trangThai không thuộc trạng thái hợp lệ");
         this.trangThai = trangThai;
     }
 
@@ -66,8 +68,16 @@ public class LichHen {
     }
 
     public void setNgayTao(LocalDate ngayTao) {
-        if (ngayTao == null) throw new IllegalArgumentException("NgayTao không được null.");
+        if (ngayTao == null) throw new IllegalArgumentException("ngayTao không được null");
         this.ngayTao = ngayTao;
+    }
+
+    public LocalDateTime getThoiGianCheckIn() {
+        return thoiGianCheckIn;
+    }
+
+    public void setThoiGianCheckIn(LocalDateTime thoiGianCheckIn) {
+        this.thoiGianCheckIn = thoiGianCheckIn;
     }
 
     public String getMaNhanVienLap() {
@@ -75,8 +85,8 @@ public class LichHen {
     }
 
     public void setMaNhanVienLap(String maNhanVienLap) {
-        if (maNhanVienLap == null) throw new IllegalArgumentException("MaNhanVienLap không được null.");
-        if (maNhanVienLap != null && maNhanVienLap.length() > 20) throw new IllegalArgumentException("MaNhanVienLap tối đa 20 ký tự.");
+        if (maNhanVienLap == null || maNhanVienLap.trim().isEmpty()) throw new IllegalArgumentException("maNhanVienLap không được để trống");
+        if (maNhanVienLap != null && maNhanVienLap.length() > 20) throw new IllegalArgumentException("maNhanVienLap tối đa 20 ký tự");
         this.maNhanVienLap = maNhanVienLap;
     }
 
@@ -85,8 +95,8 @@ public class LichHen {
     }
 
     public void setMaNhaSiPhuTrach(String maNhaSiPhuTrach) {
-        if (maNhaSiPhuTrach == null) throw new IllegalArgumentException("MaNhaSiPhuTrach không được null.");
-        if (maNhaSiPhuTrach != null && maNhaSiPhuTrach.length() > 20) throw new IllegalArgumentException("MaNhaSiPhuTrach tối đa 20 ký tự.");
+        if (maNhaSiPhuTrach == null || maNhaSiPhuTrach.trim().isEmpty()) throw new IllegalArgumentException("maNhaSiPhuTrach không được để trống");
+        if (maNhaSiPhuTrach != null && maNhaSiPhuTrach.length() > 20) throw new IllegalArgumentException("maNhaSiPhuTrach tối đa 20 ký tự");
         this.maNhaSiPhuTrach = maNhaSiPhuTrach;
     }
 
@@ -95,8 +105,8 @@ public class LichHen {
     }
 
     public void setMaBenhNhan(String maBenhNhan) {
-        if (maBenhNhan == null) throw new IllegalArgumentException("MaBenhNhan không được null.");
-        if (maBenhNhan != null && maBenhNhan.length() > 20) throw new IllegalArgumentException("MaBenhNhan tối đa 20 ký tự.");
+        if (maBenhNhan == null || maBenhNhan.trim().isEmpty()) throw new IllegalArgumentException("maBenhNhan không được để trống");
+        if (maBenhNhan != null && maBenhNhan.length() > 20) throw new IllegalArgumentException("maBenhNhan tối đa 20 ký tự");
         this.maBenhNhan = maBenhNhan;
     }
 
@@ -105,8 +115,8 @@ public class LichHen {
     }
 
     public void setMaPhong(String maPhong) {
-        if (maPhong == null) throw new IllegalArgumentException("MaPhong không được null.");
-        if (maPhong != null && maPhong.length() > 20) throw new IllegalArgumentException("MaPhong tối đa 20 ký tự.");
+        if (maPhong == null || maPhong.trim().isEmpty()) throw new IllegalArgumentException("maPhong không được để trống");
+        if (maPhong != null && maPhong.length() > 20) throw new IllegalArgumentException("maPhong tối đa 20 ký tự");
         this.maPhong = maPhong;
     }
 
@@ -115,7 +125,7 @@ public class LichHen {
     }
 
     public void setMaKeHoach(String maKeHoach) {
-        if (maKeHoach != null && maKeHoach.length() > 20) throw new IllegalArgumentException("MaKeHoach tối đa 20 ký tự.");
+        if (maKeHoach != null && maKeHoach.length() > 20) throw new IllegalArgumentException("maKeHoach tối đa 20 ký tự");
         this.maKeHoach = maKeHoach;
     }
 

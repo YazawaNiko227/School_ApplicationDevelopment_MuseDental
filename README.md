@@ -5,6 +5,9 @@
 Run `build.bat` to compile every Java source under `src/main/java`, then run
 `run.bat` to launch the application.
 
+After confirming an invoice in the billing screen, choose to export it as a PDF
+and select where to save the file.
+
 ## SQL Server connection
 
 The database connection uses these environment variables:

@@ -1,9 +1,6 @@
 package gui; /*Võ Thành Tài */
 
-<<<<<<< HEAD:src/main/java/gui/EMRSearchPanel.java
-=======
 import entity.BanGhiBenhAn;
->>>>>>> main:src/main/java/gui/TraCuuBenhAnPanel.java
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Cursor;
@@ -35,9 +32,8 @@ import javax.swing.table.DefaultTableModel;
 import javax.swing.table.JTableHeader;
 
 import com.toedter.calendar.JDateChooser;
-import entity.EMRRecord;
 
-public class TraCuuBenhAnPanel extends JPanel {
+public class TimKiemTraCuuBenhAnPanel extends JPanel {
     private static final Color INK = new Color(32, 53, 68);
     private static final Color MUTED = new Color(119, 139, 151);
     private static final Color TEAL = new Color(26, 151, 151);
@@ -73,7 +69,7 @@ public class TraCuuBenhAnPanel extends JPanel {
     private final JTextArea symptomArea = createReadOnlyArea();
     private final JTextArea conclusionArea = createReadOnlyArea();
 
-    public TraCuuBenhAnPanel() {
+    public TimKiemTraCuuBenhAnPanel() {
         super(new BorderLayout(0, 16));
         setOpaque(false);
 

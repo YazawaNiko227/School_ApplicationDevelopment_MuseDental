@@ -1,25 +1,35 @@
 package entity;
 
 import java.time.LocalDateTime;
+import java.util.Objects;
 
-/** Entity ánh xạ bảng TaiKhoan trong QuanLyPhongKhamMuse. */
+/**
+ * Tài khoản đăng nhập (bảng TaiKhoan).
+ * Mỗi tài khoản gắn với đúng một nhân viên và đúng một vai trò.
+ */
 public class TaiKhoan {
     private String tenDangNhap;
     private String matKhauMaHoa;
     private String trangThaiTaiKhoan;
     private LocalDateTime lanDangNhapCuoi;
-    private String maNhanVien;
+    private NhanVien nhanVien;
+    private VaiTro vaiTro;
 
     public TaiKhoan() {
-        this.trangThaiTaiKhoan = "Kich hoat";
     }
 
-    public TaiKhoan(String tenDangNhap, String matKhauMaHoa, String trangThaiTaiKhoan, LocalDateTime lanDangNhapCuoi, String maNhanVien) {
-        setTenDangNhap(tenDangNhap);
-        setMatKhauMaHoa(matKhauMaHoa);
-        setTrangThaiTaiKhoan(trangThaiTaiKhoan);
-        setLanDangNhapCuoi(lanDangNhapCuoi);
-        setMaNhanVien(maNhanVien);
+    public TaiKhoan(String tenDangNhap) {
+        this.tenDangNhap = tenDangNhap;
+    }
+
+    public TaiKhoan(String tenDangNhap, String matKhauMaHoa, String trangThaiTaiKhoan,
+            LocalDateTime lanDangNhapCuoi, NhanVien nhanVien, VaiTro vaiTro) {
+        this.tenDangNhap = tenDangNhap;
+        this.matKhauMaHoa = matKhauMaHoa;
+        this.trangThaiTaiKhoan = trangThaiTaiKhoan;
+        this.lanDangNhapCuoi = lanDangNhapCuoi;
+        this.nhanVien = nhanVien;
+        this.vaiTro = vaiTro;
     }
 
     public String getTenDangNhap() {
@@ -27,8 +37,6 @@ public class TaiKhoan {
     }
 
     public void setTenDangNhap(String tenDangNhap) {
-        if (tenDangNhap == null) throw new IllegalArgumentException("TenDangNhap không được null.");
-        if (tenDangNhap != null && tenDangNhap.length() > 50) throw new IllegalArgumentException("TenDangNhap tối đa 50 ký tự.");
         this.tenDangNhap = tenDangNhap;
     }
 
@@ -37,8 +45,6 @@ public class TaiKhoan {
     }
 
     public void setMatKhauMaHoa(String matKhauMaHoa) {
-        if (matKhauMaHoa == null) throw new IllegalArgumentException("MatKhauMaHoa không được null.");
-        if (matKhauMaHoa != null && matKhauMaHoa.length() > 255) throw new IllegalArgumentException("MatKhauMaHoa tối đa 255 ký tự.");
         this.matKhauMaHoa = matKhauMaHoa;
     }
 
@@ -47,8 +53,6 @@ public class TaiKhoan {
     }
 
     public void setTrangThaiTaiKhoan(String trangThaiTaiKhoan) {
-        if (trangThaiTaiKhoan == null) throw new IllegalArgumentException("TrangThaiTaiKhoan không được null.");
-        if (trangThaiTaiKhoan != null && trangThaiTaiKhoan.length() > 20) throw new IllegalArgumentException("TrangThaiTaiKhoan tối đa 20 ký tự.");
         this.trangThaiTaiKhoan = trangThaiTaiKhoan;
     }
 
@@ -60,14 +64,50 @@ public class TaiKhoan {
         this.lanDangNhapCuoi = lanDangNhapCuoi;
     }
 
-    public String getMaNhanVien() {
-        return maNhanVien;
+    public NhanVien getNhanVien() {
+        return nhanVien;
     }
 
-    public void setMaNhanVien(String maNhanVien) {
-        if (maNhanVien == null) throw new IllegalArgumentException("MaNhanVien không được null.");
-        if (maNhanVien != null && maNhanVien.length() > 20) throw new IllegalArgumentException("MaNhanVien tối đa 20 ký tự.");
-        this.maNhanVien = maNhanVien;
+    public void setNhanVien(NhanVien nhanVien) {
+        this.nhanVien = nhanVien;
     }
 
+    public VaiTro getVaiTro() {
+        return vaiTro;
+    }
+
+    public void setVaiTro(VaiTro vaiTro) {
+        this.vaiTro = vaiTro;
+    }
+
+    /**
+     * Tài khoản có đang được kích hoạt không (giá trị mặc định trong DB là 'Kich
+     * hoat').
+     */
+    public boolean isKichHoat() {
+        return "Kich hoat".equals(trangThaiTaiKhoan);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof TaiKhoan)) {
+            return false;
+        }
+        TaiKhoan other = (TaiKhoan) o;
+        return Objects.equals(tenDangNhap, other.tenDangNhap);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(tenDangNhap);
+    }
+
+    @Override
+    public String toString() {
+        return "TaiKhoan{tenDangNhap='" + tenDangNhap + "', trangThaiTaiKhoan='" + trangThaiTaiKhoan
+                + "', vaiTro=" + vaiTro + "}";
+    }
 }

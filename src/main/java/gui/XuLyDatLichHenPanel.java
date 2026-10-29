@@ -1,5 +1,12 @@
 package gui;
 
+import dao.DatLichHenDAO;
+import dao.DatLichHenDAO.LichHenThongTin;
+import entity.BenhNhan;
+import entity.NhanVien;
+import entity.PhongKham;
+import com.toedter.calendar.JDateChooser;
+
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
@@ -7,11 +14,13 @@ import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
+import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.List;
 import java.util.regex.Pattern;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
@@ -41,8 +50,7 @@ import javax.swing.border.EmptyBorder;
  * 3. Chọn dòng trong bảng, bấm "Xác nhận" -> "Đã xác nhận" hoặc "Hủy lịch" ->
  * "Huỷ".
  *
- * Hiện tại chưa có DAO: dữ liệu là mẫu trong bộ nhớ. Những chỗ cần nối DAO
- * được đánh dấu bằng "TODO DAO".
+ * Dữ liệu bệnh nhân, lịch hẹn, nha sĩ và phòng khám được đọc/cập nhật qua DAO.
  */
 public final class XuLyDatLichHenPanel extends JPanel {
     private static final Color INK = new Color(32, 53, 68);
@@ -62,33 +70,21 @@ public final class XuLyDatLichHenPanel extends JPanel {
     private static final String HUY = "Hủy";
     private static final String VANG = "Vắng";
 
-    // ----- Dữ liệu mẫu (TODO DAO: thay bằng BenhNhanDAO / NhanVienDAO /
-    // PhongKhamDAO) -----
-    private static final String[][] MOCK_BENH_NHAN = {
-            { "BN001", "Võ Thanh Hải", "0912000001", "10/04/1990", "Nam", "Quận 7, TP.HCM" },
-            { "BN002", "Nguyễn Thị Lan", "0912000002", "21/09/1985", "Nữ", "Quận 10, TP.HCM" },
-            { "BN003", "Đặng Quốc Khánh", "0912000003", "15/01/1978", "Nam", "TP. Thủ Đức" },
-            { "BN004", "Trần Bảo Ngọc", "0912000004", "30/06/2015", "Nữ", "Quận Phú Nhuận" }
-    };
-    private static final String[] MOCK_NHA_SI = {
-            "NV001 - Nguyễn Văn An", "NV002 - Trần Thị Bình"
-    };
-    private static final String[] MOCK_PHONG = {
-            "P01 - Phòng khám số 1", "P02 - Phòng khám số 2"
-    };
+    private final DatLichHenDAO datLichHenDAO = new DatLichHenDAO();
+    private final String tenDangNhap;
 
     // ----- Form bệnh nhân -----
     private final JTextField txtTimKiem = new JTextField();
     private final JTextField txtMaBenhNhan = new JTextField();
     private final JTextField txtHoTen = new JTextField();
     private final JTextField txtSoDienThoai = new JTextField();
-    private final JTextField txtNgaySinh = new JTextField();
+    private final JDateChooser chonNgaySinh = new JDateChooser(null, "dd/MM/yyyy");
     private final JComboBox<String> cboGioiTinh = new JComboBox<>(new String[] { "Nam", "Nữ" });
     private final JTextField txtDiaChi = new JTextField();
 
     // ----- Form lịch hẹn -----
-    private final JComboBox<String> cboNhaSi = new JComboBox<>(MOCK_NHA_SI);
-    private final JComboBox<String> cboPhong = new JComboBox<>(MOCK_PHONG);
+    private final JComboBox<ComboItem> cboNhaSi = new JComboBox<>();
+    private final JComboBox<ComboItem> cboPhong = new JComboBox<>();
     private final JSpinner spnNgayHen = new JSpinner(
             new SpinnerDateModel(new Date(), null, null, Calendar.DAY_OF_MONTH));
     private final JSpinner spnGioHen = new JSpinner(new SpinnerDateModel(new Date(), null, null, Calendar.MINUTE));
@@ -109,11 +105,9 @@ public final class XuLyDatLichHenPanel extends JPanel {
     // true khi lễ tân bấm "Bệnh nhân mới" (cần tạo BenhNhan + HoSoBenhAn rỗng khi
     // lưu).
     private boolean laBenhNhanMoi = false;
-    // Bộ đếm tạm để sinh mã giả; TODO DAO: sinh mã từ DB.
-    private int nextLichHen = 6;
-    private int nextBenhNhan = 5;
 
-    public XuLyDatLichHenPanel() {
+    public XuLyDatLichHenPanel(String tenDangNhap) {
+        this.tenDangNhap = tenDangNhap == null ? "" : tenDangNhap.trim();
         setLayout(new BorderLayout(0, 16));
         setOpaque(false);
 
@@ -122,9 +116,11 @@ public final class XuLyDatLichHenPanel extends JPanel {
 
         spnNgayHen.setEditor(new JSpinner.DateEditor(spnNgayHen, "dd/MM/yyyy"));
         spnGioHen.setEditor(new JSpinner.DateEditor(spnGioHen, "HH:mm"));
+        chonNgaySinh.setDateFormatString("dd/MM/yyyy");
 
         khoaThongTinBenhNhan(true);
-        loadMockAppointments();
+        napDanhMuc();
+        loadAppointments();
     }
 
     // =====================================================================
@@ -187,7 +183,7 @@ public final class XuLyDatLichHenPanel extends JPanel {
         column.add(createRow("Mã bệnh nhân", txtMaBenhNhan));
         column.add(createRow("Họ tên", txtHoTen));
         column.add(createRow("Số điện thoại", txtSoDienThoai));
-        column.add(createRow("Ngày sinh", txtNgaySinh));
+        column.add(createRow("Ngày sinh", chonNgaySinh));
         column.add(createRow("Giới tính", cboGioiTinh));
         column.add(createRow("Địa chỉ", txtDiaChi));
         return column;
@@ -265,28 +261,40 @@ public final class XuLyDatLichHenPanel extends JPanel {
 
     /** Tìm bệnh nhân theo mã / họ tên / SĐT. */
     private void searchPatient() {
-        String keyword = txtTimKiem.getText().trim().toLowerCase();
+        String keyword = txtTimKiem.getText().trim();
         if (keyword.isEmpty()) {
             showMessage("Vui lòng nhập mã, họ tên hoặc số điện thoại để tìm.");
             return;
         }
-        // TODO DAO: BenhNhanDAO.timKiem(keyword)
-        for (String[] bn : MOCK_BENH_NHAN) {
-            if (bn[0].toLowerCase().contains(keyword)
-                    || bn[1].toLowerCase().contains(keyword)
-                    || bn[2].contains(keyword)) {
-                txtMaBenhNhan.setText(bn[0]);
-                txtHoTen.setText(bn[1]);
-                txtSoDienThoai.setText(bn[2]);
-                txtNgaySinh.setText(bn[3]);
-                cboGioiTinh.setSelectedItem(bn[4]);
-                txtDiaChi.setText(bn[5]);
-                laBenhNhanMoi = false;
-                khoaThongTinBenhNhan(true);
+        try {
+            List<BenhNhan> ketQua = datLichHenDAO.timBenhNhan(keyword);
+            if (ketQua.isEmpty()) {
+                showMessage("Không tìm thấy bệnh nhân. Bấm \"Bệnh nhân mới\" để tạo hồ sơ.");
                 return;
             }
+            hienThiBenhNhan(ketQua.get(0));
+        } catch (SQLException ex) {
+            showDatabaseError("Không thể tìm bệnh nhân.", ex);
         }
-        showMessage("Không tìm thấy bệnh nhân. Bấm \"Bệnh nhân mới\" để tạo hồ sơ.");
+    }
+
+    private void hienThiBenhNhan(BenhNhan benhNhan) {
+        txtMaBenhNhan.setText(benhNhan.getMaBenhNhan());
+        txtHoTen.setText(benhNhan.getHoTen());
+        txtSoDienThoai.setText(benhNhan.getSoDienThoai());
+        chonNgaySinh.setDate(benhNhan.getNgaySinh() == null ? null
+                : Date.from(benhNhan.getNgaySinh().atStartOfDay(ZoneId.systemDefault()).toInstant()));
+        cboGioiTinh.setSelectedItem(gioiTinhHienThi(benhNhan.getGioiTinh()));
+        txtDiaChi.setText(benhNhan.getDiaChi());
+        laBenhNhanMoi = false;
+        khoaThongTinBenhNhan(true);
+    }
+
+    private String gioiTinhHienThi(String gioiTinh) {
+        if ("Nu".equalsIgnoreCase(gioiTinh) || "Nữ".equalsIgnoreCase(gioiTinh)) {
+            return "Nữ";
+        }
+        return "Nam".equalsIgnoreCase(gioiTinh) ? "Nam" : "";
     }
 
     /** Chuyển form sang chế độ nhập bệnh nhân mới. */
@@ -316,28 +324,43 @@ public final class XuLyDatLichHenPanel extends JPanel {
             return;
         }
 
-        // TODO DAO: kiểm tra trùng lịch của nha sĩ / phòng tại thời điểm này.
-
-        String maBenhNhan = txtMaBenhNhan.getText().trim();
-        if (laBenhNhanMoi) {
-            // TODO DAO: BenhNhanDAO.them(...) + HoSoBenhAnDAO.taoRong(maBenhNhan)
-            maBenhNhan = String.format("BN%03d", nextBenhNhan++);
+        ComboItem nhaSi = (ComboItem) cboNhaSi.getSelectedItem();
+        ComboItem phong = (ComboItem) cboPhong.getSelectedItem();
+        if (nhaSi == null || phong == null) {
+            showMessage("Không có nha sĩ hoặc phòng khám phù hợp. Vui lòng kiểm tra danh mục.");
+            return;
         }
 
-        // TODO DAO: LichHenDAO.them(...) với TrangThai = 'Cho xac nhan', MaNhanVienLap
-        // = nhân viên đăng nhập.
-        String maLichHen = String.format("LH%03d", nextLichHen++);
-        tableModel.addRow(new Object[] {
-                maLichHen,
-                thoiGianHen.format(DATE_TIME_FORMAT),
-                maBenhNhan,
-                txtHoTen.getText().trim(),
-                (String) cboNhaSi.getSelectedItem(),
-                (String) cboPhong.getSelectedItem(),
-                CHO_XAC_NHAN
-        });
-        showMessage("Đã lưu lịch hẹn " + maLichHen + " (Chờ xác nhận).");
-        clearForm();
+        BenhNhan benhNhanMoi = null;
+        String maBenhNhan = txtMaBenhNhan.getText().trim();
+        try {
+            if (laBenhNhanMoi) {
+                benhNhanMoi = taoBenhNhanMoi();
+                maBenhNhan = null;
+            }
+            String maLichHen = datLichHenDAO.themLichHen(benhNhanMoi, maBenhNhan, thoiGianHen,
+                    nhaSi.getMa(), phong.getMa(), tenDangNhap);
+            loadAppointments();
+            showMessage("Đã lưu lịch hẹn " + maLichHen + " (Chờ xác nhận).");
+            clearForm();
+        } catch (IllegalArgumentException ex) {
+            showMessage(ex.getMessage());
+        } catch (SQLException ex) {
+            showDatabaseError("Không thể lưu lịch hẹn.", ex);
+        }
+    }
+
+    private BenhNhan taoBenhNhanMoi() {
+        BenhNhan benhNhan = new BenhNhan();
+        benhNhan.setHoTen(txtHoTen.getText().trim());
+        benhNhan.setSoDienThoai(txtSoDienThoai.getText().trim());
+        Date ngaySinh = chonNgaySinh.getDate();
+        benhNhan.setNgaySinh(ngaySinh == null ? null
+                : ngaySinh.toInstant().atZone(ZoneId.systemDefault()).toLocalDate());
+        String gioiTinh = (String) cboGioiTinh.getSelectedItem();
+        benhNhan.setGioiTinh("Nữ".equals(gioiTinh) ? "Nu" : gioiTinh);
+        benhNhan.setDiaChi(txtDiaChi.getText().trim().isEmpty() ? null : txtDiaChi.getText().trim());
+        return benhNhan;
     }
 
     /** Chuyển lịch đang chọn từ "Chờ xác nhận" sang "Đã xác nhận". */
@@ -350,8 +373,7 @@ public final class XuLyDatLichHenPanel extends JPanel {
             showMessage("Chỉ xác nhận được lịch đang ở trạng thái \"Chờ xác nhận\".");
             return;
         }
-        // TODO DAO: LichHenDAO.capNhatTrangThai(maLichHen, 'Da xac nhan')
-        tableModel.setValueAt(DA_XAC_NHAN, row, 6);
+        capNhatTrangThai(row, "Cho xac nhan", "Da xac nhan");
     }
 
     /** Hủy lịch đang chọn (chỉ khi chưa check-in). */
@@ -369,8 +391,20 @@ public final class XuLyDatLichHenPanel extends JPanel {
                 "Hủy lịch hẹn " + tableModel.getValueAt(row, 0) + "?",
                 "Xác nhận hủy", JOptionPane.YES_NO_OPTION);
         if (choice == JOptionPane.YES_OPTION) {
-            // TODO DAO: LichHenDAO.capNhatTrangThai(maLichHen, 'Huy')
-            tableModel.setValueAt(HUY, row, 6);
+            String trangThaiHienTai = CHO_XAC_NHAN.equals(status) ? "Cho xac nhan" : "Da xac nhan";
+            capNhatTrangThai(row, trangThaiHienTai, "Huy");
+        }
+    }
+
+    private void capNhatTrangThai(int row, String trangThaiHienTai, String trangThaiMoi) {
+        String maLichHen = (String) tableModel.getValueAt(row, 0);
+        try {
+            if (!datLichHenDAO.capNhatTrangThai(maLichHen, trangThaiHienTai, trangThaiMoi)) {
+                showMessage("Lịch hẹn đã được thay đổi ở nơi khác. Danh sách sẽ được tải lại.");
+            }
+            loadAppointments();
+        } catch (SQLException ex) {
+            showDatabaseError("Không thể cập nhật trạng thái lịch hẹn.", ex);
         }
     }
 
@@ -387,14 +421,88 @@ public final class XuLyDatLichHenPanel extends JPanel {
     // HÀM HỖ TRỢ
     // =====================================================================
 
-    private void loadMockAppointments() {
-        // TODO DAO: LichHenDAO.layDanhSach() thay cho dữ liệu mẫu này.
-        tableModel.addRow(new Object[] { "LH003", "19/10/2026 08:30", "BN003", "Đặng Quốc Khánh",
-                MOCK_NHA_SI[0], MOCK_PHONG[0], DA_XAC_NHAN });
-        tableModel.addRow(new Object[] { "LH004", "19/10/2026 14:00", "BN002", "Nguyễn Thị Lan",
-                MOCK_NHA_SI[1], MOCK_PHONG[1], CHO_XAC_NHAN });
-        tableModel.addRow(new Object[] { "LH005", "20/10/2026 09:00", "BN004", "Trần Bảo Ngọc",
-                MOCK_NHA_SI[1], MOCK_PHONG[1], CHO_XAC_NHAN });
+    private void napDanhMuc() {
+        try {
+            cboNhaSi.removeAllItems();
+            for (NhanVien nhaSi : datLichHenDAO.layNhaSiDangLamViec()) {
+                cboNhaSi.addItem(new ComboItem(nhaSi.getMaNhanVien(),
+                        nhaSi.getMaNhanVien() + " - " + nhaSi.getHoTen()));
+            }
+            cboPhong.removeAllItems();
+            for (PhongKham phong : datLichHenDAO.layPhongKhongBaoTri()) {
+                cboPhong.addItem(new ComboItem(phong.getMaPhong(),
+                        phong.getMaPhong() + " - " + phong.getTenPhong()));
+            }
+        } catch (SQLException ex) {
+            showDatabaseError("Không thể tải danh sách nha sĩ và phòng khám.", ex);
+        }
+    }
+
+    private void loadAppointments() {
+        tableModel.setRowCount(0);
+        try {
+            for (LichHenThongTin lichHen : datLichHenDAO.layDanhSachLichHen()) {
+                tableModel.addRow(new Object[] {
+                        lichHen.getMaLichHen(),
+                        lichHen.getThoiGianHen().format(DATE_TIME_FORMAT),
+                        lichHen.getMaBenhNhan(),
+                        lichHen.getTenBenhNhan(),
+                        lichHen.getTenNhaSi(),
+                        lichHen.getTenPhong(),
+                        trangThaiHienThi(lichHen.getTrangThai())
+                });
+            }
+            applyStatusFilter();
+        } catch (SQLException ex) {
+            showDatabaseError("Không thể tải danh sách lịch hẹn.", ex);
+        }
+    }
+
+    private String trangThaiHienThi(String trangThai) {
+        switch (trangThai) {
+            case "Cho xac nhan":
+                return CHO_XAC_NHAN;
+            case "Da xac nhan":
+                return DA_XAC_NHAN;
+            case "Da check-in":
+                return DA_CHECK_IN;
+            case "Dang kham":
+                return DANG_KHAM;
+            case "Hoan thanh":
+                return HOAN_THANH;
+            case "Huy":
+                return HUY;
+            case "Vang":
+                return VANG;
+            default:
+                throw new IllegalArgumentException("Trạng thái lịch hẹn không hợp lệ: " + trangThai);
+        }
+    }
+
+    private void showDatabaseError(String message, SQLException ex) {
+        String detail = ex.getMessage();
+        JOptionPane.showMessageDialog(this,
+                detail == null || detail.trim().isEmpty() ? message : message + "\n" + detail,
+                "Lỗi cơ sở dữ liệu", JOptionPane.ERROR_MESSAGE);
+    }
+
+    private static final class ComboItem {
+        private final String ma;
+        private final String ten;
+
+        private ComboItem(String ma, String ten) {
+            this.ma = ma;
+            this.ten = ten;
+        }
+
+        private String getMa() {
+            return ma;
+        }
+
+        @Override
+        public String toString() {
+            return ten;
+        }
     }
 
     private LocalDateTime getSelectedDateTime() {
@@ -428,7 +536,7 @@ public final class XuLyDatLichHenPanel extends JPanel {
     private void khoaThongTinBenhNhan(boolean khoa) {
         txtHoTen.setEditable(!khoa);
         txtSoDienThoai.setEditable(!khoa);
-        txtNgaySinh.setEditable(!khoa);
+        chonNgaySinh.setEnabled(!khoa);
         txtDiaChi.setEditable(!khoa);
         cboGioiTinh.setEnabled(!khoa);
     }
@@ -437,7 +545,7 @@ public final class XuLyDatLichHenPanel extends JPanel {
         txtMaBenhNhan.setText("");
         txtHoTen.setText("");
         txtSoDienThoai.setText("");
-        txtNgaySinh.setText("");
+        chonNgaySinh.setDate(null);
         txtDiaChi.setText("");
         cboGioiTinh.setSelectedIndex(0);
     }
@@ -447,8 +555,8 @@ public final class XuLyDatLichHenPanel extends JPanel {
         clearPatientFields();
         laBenhNhanMoi = false;
         khoaThongTinBenhNhan(true);
-        cboNhaSi.setSelectedIndex(0);
-        cboPhong.setSelectedIndex(0);
+        cboNhaSi.setSelectedIndex(cboNhaSi.getItemCount() == 0 ? -1 : 0);
+        cboPhong.setSelectedIndex(cboPhong.getItemCount() == 0 ? -1 : 0);
         spnNgayHen.setValue(new Date());
         spnGioHen.setValue(new Date());
     }

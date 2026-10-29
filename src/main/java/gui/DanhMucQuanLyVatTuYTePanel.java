@@ -1,6 +1,7 @@
 package gui;
 
 import entity.VatTu;
+import dao.VatTuDAO;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -10,6 +11,7 @@ import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
 import java.text.NumberFormat;
+import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
@@ -46,7 +48,7 @@ import javax.swing.table.TableRowSorter;
  * (phần thuốc do DanhMucQuanLyThuocPanel đảm nhiệm).
  *
  * Bên trái: danh sách + tìm kiếm + lọc loại. Bên phải: form thêm / sửa / xóa.
- * Dữ liệu tạm giữ trong bộ nhớ, chỗ cần nối DAO được đánh dấu "TODO DAO".
+ * Dữ liệu được đọc và cập nhật trực tiếp qua VatTuDAO.
  */
 public class DanhMucQuanLyVatTuYTePanel extends JPanel {
     private static final Color INK = new Color(32, 53, 68);
@@ -64,6 +66,7 @@ public class DanhMucQuanLyVatTuYTePanel extends JPanel {
     private static final NumberFormat MONEY_FMT = NumberFormat.getIntegerInstance(Locale.forLanguageTag("vi-VN"));
 
     private final List<VatTu> danhSach = new ArrayList<>();
+    private final VatTuDAO vatTuDAO = new VatTuDAO();
     private final DefaultTableModel tableModel = new DefaultTableModel(
             new String[] { "Mã vật tư", "Tên vật tư", "Loại", "Đơn vị", "Tồn kho", "Ngưỡng tối thiểu",
                     "Giá bán", "Hạn sử dụng" },
@@ -118,15 +121,13 @@ public class DanhMucQuanLyVatTuYTePanel extends JPanel {
 
     // ---------------------------- Dữ liệu ----------------------------
 
-    /**
-     * TODO DAO: thay bằng vatTuDAO.getAllExceptLoai("Thuoc"). Hiện dùng dữ liệu mẫu
-     * theo file SQL.
-     */
     private void loadData() {
-        danhSach.add(new VatTu("VT003", "Gang tay y te", "Tieu hao", "Hop", 40, 10, LocalDate.of(2028, 1, 1), 0));
-        danhSach.add(
-                new VatTu("VT004", "Composite tram rang", "Vat lieu", "Tuyp", 25, 5, LocalDate.of(2027, 3, 15), 0));
-        danhSach.add(new VatTu("VT006", "Mu su (rang su)", "Vat lieu", "Cai", 15, 5, null, 0));
+        try {
+            danhSach.clear();
+            danhSach.addAll(vatTuDAO.getAllExceptLoai(LOAI_THUOC));
+        } catch (SQLException ex) {
+            showDatabaseError("Không thể tải danh sách vật tư.", ex);
+        }
     }
 
     private VatTu findById(String ma) {
@@ -138,21 +139,13 @@ public class DanhMucQuanLyVatTuYTePanel extends JPanel {
         return null;
     }
 
-    /**
-     * Sinh mã VT### tiếp theo. Lưu ý: bảng VatTu dùng chung với thuốc, nên khi nối
-     * DAO
-     * hãy lấy mã lớn nhất trên toàn bảng VatTu để không trùng với mã thuốc.
-     */
     private String nextId() {
-        int max = 0;
-        for (VatTu vt : danhSach) {
-            try {
-                max = Math.max(max, Integer.parseInt(vt.getMaVatTu().substring(2)));
-            } catch (RuntimeException ignored) {
-                // Bỏ qua mã không theo định dạng VT###.
-            }
+        try {
+            return vatTuDAO.getNextId();
+        } catch (SQLException ex) {
+            showDatabaseError("Không thể tạo mã vật tư mới.", ex);
+            return "";
         }
-        return String.format("VT%03d", max + 1);
     }
 
     // ---------------------------- Giao diện ----------------------------
@@ -408,11 +401,12 @@ public class DanhMucQuanLyVatTuYTePanel extends JPanel {
         txtGiaBan.setText("0");
         txtHan.setText("");
         setEditing(false);
+        btnAdd.setEnabled(!txtMa.getText().isEmpty());
         txtTen.requestFocusInWindow();
     }
 
     private void setEditing(boolean editing) {
-        btnAdd.setEnabled(!editing);
+        btnAdd.setEnabled(!editing && !txtMa.getText().isEmpty());
         btnUpdate.setEnabled(editing);
         btnDelete.setEnabled(editing);
     }
@@ -425,7 +419,9 @@ public class DanhMucQuanLyVatTuYTePanel extends JPanel {
             if (findById(vt.getMaVatTu()) != null) {
                 throw new IllegalArgumentException("Mã vật tư đã tồn tại.");
             }
-            // TODO DAO: vatTuDAO.insert(vt);
+            if (!vatTuDAO.insert(vt)) {
+                throw new SQLException("Không thể thêm vật tư vào cơ sở dữ liệu.");
+            }
             danhSach.add(vt);
             refreshTable();
             clearForm();
@@ -433,6 +429,8 @@ public class DanhMucQuanLyVatTuYTePanel extends JPanel {
         } catch (IllegalArgumentException ex) {
             JOptionPane.showMessageDialog(this, ex.getMessage(), "Dữ liệu không hợp lệ",
                     JOptionPane.WARNING_MESSAGE);
+        } catch (SQLException ex) {
+            showDatabaseError("Không thể thêm vật tư.", ex);
         }
     }
 
@@ -443,7 +441,9 @@ public class DanhMucQuanLyVatTuYTePanel extends JPanel {
             if (current == null) {
                 throw new IllegalArgumentException("Không tìm thấy vật tư cần cập nhật.");
             }
-            // TODO DAO: vatTuDAO.update(updated);
+            if (!vatTuDAO.update(updated)) {
+                throw new SQLException("Không tìm thấy vật tư cần cập nhật trong cơ sở dữ liệu.");
+            }
             danhSach.set(danhSach.indexOf(current), updated);
             refreshTable();
             clearForm();
@@ -451,6 +451,8 @@ public class DanhMucQuanLyVatTuYTePanel extends JPanel {
         } catch (IllegalArgumentException ex) {
             JOptionPane.showMessageDialog(this, ex.getMessage(), "Dữ liệu không hợp lệ",
                     JOptionPane.WARNING_MESSAGE);
+        } catch (SQLException ex) {
+            showDatabaseError("Không thể cập nhật vật tư.", ex);
         }
     }
 
@@ -463,14 +465,33 @@ public class DanhMucQuanLyVatTuYTePanel extends JPanel {
                 "Xóa vật tư " + vt.getMaVatTu() + " - " + vt.getTenVatTu() + "?",
                 "Xác nhận xóa", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
         if (choice == JOptionPane.YES_OPTION) {
-            // TODO DAO: vatTuDAO.delete(ma). Vật tư đã nằm trong phiếu nhập / phiếu xuất sẽ
-            // vướng
-            // khóa ngoại -> bắt SQLException và báo "Vật tư đã được sử dụng, không thể
-            // xóa".
+            try {
+                if (!vatTuDAO.delete(vt.getMaVatTu())) {
+                    JOptionPane.showMessageDialog(this, "Không tìm thấy vật tư trong cơ sở dữ liệu.",
+                            "Không thể xóa", JOptionPane.WARNING_MESSAGE);
+                    return;
+                }
+            } catch (SQLException ex) {
+                if (ex.getErrorCode() == 547) {
+                    JOptionPane.showMessageDialog(this,
+                            "Vật tư đã được sử dụng trong phiếu hoặc đơn thuốc, không thể xóa.",
+                            "Không thể xóa", JOptionPane.WARNING_MESSAGE);
+                } else {
+                    showDatabaseError("Không thể xóa vật tư.", ex);
+                }
+                return;
+            }
             danhSach.remove(vt);
             refreshTable();
             clearForm();
         }
+    }
+
+    private void showDatabaseError(String message, SQLException ex) {
+        String detail = ex.getMessage();
+        JOptionPane.showMessageDialog(this,
+                detail == null || detail.trim().isEmpty() ? message : message + "\n" + detail,
+                "Lỗi cơ sở dữ liệu", JOptionPane.ERROR_MESSAGE);
     }
 
     // ---------------------------- Kiểm tra dữ liệu ----------------------------

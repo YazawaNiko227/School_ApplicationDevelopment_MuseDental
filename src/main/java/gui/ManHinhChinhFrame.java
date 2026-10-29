@@ -677,7 +677,7 @@ public final class ManHinhChinhFrame extends JFrame {
         showContentPanel(
                 "Đặt lịch hẹn khám và nhắc lịch",
                 "Quản lý lịch hẹn, trạng thái xác nhận và nhắc lịch bệnh nhân",
-                new XuLyDatLichHenPanel());
+                new XuLyDatLichHenPanel(username));
     }
 
     // THỐNG KÊ

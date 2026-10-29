@@ -1,0 +1,41 @@
+"Sau khi bạn đọc các menu ở trong sidebar của ManHinhChinhFrame.java thì đây là luồng chính cho việc khám bệnh. Hãy quan sát nó trước đã
+Đặt lịch hẹn: tìm bệnh nhân. Nếu chưa từng khám thì tạo bệnh nhân và HoSoBenhAn rỗng, rồi lưu LichHen (Chờ xác nhận).
+Lễ tân: rồi sau đó lễ tân xác nhận lịch hẹn, thì nó mới xuất hiện ở panel dashboard: điều phố
+Chuẩn bị dụng cụ & trạng thái phòng: y tá làm trước giờ hẹn, phòng chuyển sang Sẵn sàng.
+Dashboard điều phối: bệnh nhân đến thì check-in (Đã check-in), rồi điều phối vào phòng.
+Khám lâm sàng & sơ đồ răng: nha sĩ bấm “Vào khám” (tạo ChanDoan nháp, Đang khám).
+Phác đồ & dự toán và Kê đơn thuốc: làm trong buổi khám, thứ tự tùy nha sĩ vì cả hai chỉ cần MaChanDoan.
+Ghi nhận vật tư tiêu hao: trong hoặc ngay sau buổi khám.
+Hoàn tất khám: nha sĩ bấm “Hoàn tất”, ChanDoan được chốt và lịch hẹn chuyển Hoàn thành. Phòng chuyển Cần vệ sinh, y tá dọn xong thì đặt lại Sẵn sàng.
+Lập hóa đơn: thu ngân lập hóa đơn. Nếu trả góp thì sang Công nợ & trả góp."
+
+
+#	Panel	Ai	Làm gì	Bảng chính
+1	Đặt lịch hẹn	Lễ tân	Chọn bệnh nhân → chọn nha sĩ, phòng, giờ. Kiểm tra nha sĩ có ca trực giờ đó không, có báo bận không, phòng có đang “Bảo trì” không, có trùng lịch không. Lưu với trạng thái Chờ xác nhận	LichHen
+2	Cùng panel (nhắc lịch)	Lễ tân	Gọi hoặc nhắn xác nhận → Đã xác nhận	LichHen
+3	Chuẩn bị dụng cụ & trạng thái phòng	Y tá	Xem lịch hẹn sắp tới của phòng mình, chuẩn bị dụng cụ theo dịch vụ dự kiến, đặt phòng “Sẵn sàng”	PhongKham, LichHen
+4	Điều phối/Check-in	Lễ tân	Bệnh nhân đến → check-in. Xác nhận lại thông tin, dị ứng. Bệnh nhân vào hàng chờ	LichHen.TrangThai
+5	Khám lâm sàng & sơ đồ răng	Nha sĩ	Nhấn “Vào khám” từ Điều phối, panel mở sẵn đúng bệnh nhân. Ghi triệu chứng, đánh dấu răng, kết luận chẩn đoán. Trạng thái Đang khám	ChanDoan, SoDoRang
+6a	Phác đồ & dự toán	Nha sĩ	Dựa trên chẩn đoán, chọn dịch vụ + số lượng, ra dự toán, đặt lịch tái khám (tạo LichHen mới có MaKeHoach)	KeHoachDieuTri, ..._DichVu
+6b	Kê đơn thuốc	Nha sĩ	Kê thuốc theo chẩn đoán (1 đơn / 1 chẩn đoán)	DonThuoc, ChiTietDonThuoc
+7	Ghi nhận vật tư tiêu hao	Y tá / Thủ kho	Ghi vật tư dùng cho lượt khám này (gắn MaLichHen), trừ tồn kho	PhieuXuatKho, VatTu
+8	Điều phối + Chuẩn bị phòng	Y tá	Khám xong → Hoàn thành, phòng chuyển “Cần vệ sinh” → vệ sinh xong thì “Sẵn sàng”	LichHen, PhongKham
+9	Lập hóa đơn	Thu ngân	Lấy các dịch vụ đã thực hiện → hóa đơn, chọn thanh toán thẳng hoặc trả góp	HoaDon, ChiTietHoaDon
+10	Công nợ & trả góp	Thu ngân	Nếu trả góp: tạo công nợ, chia đợt, theo dõi và nhắc nợ	CongNoTraGop, DotThanhToan
+11	Tra cứu EMR / hóa đơn, Báo cáo doanh thu	Mọi vai trò	Chỉ đọc
+
+
+/* =====================================================================
+   LUONG KHAM BENH CHINH (de doi chieu cac cot trang thai)
+   1. Dat lich            : LichHen = 'Cho xac nhan'
+   2. Nhac lich/xac nhan  : LichHen = 'Da xac nhan'
+   3. Chuan bi phong      : PhongKham = 'San sang'
+   4. Check-in / dieu phoi: LichHen = 'Da check-in' (ghi ThoiGianCheckIn)
+   5. Vao kham            : ChanDoan 'Nhap' (MaLichHen), LichHen = 'Dang kham',
+                            PhongKham = 'Dang kham'
+   6. Phac do / Ke don / Vat tu: dung MaChanDoan (vat tu qua PhieuXuatKho.MaLichHen)
+   7. Hoan tat            : ChanDoan = 'Da chot', LichHen = 'Hoan thanh',
+                            PhongKham = 'Can ve sinh' -> y ta don xong -> 'San sang'
+   8. Lap hoa don         : HoaDon.MaChanDoan; tra gop -> CongNoTraGop
+   Cac cot/bang them moi danh dau [MOI].
+   ===================================================================== */

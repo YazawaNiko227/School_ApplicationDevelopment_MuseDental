@@ -1,5 +1,8 @@
 package gui;
 
+import dao.PhongKhamDAO;
+import entity.PhongKham;
+
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
@@ -7,10 +10,12 @@ import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
+import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
@@ -37,7 +42,7 @@ import javax.swing.table.DefaultTableModel;
  * "Sẵn sàng". Phòng sau khi khám xong ("Cần vệ sinh") cũng được đặt lại
  * "Sẵn sàng" ở đây.
  *
- * Hiện tại chỉ làm giao diện với dữ liệu mẫu, chưa nối DAO.
+ * Dữ liệu phòng và trạng thái được đọc, cập nhật qua PhongKhamDAO.
  */
 public class XuLyChuanBiPhongKhamPanel extends JPanel {
     // Màu dùng chung với ManHinhChinhFrame.
@@ -49,8 +54,7 @@ public class XuLyChuanBiPhongKhamPanel extends JPanel {
     private static final Color RED = new Color(200, 70, 70);
     private static final Color BLUE = new Color(51, 91, 177);
 
-    // Trạng thái phòng (khi có DAO sẽ map sang giá trị trong cột
-    // PhongKham.TrangThai).
+    // Trạng thái hiển thị; PhongKhamDAO lưu các giá trị không dấu theo schema.
     private static final String SAN_SANG = "Sẵn sàng";
     private static final String DANG_KHAM = "Đang khám";
     private static final String CAN_VE_SINH = "Cần vệ sinh";
@@ -71,6 +75,7 @@ public class XuLyChuanBiPhongKhamPanel extends JPanel {
     // Mỗi phần tử: {mã phòng, tên phòng, trạng thái, lịch hẹn kế tiếp, cập nhật
     // lúc}
     private final List<Object[]> danhSachPhong = new ArrayList<>();
+    private final PhongKhamDAO phongKhamDAO = new PhongKhamDAO();
 
     private final DefaultTableModel tableModel = new DefaultTableModel(
             new String[] { "Mã phòng", "Tên phòng", "Trạng thái", "Lịch hẹn kế tiếp", "Cập nhật lúc" }, 0) {
@@ -102,8 +107,6 @@ public class XuLyChuanBiPhongKhamPanel extends JPanel {
         setLayout(new BorderLayout(0, 18));
         setOpaque(false);
 
-        taoDuLieuMau();
-
         add(createSummaryPanel(), BorderLayout.NORTH);
 
         JPanel center = new JPanel(new BorderLayout(18, 0));
@@ -112,19 +115,61 @@ public class XuLyChuanBiPhongKhamPanel extends JPanel {
         center.add(createDetailPanel(), BorderLayout.EAST);
         add(center, BorderLayout.CENTER);
 
+        napDuLieu();
         loadTable();
         refreshSummary();
         capNhatChiTiet();
     }
 
-    // ===== Dữ liệu mẫu (thay bằng PhongKhamDAO sau này) =====
-    private void taoDuLieuMau() {
-        danhSachPhong
-                .add(new Object[] { "P01", "Phòng khám số 1", SAN_SANG, "09:00 - Nguyễn Minh Anh", "07:45 23/10" });
-        danhSachPhong
-                .add(new Object[] { "P02", "Phòng khám số 2", CAN_VE_SINH, "09:30 - Trần Hoàng Nam", "08:50 23/10" });
-        danhSachPhong.add(new Object[] { "P03", "Phòng tiểu phẫu", BAO_TRI, "Không có", "20/10" });
-        danhSachPhong.add(new Object[] { "P04", "Phòng khám số 4", DANG_KHAM, "10:30 - Phạm Gia Bảo", "08:55 23/10" });
+    private void napDuLieu() {
+        try {
+            List<PhongKham> phongKhamList = phongKhamDAO.layTatCa();
+            Map<String, String> lichHenKeTiep = phongKhamDAO.layLichHenKeTiep();
+            danhSachPhong.clear();
+            for (PhongKham phong : phongKhamList) {
+                danhSachPhong.add(new Object[] {
+                        phong.getMaPhong(),
+                        phong.getTenPhong(),
+                        trangThaiHienThi(phong.getTrangThai()),
+                        lichHenKeTiep.getOrDefault(phong.getMaPhong(), "Không có"),
+                        "-"
+                });
+            }
+        } catch (SQLException ex) {
+            showDatabaseError("Không thể tải danh sách phòng khám.", ex);
+        }
+    }
+
+    private String trangThaiHienThi(String trangThai) {
+        if ("San sang".equals(trangThai)) {
+            return SAN_SANG;
+        }
+        if ("Dang kham".equals(trangThai)) {
+            return DANG_KHAM;
+        }
+        if ("Can ve sinh".equals(trangThai)) {
+            return CAN_VE_SINH;
+        }
+        if ("Bao tri".equals(trangThai)) {
+            return BAO_TRI;
+        }
+        throw new IllegalArgumentException("Trạng thái phòng khám không hợp lệ: " + trangThai);
+    }
+
+    private String trangThaiTrongDb(String trangThai) {
+        if (SAN_SANG.equals(trangThai)) {
+            return "San sang";
+        }
+        if (DANG_KHAM.equals(trangThai)) {
+            return "Dang kham";
+        }
+        if (CAN_VE_SINH.equals(trangThai)) {
+            return "Can ve sinh";
+        }
+        if (BAO_TRI.equals(trangThai)) {
+            return "Bao tri";
+        }
+        throw new IllegalArgumentException("Trạng thái phòng khám không hợp lệ: " + trangThai);
     }
 
     // ===== Thẻ thống kê =====
@@ -443,10 +488,11 @@ public class XuLyChuanBiPhongKhamPanel extends JPanel {
         if (phong == null) {
             return;
         }
-        datTrangThai(phong, SAN_SANG);
-        JOptionPane.showMessageDialog(this,
-                "Phòng " + phong[0] + " đã chuyển sang trạng thái Sẵn sàng.",
-                "Thành công", JOptionPane.INFORMATION_MESSAGE);
+        if (datTrangThai(phong, SAN_SANG)) {
+            JOptionPane.showMessageDialog(this,
+                    "Phòng " + phong[0] + " đã chuyển sang trạng thái Sẵn sàng.",
+                    "Thành công", JOptionPane.INFORMATION_MESSAGE);
+        }
     }
 
     // Báo phòng cần vệ sinh (ví dụ phòng bị bẩn trước khi dùng).
@@ -478,8 +524,23 @@ public class XuLyChuanBiPhongKhamPanel extends JPanel {
     }
 
     // Đổi trạng thái phòng trong danh sách rồi làm mới giao diện.
-    private void datTrangThai(Object[] phong, String trangThaiMoi) {
+    private boolean datTrangThai(Object[] phong, String trangThaiMoi) {
         String maPhong = (String) phong[0];
+        try {
+            if (!phongKhamDAO.capNhatTrangThai(maPhong, trangThaiTrongDb(trangThaiMoi))) {
+                JOptionPane.showMessageDialog(this,
+                        "Không tìm thấy phòng " + maPhong + " trong cơ sở dữ liệu.",
+                        "Không thể cập nhật", JOptionPane.ERROR_MESSAGE);
+                napDuLieu();
+                loadTable();
+                refreshSummary();
+                capNhatChiTiet();
+                return false;
+            }
+        } catch (SQLException ex) {
+            showDatabaseError("Không thể cập nhật trạng thái phòng khám.", ex);
+            return false;
+        }
         phong[2] = trangThaiMoi;
         phong[4] = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm dd/MM"));
         loadTable();
@@ -493,6 +554,14 @@ public class XuLyChuanBiPhongKhamPanel extends JPanel {
             }
         }
         capNhatChiTiet();
+        return true;
+    }
+
+    private void showDatabaseError(String message, SQLException ex) {
+        String detail = ex.getMessage();
+        JOptionPane.showMessageDialog(this,
+                detail == null || detail.trim().isEmpty() ? message : message + "\n" + detail,
+                "Lỗi cơ sở dữ liệu", JOptionPane.ERROR_MESSAGE);
     }
 
     // Tô màu chữ cho cột trạng thái.

@@ -1,23 +1,22 @@
 package gui;
 
+import dao.VatTuDAO;
 import entity.VatTu;
+import util.GiaoDienUtil;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
-import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
+import java.sql.SQLException;
 import java.text.NumberFormat;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
-import java.time.format.ResolverStyle;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.regex.Pattern;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
@@ -31,516 +30,447 @@ import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.ListSelectionModel;
 import javax.swing.SwingConstants;
-import javax.swing.RowFilter;
 import javax.swing.border.EmptyBorder;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
-import javax.swing.table.TableRowSorter;
 
 /**
- * Panel quản lý thuốc (CRUD) cho mục DANH MỤC → "Quản Lý Thuốc".
- * Thuốc được lưu trong bảng VatTu với LoaiVatTu = "Thuoc".
+ * Panel Quản lý thuốc (CRUD) phục vụ mục DANH MỤC → "Quản lý thuốc".
+ * Kết nối trực tiếp với CSDL qua VatTuDAO (bảng VatTu, LoaiVatTu = 'Thuoc').
  *
- * Bên trái: danh sách + tìm kiếm. Bên phải: form thêm / sửa / xóa.
- * Dữ liệu tạm giữ trong bộ nhớ, chỗ cần nối DAO được đánh dấu "TODO DAO".
+ * Thiết kế Clean Code:
+ * - Bên trái: Danh sách thuốc dạng bảng kèm bộ lọc tìm kiếm tức thì.
+ * - Bên phải: Biểu mẫu thông tin thuốc để Thêm / Sửa / Xóa / Làm mới.
+ * - Kiểm tra dữ liệu (validation) chặt chẽ trước khi lưu vào CSDL.
  */
 public class DanhMucQuanLyThuocPanel extends JPanel {
-        private static final Color INK = new Color(32, 53, 68);
-        private static final Color MUTED = new Color(119, 139, 151);
-        private static final Color TEAL = new Color(26, 151, 151);
-        private static final Color LINE = new Color(226, 234, 237);
-        private static final Color DANGER = new Color(214, 69, 80);
 
-        private static final String LOAI_THUOC = "Thuoc";
-        private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("dd/MM/uuuu")
-                        .withResolverStyle(ResolverStyle.STRICT);
-        // Định dạng tiền kiểu Việt Nam: 1.500.000
-        private static final NumberFormat MONEY_FMT = NumberFormat.getIntegerInstance(Locale.forLanguageTag("vi-VN"));
+    private static final DateTimeFormatter DINH_DANG_NGAY = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+    private static final NumberFormat DINH_DANG_TIEN = NumberFormat.getIntegerInstance(Locale.forLanguageTag("vi-VN"));
 
-        private final List<VatTu> danhSach = new ArrayList<>();
-        private final DefaultTableModel tableModel = new DefaultTableModel(
-                        new String[] { "Mã thuốc", "Tên thuốc", "Đơn vị", "Tồn kho", "Ngưỡng tối thiểu", "Giá bán",
-                                        "Hạn sử dụng" },
-                        0) {
-                @Override
-                public boolean isCellEditable(int row, int column) {
-                        return false;
-                }
+    private final VatTuDAO vatTuDAO = new VatTuDAO();
 
-                // Cột số để sắp xếp đúng theo giá trị số.
-                @Override
-                public Class<?> getColumnClass(int column) {
-                        if (column == 5) {
-                                return Double.class;
-                        }
-                        return (column == 3 || column == 4) ? Integer.class : String.class;
-                }
-        };
-        private final JTable table = new JTable(tableModel);
-        private final TableRowSorter<DefaultTableModel> sorter = new TableRowSorter<>(tableModel);
-
-        private final JTextField txtSearch = new JTextField();
-        private final JLabel lblCount = new JLabel();
-
-        private final JTextField txtMa = new JTextField();
-        private final JTextField txtTen = new JTextField();
-        private final JTextField txtDonVi = new JTextField();
-        private final JTextField txtTon = new JTextField();
-        private final JTextField txtNguong = new JTextField();
-        private final JTextField txtGiaBan = new JTextField();
-        private final JTextField txtHan = new JTextField();
-
-        private final JButton btnAdd = createButton("Thêm", TEAL, Color.WHITE);
-        private final JButton btnUpdate = createButton("Sửa", new Color(51, 91, 177), Color.WHITE);
-        private final JButton btnDelete = createButton("Xóa", DANGER, Color.WHITE);
-        private final JButton btnClear = createButton("Làm mới", new Color(236, 241, 243), INK);
-
-        public DanhMucQuanLyThuocPanel() {
-                setLayout(new BorderLayout(18, 0));
-                setOpaque(false);
-
-                loadData();
-                setupTable();
-                add(createListCard(), BorderLayout.CENTER);
-                add(createFormCard(), BorderLayout.EAST);
-
-                refreshTable();
-                clearForm();
+    // Bảng và mô hình dữ liệu bảng
+    private final DefaultTableModel modelBang = new DefaultTableModel(
+            new String[] { "Mã thuốc", "Tên thuốc", "Đơn vị", "Tồn kho", "Ngưỡng tối thiểu", "Giá bán", "Hạn sử dụng" },
+            0) {
+        @Override
+        public boolean isCellEditable(int row, int column) {
+            return false;
         }
 
-        // ---------------------------- Dữ liệu ----------------------------
+        @Override
+        public Class<?> getColumnClass(int column) {
+            if (column == 5) return Double.class;
+            if (column == 3 || column == 4) return Integer.class;
+            return String.class;
+        }
+    };
+    private final JTable bangThuoc = new JTable(modelBang);
 
-        /**
-         * TODO DAO: thay bằng vatTuDAO.getByLoai("Thuoc"). Hiện dùng dữ liệu mẫu theo
-         * file SQL.
-         */
-        private void loadData() {
-                danhSach.add(new VatTu("VT001", "Amoxicillin 500mg", LOAI_THUOC, "Vien", 200, 50,
-                                LocalDate.of(2027, 6, 30), 5000));
-                danhSach.add(new VatTu("VT002", "Paracetamol 500mg", LOAI_THUOC, "Vien", 500, 100,
-                                LocalDate.of(2027, 12, 31), 1500));
-                danhSach.add(new VatTu("VT005", "Thuoc te Lidocaine 2%", LOAI_THUOC, "Ong", 60, 20,
-                                LocalDate.of(2027, 2, 28), 0));
+    // Thành phần tìm kiếm
+    private final JTextField txtTimKiem = new JTextField();
+    private final JLabel lblSoLuong = new JLabel();
+
+    // Các ô nhập liệu trên form
+    private final JTextField txtMa = new JTextField();
+    private final JTextField txtTen = new JTextField();
+    private final JTextField txtDonVi = new JTextField();
+    private final JTextField txtTon = new JTextField();
+    private final JTextField txtNguong = new JTextField();
+    private final JTextField txtGiaBan = new JTextField();
+    private final JTextField txtHan = new JTextField();
+
+    // Các nút chức năng
+    private final JButton btnThem = GiaoDienUtil.taoNut("Thêm", true);
+    private final JButton btnSua = GiaoDienUtil.taoNut("Sửa", false);
+    private final JButton btnXoa = GiaoDienUtil.taoNut("Xóa", false);
+    private final JButton btnLamMoi = GiaoDienUtil.taoNut("Làm mới", false);
+
+    public DanhMucQuanLyThuocPanel() {
+        setLayout(new BorderLayout(18, 0));
+        setOpaque(false);
+
+        thietLapBang();
+        add(taoDanhSachThe(), BorderLayout.CENTER);
+        add(taoBieuMauThe(), BorderLayout.EAST);
+
+        taiDuLieu();
+        lamMoiBieuMau();
+    }
+
+    // =========================================================================
+    // 1. XÂY DỰNG GIAO DIỆN
+    // =========================================================================
+
+    /** Tạo thẻ danh sách bên trái: ô tìm kiếm + bảng danh sách thuốc. */
+    private JPanel taoDanhSachThe() {
+        JPanel the = new JPanel(new BorderLayout(0, 14));
+        GiaoDienUtil.trangTriThe(the);
+
+        // Thanh công cụ tìm kiếm
+        JPanel thanhCongCu = new JPanel(new BorderLayout(10, 0));
+        thanhCongCu.setOpaque(false);
+
+        txtTimKiem.setPreferredSize(new Dimension(300, 34));
+        txtTimKiem.setToolTipText("Nhập mã hoặc tên thuốc để lọc tức thì");
+        GiaoDienUtil.tuyChinhO(txtTimKiem);
+        txtTimKiem.getDocument().addDocumentListener(new DocumentListener() {
+            @Override
+            public void insertUpdate(DocumentEvent e) { taiDuLieu(); }
+            @Override
+            public void removeUpdate(DocumentEvent e) { taiDuLieu(); }
+            @Override
+            public void changedUpdate(DocumentEvent e) { taiDuLieu(); }
+        });
+
+        lblSoLuong.setFont(GiaoDienUtil.NHO_DAM);
+        lblSoLuong.setForeground(GiaoDienUtil.MUTED);
+
+        thanhCongCu.add(txtTimKiem, BorderLayout.WEST);
+        thanhCongCu.add(lblSoLuong, BorderLayout.EAST);
+
+        // Bảng dữ liệu có cuộn
+        JScrollPane cuonBang = new JScrollPane(bangThuoc);
+        cuonBang.setBorder(BorderFactory.createLineBorder(GiaoDienUtil.LINE));
+        cuonBang.getViewport().setBackground(Color.WHITE);
+
+        the.add(thanhCongCu, BorderLayout.NORTH);
+        the.add(cuonBang, BorderLayout.CENTER);
+        return the;
+    }
+
+    /** Tạo thẻ form thông tin thuốc bên phải: các trường nhập liệu và nút CRUD. */
+    private JPanel taoBieuMauThe() {
+        JPanel the = new JPanel(new BorderLayout(0, 14));
+        GiaoDienUtil.trangTriThe(the);
+        the.setPreferredSize(new Dimension(350, 0));
+
+        the.add(GiaoDienUtil.taoTieuDe("Thông tin thuốc"), BorderLayout.NORTH);
+
+        txtMa.setEditable(false);
+        txtMa.setBackground(new Color(244, 247, 250));
+        txtHan.setToolTipText("Định dạng dd/MM/yyyy (ví dụ: 30/12/2027)");
+        txtGiaBan.setToolTipText("Giá bán cho bệnh nhân. Nhập 0 nếu chỉ dùng nội bộ");
+
+        JPanel form = new JPanel();
+        form.setOpaque(false);
+        form.setLayout(new BoxLayout(form, BoxLayout.Y_AXIS));
+
+        form.add(taoHangDoi(taoO("Mã thuốc", txtMa), taoO("Đơn vị tính", txtDonVi)));
+        form.add(Box.createVerticalStrut(10));
+        form.add(taoO("Tên thuốc (*)", txtTen));
+        form.add(Box.createVerticalStrut(10));
+        form.add(taoHangDoi(taoO("Số lượng tồn", txtTon), taoO("Ngưỡng tối thiểu", txtNguong)));
+        form.add(Box.createVerticalStrut(10));
+        form.add(taoO("Giá bán (VNĐ)", txtGiaBan));
+        form.add(Box.createVerticalStrut(10));
+        form.add(taoO("Hạn sử dụng (dd/MM/yyyy)", txtHan));
+        form.add(Box.createVerticalGlue());
+        the.add(form, BorderLayout.CENTER);
+
+        // Cụm nút thao tác
+        JPanel thanhNut = new JPanel(new FlowLayout(FlowLayout.CENTER, 6, 0));
+        thanhNut.setOpaque(false);
+        thanhNut.add(btnThem);
+        thanhNut.add(btnSua);
+        thanhNut.add(btnXoa);
+        thanhNut.add(btnLamMoi);
+        the.add(thanhNut, BorderLayout.SOUTH);
+
+        btnThem.addActionListener(e -> themThuoc());
+        btnSua.addActionListener(e -> suaThuoc());
+        btnXoa.addActionListener(e -> xoaThuoc());
+        btnLamMoi.addActionListener(e -> lamMoiBieuMau());
+
+        return the;
+    }
+
+    private JPanel taoO(String tieuDe, JComponent input) {
+        JPanel p = new JPanel(new BorderLayout(0, 4));
+        p.setOpaque(false);
+        JLabel lbl = GiaoDienUtil.taoNhanPhu(tieuDe);
+        input.setPreferredSize(new Dimension(100, 32));
+        GiaoDienUtil.tuyChinhO(input);
+        p.add(lbl, BorderLayout.NORTH);
+        p.add(input, BorderLayout.CENTER);
+        return p;
+    }
+
+    private JPanel taoHangDoi(JPanel o1, JPanel o2) {
+        JPanel hang = new JPanel();
+        hang.setOpaque(false);
+        hang.setLayout(new BoxLayout(hang, BoxLayout.X_AXIS));
+        hang.add(o1);
+        hang.add(Box.createHorizontalStrut(10));
+        hang.add(o2);
+        hang.setMaximumSize(new Dimension(Integer.MAX_VALUE, 58));
+        return hang;
+    }
+
+    private void thietLapBang() {
+        GiaoDienUtil.tuyChinhBang(bangThuoc);
+        bangThuoc.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+
+        // Renderer làm nổi bật tồn kho thấp và hạn dùng
+        DinhDangCotRenderer renderer = new DinhDangCotRenderer();
+        for (int i = 0; i < bangThuoc.getColumnCount(); i++) {
+            bangThuoc.getColumnModel().getColumn(i).setCellRenderer(renderer);
         }
 
-        private VatTu findById(String ma) {
-                for (VatTu vt : danhSach) {
-                        if (vt.getMaVatTu().equalsIgnoreCase(ma)) {
-                                return vt;
-                        }
+        bangThuoc.getSelectionModel().addListSelectionListener(e -> {
+            if (e.getValueIsAdjusting() || bangThuoc.getSelectedRow() < 0) return;
+            int row = bangThuoc.getSelectedRow();
+            String ma = (String) modelBang.getValueAt(row, 0);
+            try {
+                VatTu vt = vatTuDAO.timTheoMa(ma);
+                if (vt != null) {
+                    doLenForm(vt);
+                    chuyenCheDo(true);
                 }
-                return null;
-        }
+            } catch (SQLException ex) {
+                GiaoDienUtil.baoLoi(this, ex);
+            }
+        });
+    }
 
-        /**
-         * Sinh mã VT### tiếp theo. Lưu ý: bảng VatTu dùng chung cho cả vật tư y tế,
-         * nên khi nối DAO hãy lấy mã lớn nhất trên toàn bảng VatTu để không trùng.
-         */
-        private String nextId() {
-                int max = 0;
-                for (VatTu vt : danhSach) {
-                        try {
-                                max = Math.max(max, Integer.parseInt(vt.getMaVatTu().substring(2)));
-                        } catch (RuntimeException ignored) {
-                                // Bỏ qua mã không theo định dạng VT###.
-                        }
-                }
-                return String.format("VT%03d", max + 1);
-        }
+    // =========================================================================
+    // 2. XỬ LÝ DỮ LIỆU & DAO
+    // =========================================================================
 
-        // ---------------------------- Giao diện ----------------------------
-
-        private void setupTable() {
-                table.setRowHeight(40);
-                table.setShowGrid(false);
-                table.setIntercellSpacing(new Dimension(0, 0));
-                table.setFont(new Font("Arial", Font.PLAIN, 12));
-                table.setForeground(INK);
-                table.setSelectionBackground(new Color(231, 246, 245));
-                table.setSelectionForeground(INK);
-                table.setFillsViewportHeight(true);
-                table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-                table.setRowSorter(sorter);
-
-                table.getTableHeader().setReorderingAllowed(false);
-                table.getTableHeader().setPreferredSize(new Dimension(0, 38));
-                table.getTableHeader().setFont(new Font("Arial", Font.BOLD, 11));
-                table.getTableHeader().setForeground(MUTED);
-                table.getTableHeader().setBackground(new Color(247, 250, 251));
-
-                CellRenderer renderer = new CellRenderer();
-                for (int i = 0; i < table.getColumnCount(); i++) {
-                        table.getColumnModel().getColumn(i).setCellRenderer(renderer);
-                }
-
-                table.getSelectionModel().addListSelectionListener(event -> {
-                        if (event.getValueIsAdjusting() || table.getSelectedRow() < 0) {
-                                return;
-                        }
-                        String ma = (String) tableModel.getValueAt(table.convertRowIndexToModel(table.getSelectedRow()),
-                                        0);
-                        VatTu vt = findById(ma);
-                        if (vt != null) {
-                                fillForm(vt);
-                                setEditing(true);
-                        }
+    /** Nạp danh sách thuốc từ CSDL qua VatTuDAO, có hỗ trợ từ khóa tìm kiếm. */
+    private void taiDuLieu() {
+        String tuKhoa = txtTimKiem.getText().trim();
+        try {
+            List<VatTu> danhSach = vatTuDAO.timKiem(tuKhoa, VatTuDAO.LOAI_THUOC);
+            modelBang.setRowCount(0);
+            for (VatTu vt : danhSach) {
+                modelBang.addRow(new Object[] {
+                        vt.getMaVatTu(),
+                        vt.getTenVatTu(),
+                        vt.getDonViTinh() == null ? "" : vt.getDonViTinh(),
+                        vt.getSoLuongTon(),
+                        vt.getNguongToiThieu(),
+                        vt.getDonGiaBan(),
+                        vt.getHanSuDung() == null ? "" : vt.getHanSuDung().format(DINH_DANG_NGAY)
                 });
+            }
+            lblSoLuong.setText("Tổng số thuốc: " + danhSach.size());
+        } catch (SQLException e) {
+            GiaoDienUtil.baoLoi(this, e);
+        }
+    }
+
+    /** Đổ thông tin thuốc lên các trường nhập liệu. */
+    private void doLenForm(VatTu vt) {
+        txtMa.setText(vt.getMaVatTu());
+        txtTen.setText(vt.getTenVatTu());
+        txtDonVi.setText(vt.getDonViTinh() == null ? "" : vt.getDonViTinh());
+        txtTon.setText(String.valueOf(vt.getSoLuongTon()));
+        txtNguong.setText(String.valueOf(vt.getNguongToiThieu()));
+        txtGiaBan.setText(DINH_DANG_TIEN.format(vt.getDonGiaBan()));
+        txtHan.setText(vt.getHanSuDung() == null ? "" : vt.getHanSuDung().format(DINH_DANG_NGAY));
+    }
+
+    /** Xóa trắng form, sinh mã thuốc tiếp theo và trả về chế độ thêm mới. */
+    private void lamMoiBieuMau() {
+        bangThuoc.clearSelection();
+        try {
+            txtMa.setText(vatTuDAO.sinhMa());
+        } catch (SQLException e) {
+            txtMa.setText("VT001");
+        }
+        txtTen.setText("");
+        txtDonVi.setText("");
+        txtTon.setText("0");
+        txtNguong.setText("0");
+        txtGiaBan.setText("0");
+        txtHan.setText("");
+        chuyenCheDo(false);
+        txtTen.requestFocusInWindow();
+    }
+
+    private void chuyenCheDo(boolean dangSua) {
+        btnThem.setEnabled(!dangSua);
+        btnSua.setEnabled(dangSua);
+        btnXoa.setEnabled(dangSua);
+    }
+
+    // =========================================================================
+    // 3. THAO TÁC CRUD
+    // =========================================================================
+
+    /** Thêm thuốc mới vào CSDL. */
+    private void themThuoc() {
+        try {
+            VatTu vt = docTuForm(txtMa.getText().trim());
+            if (vatTuDAO.timTheoMa(vt.getMaVatTu()) != null) {
+                GiaoDienUtil.canhBao(this, "Mã thuốc đã tồn tại trong hệ thống.");
+                return;
+            }
+            if (vatTuDAO.them(vt)) {
+                GiaoDienUtil.thongBao(this, "Đã thêm thuốc thành công: " + vt.getTenVatTu());
+                taiDuLieu();
+                lamMoiBieuMau();
+            }
+        } catch (IllegalArgumentException ex) {
+            GiaoDienUtil.canhBao(this, ex.getMessage());
+        } catch (SQLException ex) {
+            GiaoDienUtil.baoLoi(this, ex);
+        }
+    }
+
+    /** Cập nhật thông tin thuốc đã chọn. */
+    private void suaThuoc() {
+        try {
+            VatTu vt = docTuForm(txtMa.getText().trim());
+            if (vatTuDAO.capNhat(vt)) {
+                GiaoDienUtil.thongBao(this, "Đã cập nhật thông tin thuốc: " + vt.getTenVatTu());
+                taiDuLieu();
+                lamMoiBieuMau();
+            }
+        } catch (IllegalArgumentException ex) {
+            GiaoDienUtil.canhBao(this, ex.getMessage());
+        } catch (SQLException ex) {
+            GiaoDienUtil.baoLoi(this, ex);
+        }
+    }
+
+    /** Xóa thuốc theo mã (bảo đảm an toàn dữ liệu qua ràng buộc khóa ngoại). */
+    private void xoaThuoc() {
+        String ma = txtMa.getText().trim();
+        String ten = txtTen.getText().trim();
+        if (ma.isEmpty()) return;
+
+        int xacNhan = JOptionPane.showConfirmDialog(
+                this,
+                "Bạn có chắc chắn muốn xóa thuốc " + ma + " - " + ten + "?",
+                "Xác nhận xóa",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.WARNING_MESSAGE);
+
+        if (xacNhan != JOptionPane.YES_OPTION) return;
+
+        try {
+            if (vatTuDAO.xoa(ma)) {
+                GiaoDienUtil.thongBao(this, "Đã xóa thuốc " + ma + " thành công.");
+                taiDuLieu();
+                lamMoiBieuMau();
+            } else {
+                GiaoDienUtil.canhBao(this, "Không tìm thấy thuốc cần xóa.");
+            }
+        } catch (SQLException ex) {
+            // Bắt lỗi ràng buộc khóa ngoại (thuốc đã phát sinh trong đơn hoặc phiếu xuất)
+            GiaoDienUtil.canhBao(this,
+                    "Không thể xóa thuốc này do đã được kê trong đơn thuốc hoặc có trong phiếu xuất kho / hóa đơn.");
+        }
+    }
+
+    // =========================================================================
+    // 4. KIỂM TRA DỮ LIỆU ĐẦU VÀO (VALIDATION)
+    // =========================================================================
+
+    private VatTu docTuForm(String ma) {
+        String ten = txtTen.getText().trim();
+        if (ten.isEmpty()) {
+            txtTen.requestFocusInWindow();
+            throw new IllegalArgumentException("Tên thuốc không được để trống.");
         }
 
-        private JPanel createListCard() {
-                JPanel card = new JPanel(new BorderLayout(0, 14));
-                card.setBackground(Color.WHITE);
-                card.setBorder(BorderFactory.createCompoundBorder(
-                                BorderFactory.createLineBorder(LINE), new EmptyBorder(18, 18, 18, 18)));
+        int ton = docSoNguyenKhongAm(txtTon, "Số lượng tồn");
+        int nguong = docSoNguyenKhongAm(txtNguong, "Ngưỡng tối thiểu");
+        double giaBan = docSoTien(txtGiaBan, "Giá bán");
 
-                JPanel toolbar = new JPanel(new BorderLayout());
-                toolbar.setOpaque(false);
-                styleTextField(txtSearch);
-                txtSearch.setPreferredSize(new Dimension(280, 36));
-                txtSearch.setToolTipText("Tìm theo mã hoặc tên thuốc");
-                txtSearch.getDocument().addDocumentListener(new DocumentListener() {
-                        @Override
-                        public void insertUpdate(DocumentEvent e) {
-                                applyFilter();
-                        }
-
-                        @Override
-                        public void removeUpdate(DocumentEvent e) {
-                                applyFilter();
-                        }
-
-                        @Override
-                        public void changedUpdate(DocumentEvent e) {
-                                applyFilter();
-                        }
-                });
-                JPanel left = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
-                left.setOpaque(false);
-                left.add(txtSearch);
-
-                lblCount.setFont(new Font("Arial", Font.BOLD, 11));
-                lblCount.setForeground(MUTED);
-                toolbar.add(left, BorderLayout.WEST);
-                toolbar.add(lblCount, BorderLayout.EAST);
-
-                JScrollPane scroll = new JScrollPane(table);
-                scroll.setBorder(BorderFactory.createLineBorder(LINE));
-                scroll.getViewport().setBackground(Color.WHITE);
-
-                card.add(toolbar, BorderLayout.NORTH);
-                card.add(scroll, BorderLayout.CENTER);
-                return card;
+        LocalDate han = null;
+        String hanStr = txtHan.getText().trim();
+        if (!hanStr.isEmpty()) {
+            try {
+                han = LocalDate.parse(hanStr, DINH_DANG_NGAY);
+            } catch (DateTimeParseException ex) {
+                txtHan.requestFocusInWindow();
+                throw new IllegalArgumentException("Hạn sử dụng không đúng định dạng dd/MM/yyyy.");
+            }
         }
 
-        private JPanel createFormCard() {
-                JPanel card = new JPanel(new BorderLayout(0, 14));
-                card.setBackground(Color.WHITE);
-                card.setPreferredSize(new Dimension(340, 0));
-                card.setBorder(BorderFactory.createCompoundBorder(
-                                BorderFactory.createLineBorder(LINE), new EmptyBorder(18, 18, 18, 18)));
+        String donVi = txtDonVi.getText().trim();
+        return new VatTu(ma, ten, VatTuDAO.LOAI_THUOC, donVi.isEmpty() ? null : donVi, ton, nguong, han, giaBan);
+    }
 
-                JLabel heading = new JLabel("Thông tin thuốc");
-                heading.setFont(new Font("Arial", Font.BOLD, 15));
-                heading.setForeground(INK);
-                card.add(heading, BorderLayout.NORTH);
+    private int docSoNguyenKhongAm(JTextField field, String tenTruong) {
+        try {
+            int val = Integer.parseInt(field.getText().trim());
+            if (val < 0) throw new NumberFormatException();
+            return val;
+        } catch (NumberFormatException e) {
+            field.requestFocusInWindow();
+            throw new IllegalArgumentException(tenTruong + " phải là số nguyên không âm.");
+        }
+    }
 
-                for (JTextField f : new JTextField[] { txtMa, txtTen, txtDonVi, txtTon, txtNguong, txtGiaBan,
-                                txtHan }) {
-                        styleTextField(f);
+    private double docSoTien(JTextField field, String tenTruong) {
+        String text = field.getText().trim();
+        if (text.isEmpty()) return 0;
+        String so = text.replaceAll("[^0-9]", "");
+        if (text.contains("-") || so.isEmpty()) {
+            field.requestFocusInWindow();
+            throw new IllegalArgumentException(tenTruong + " phải là số tiền không âm.");
+        }
+        return Double.parseDouble(so);
+    }
+
+    // =========================================================================
+    // 5. CELL RENDERER ĐỊNH DẠNG BẢNG
+    // =========================================================================
+
+    private static final class DinhDangCotRenderer extends DefaultTableCellRenderer {
+        @Override
+        public Component getTableCellRendererComponent(
+                JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+            super.getTableCellRendererComponent(table, value, isSelected, false, row, column);
+            setBorder(new EmptyBorder(0, 8, 0, 8));
+            setFont(GiaoDienUtil.CHU);
+            setForeground(GiaoDienUtil.INK);
+            if (!isSelected) setBackground(Color.WHITE);
+
+            setHorizontalAlignment(SwingConstants.LEFT);
+
+            int modelRow = table.convertRowIndexToModel(row);
+            // Cột 3: Tồn kho - cảnh báo nếu chạm ngưỡng tối thiểu
+            if (column == 3) {
+                int ton = (Integer) table.getModel().getValueAt(modelRow, 3);
+                int nguong = (Integer) table.getModel().getValueAt(modelRow, 4);
+                if (ton <= nguong) {
+                    setForeground(GiaoDienUtil.DANGER);
+                    setFont(GiaoDienUtil.CHU_DAM);
                 }
-                txtMa.setEditable(false);
-                txtMa.setBackground(new Color(244, 247, 250));
-                txtHan.setToolTipText("Định dạng dd/MM/yyyy");
-                txtGiaBan.setToolTipText("Giá bán cho bệnh nhân khi tính tiền thuốc. Nhập 0 nếu chỉ dùng nội bộ");
-
-                JPanel form = new JPanel();
-                form.setOpaque(false);
-                form.setLayout(new BoxLayout(form, BoxLayout.Y_AXIS));
-                form.add(createRow(field("Mã thuốc", txtMa), field("Đơn vị tính", txtDonVi)));
-                form.add(Box.createVerticalStrut(12));
-                form.add(createRow(field("Tên thuốc *", txtTen)));
-                form.add(Box.createVerticalStrut(12));
-                form.add(createRow(field("Số lượng tồn", txtTon), field("Ngưỡng tối thiểu", txtNguong)));
-                form.add(Box.createVerticalStrut(12));
-                form.add(createRow(field("Giá bán (VNĐ)", txtGiaBan)));
-                form.add(Box.createVerticalStrut(12));
-                form.add(createRow(field("Hạn sử dụng (dd/MM/yyyy)", txtHan)));
-                form.add(Box.createVerticalGlue());
-                card.add(form, BorderLayout.CENTER);
-
-                JPanel actions = new JPanel(new FlowLayout(FlowLayout.CENTER, 6, 0));
-                actions.setOpaque(false);
-                actions.add(btnAdd);
-                actions.add(btnUpdate);
-                actions.add(btnDelete);
-                actions.add(btnClear);
-                card.add(actions, BorderLayout.SOUTH);
-
-                btnAdd.addActionListener(event -> onAdd());
-                btnUpdate.addActionListener(event -> onUpdate());
-                btnDelete.addActionListener(event -> onDelete());
-                btnClear.addActionListener(event -> clearForm());
-                return card;
-        }
-
-        private JPanel field(String label, JComponent input) {
-                JPanel panel = new JPanel(new BorderLayout(0, 5));
-                panel.setOpaque(false);
-                JLabel lbl = new JLabel(label);
-                lbl.setFont(new Font("Arial", Font.BOLD, 10));
-                lbl.setForeground(MUTED);
-                input.setPreferredSize(new Dimension(100, 34));
-                panel.add(lbl, BorderLayout.NORTH);
-                panel.add(input, BorderLayout.CENTER);
-                return panel;
-        }
-
-        private JPanel createRow(JPanel... fields) {
-                JPanel row = new JPanel();
-                row.setOpaque(false);
-                row.setLayout(new BoxLayout(row, BoxLayout.X_AXIS));
-                row.setAlignmentX(Component.LEFT_ALIGNMENT);
-                for (int i = 0; i < fields.length; i++) {
-                        if (i > 0) {
-                                row.add(Box.createHorizontalStrut(10));
-                        }
-                        row.add(fields[i]);
+            }
+            // Cột 5: Giá bán
+            else if (column == 5 && value instanceof Number num) {
+                double gia = num.doubleValue();
+                if (gia == 0) {
+                    setText("Nội bộ");
+                    setForeground(GiaoDienUtil.MUTED);
+                } else {
+                    setText(DINH_DANG_TIEN.format(gia) + " đ");
+                    setForeground(GiaoDienUtil.TEAL);
+                    setFont(GiaoDienUtil.CHU_DAM);
                 }
-                row.setMaximumSize(new Dimension(Integer.MAX_VALUE, row.getPreferredSize().height));
-                return row;
-        }
-
-        private void styleTextField(JTextField field) {
-                field.setFont(new Font("Arial", Font.PLAIN, 12));
-                field.setForeground(INK);
-                field.setBorder(BorderFactory.createCompoundBorder(
-                                BorderFactory.createLineBorder(LINE), new EmptyBorder(0, 10, 0, 10)));
-        }
-
-        private static JButton createButton(String text, Color background, Color foreground) {
-                JButton button = new JButton(text);
-                button.setFont(new Font("Arial", Font.BOLD, 11));
-                button.setForeground(foreground);
-                button.setBackground(background);
-                button.setOpaque(true);
-                button.setBorderPainted(false);
-                button.setFocusPainted(false);
-                button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-                button.setPreferredSize(new Dimension(68, 36));
-                return button;
-        }
-
-        // ---------------------------- Bảng & form ----------------------------
-
-        private void refreshTable() {
-                tableModel.setRowCount(0);
-                for (VatTu vt : danhSach) {
-                        tableModel.addRow(new Object[] {
-                                        vt.getMaVatTu(), vt.getTenVatTu(),
-                                        vt.getDonViTinh() == null ? "" : vt.getDonViTinh(),
-                                        vt.getSoLuongTon(), vt.getNguongToiThieu(), vt.getDonGiaBan(),
-                                        vt.getHanSuDung() == null ? "" : vt.getHanSuDung().format(DATE_FMT)
-                        });
-                }
-                applyFilter();
-        }
-
-        private void applyFilter() {
-                String keyword = txtSearch.getText().trim();
-                sorter.setRowFilter(keyword.isEmpty() ? null
-                                : RowFilter.regexFilter("(?i)" + Pattern.quote(keyword), 0, 1));
-                lblCount.setText("Hiển thị " + table.getRowCount() + " / " + danhSach.size() + " loại thuốc");
-        }
-
-        private void fillForm(VatTu vt) {
-                txtMa.setText(vt.getMaVatTu());
-                txtTen.setText(vt.getTenVatTu());
-                txtDonVi.setText(vt.getDonViTinh() == null ? "" : vt.getDonViTinh());
-                txtTon.setText(String.valueOf(vt.getSoLuongTon()));
-                txtNguong.setText(String.valueOf(vt.getNguongToiThieu()));
-                txtGiaBan.setText(MONEY_FMT.format(vt.getDonGiaBan()));
-                txtHan.setText(vt.getHanSuDung() == null ? "" : vt.getHanSuDung().format(DATE_FMT));
-        }
-
-        private void clearForm() {
-                table.clearSelection();
-                txtMa.setText(nextId());
-                txtTen.setText("");
-                txtDonVi.setText("");
-                txtTon.setText("0");
-                txtNguong.setText("0");
-                txtGiaBan.setText("0");
-                txtHan.setText("");
-                setEditing(false);
-                txtTen.requestFocusInWindow();
-        }
-
-        private void setEditing(boolean editing) {
-                btnAdd.setEnabled(!editing);
-                btnUpdate.setEnabled(editing);
-                btnDelete.setEnabled(editing);
-        }
-
-        // ---------------------------- CRUD ----------------------------
-
-        private void onAdd() {
+                setHorizontalAlignment(SwingConstants.RIGHT);
+            }
+            // Cột 6: Hạn sử dụng - cảnh báo nếu đã quá hạn
+            else if (column == 6 && value != null && !value.toString().isEmpty()) {
                 try {
-                        VatTu vt = readForm(txtMa.getText().trim());
-                        if (findById(vt.getMaVatTu()) != null) {
-                                throw new IllegalArgumentException("Mã thuốc đã tồn tại.");
-                        }
-                        // TODO DAO: vatTuDAO.insert(vt);
-                        danhSach.add(vt);
-                        refreshTable();
-                        clearForm();
-                        JOptionPane.showMessageDialog(this, "Đã thêm thuốc " + vt.getTenVatTu() + ".");
-                } catch (IllegalArgumentException ex) {
-                        JOptionPane.showMessageDialog(this, ex.getMessage(), "Dữ liệu không hợp lệ",
-                                        JOptionPane.WARNING_MESSAGE);
+                    LocalDate hsd = LocalDate.parse(value.toString(), DINH_DANG_NGAY);
+                    if (hsd.isBefore(LocalDate.now())) {
+                        setForeground(GiaoDienUtil.DANGER);
+                        setFont(GiaoDienUtil.CHU_DAM);
+                    }
+                } catch (DateTimeParseException ignored) {
                 }
+            }
+            return this;
         }
-
-        private void onUpdate() {
-                try {
-                        VatTu updated = readForm(txtMa.getText().trim());
-                        VatTu current = findById(updated.getMaVatTu());
-                        if (current == null) {
-                                throw new IllegalArgumentException("Không tìm thấy thuốc cần cập nhật.");
-                        }
-                        // TODO DAO: vatTuDAO.update(updated);
-                        danhSach.set(danhSach.indexOf(current), updated);
-                        refreshTable();
-                        clearForm();
-                        JOptionPane.showMessageDialog(this, "Đã cập nhật thông tin thuốc.");
-                } catch (IllegalArgumentException ex) {
-                        JOptionPane.showMessageDialog(this, ex.getMessage(), "Dữ liệu không hợp lệ",
-                                        JOptionPane.WARNING_MESSAGE);
-                }
-        }
-
-        private void onDelete() {
-                VatTu vt = findById(txtMa.getText().trim());
-                if (vt == null) {
-                        return;
-                }
-                int choice = JOptionPane.showConfirmDialog(this,
-                                "Xóa thuốc " + vt.getMaVatTu() + " - " + vt.getTenVatTu() + "?",
-                                "Xác nhận xóa", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
-                if (choice == JOptionPane.YES_OPTION) {
-                        // TODO DAO: vatTuDAO.delete(ma). Thuốc đã nằm trong đơn thuốc / hóa đơn thuốc /
-                        // phiếu nhập / phiếu xuất
-                        // sẽ vướng khóa ngoại -> bắt SQLException và báo "Thuốc đã được sử dụng, không
-                        // thể xóa".
-                        danhSach.remove(vt);
-                        refreshTable();
-                        clearForm();
-                }
-        }
-
-        // ---------------------------- Kiểm tra dữ liệu ----------------------------
-
-        private VatTu readForm(String ma) {
-                String ten = txtTen.getText().trim();
-                if (ten.isEmpty()) {
-                        txtTen.requestFocusInWindow();
-                        throw new IllegalArgumentException("Tên thuốc không được để trống.");
-                }
-                int ton = parseNonNegativeInt(txtTon, "Số lượng tồn");
-                int nguong = parseNonNegativeInt(txtNguong, "Ngưỡng tối thiểu");
-                double giaBan = parseMoney(txtGiaBan, "Giá bán");
-
-                LocalDate han = null;
-                String hanText = txtHan.getText().trim();
-                if (!hanText.isEmpty()) {
-                        try {
-                                han = LocalDate.parse(hanText, DATE_FMT);
-                        } catch (DateTimeParseException ex) {
-                                txtHan.requestFocusInWindow();
-                                throw new IllegalArgumentException("Hạn sử dụng phải theo dạng dd/MM/yyyy.");
-                        }
-                }
-                String donVi = txtDonVi.getText().trim();
-                return new VatTu(ma, ten, LOAI_THUOC, donVi.isEmpty() ? null : donVi, ton, nguong, han, giaBan);
-        }
-
-        private int parseNonNegativeInt(JTextField field, String name) {
-                try {
-                        int value = Integer.parseInt(field.getText().trim());
-                        if (value < 0) {
-                                throw new NumberFormatException();
-                        }
-                        return value;
-                } catch (NumberFormatException ex) {
-                        field.requestFocusInWindow();
-                        throw new IllegalArgumentException(name + " phải là số nguyên không âm.");
-                }
-        }
-
-        /**
-         * Đọc số tiền: chấp nhận 5000 hoặc 5.000, để trống coi như 0 (vật tư dùng nội
-         * bộ).
-         */
-        private double parseMoney(JTextField field, String name) {
-                String text = field.getText().trim();
-                if (text.isEmpty()) {
-                        return 0;
-                }
-                String digits = text.replaceAll("[^0-9]", "");
-                if (text.contains("-") || digits.isEmpty()) {
-                        field.requestFocusInWindow();
-                        throw new IllegalArgumentException(name + " phải là số tiền không âm.");
-                }
-                return Double.parseDouble(digits);
-        }
-
-        // ---------------------------- Renderer ----------------------------
-
-        /** Tô đỏ tồn kho khi thấp hơn ngưỡng và hạn sử dụng khi đã hết hạn. */
-        private static final class CellRenderer extends DefaultTableCellRenderer {
-                @Override
-                public Component getTableCellRendererComponent(JTable table, Object value, boolean selected,
-                                boolean focus, int row, int column) {
-                        super.getTableCellRendererComponent(table, value, selected, false, row, column);
-                        setBorder(new EmptyBorder(0, 10, 0, 10));
-                        setFont(new Font("Arial", Font.PLAIN, 12));
-                        setForeground(INK);
-                        if (!selected) {
-                                setBackground(Color.WHITE);
-                        }
-
-                        setHorizontalAlignment(SwingConstants.LEFT);
-                        int modelRow = table.convertRowIndexToModel(row);
-                        if (column == 3) {
-                                int ton = (Integer) table.getModel().getValueAt(modelRow, 3);
-                                int nguong = (Integer) table.getModel().getValueAt(modelRow, 4);
-                                if (ton <= nguong) {
-                                        setForeground(DANGER);
-                                        setFont(new Font("Arial", Font.BOLD, 12));
-                                }
-                        } else if (column == 5 && value instanceof Number) {
-                                double gia = ((Number) value).doubleValue();
-                                if (gia == 0) {
-                                        setText("Nội bộ");
-                                        setForeground(MUTED);
-                                } else {
-                                        setText(MONEY_FMT.format(gia) + " đ");
-                                        setForeground(TEAL);
-                                        setFont(new Font("Arial", Font.BOLD, 12));
-                                }
-                                setHorizontalAlignment(SwingConstants.RIGHT);
-                        } else if (column == 6 && value != null && !value.toString().isEmpty()) {
-                                try {
-                                        if (LocalDate.parse(value.toString(), DATE_FMT).isBefore(LocalDate.now())) {
-                                                setForeground(DANGER);
-                                                setFont(new Font("Arial", Font.BOLD, 12));
-                                        }
-                                } catch (DateTimeParseException ignored) {
-                                        // Giữ màu mặc định.
-                                }
-                        }
-                        return this;
-                }
-        }
+    }
 }

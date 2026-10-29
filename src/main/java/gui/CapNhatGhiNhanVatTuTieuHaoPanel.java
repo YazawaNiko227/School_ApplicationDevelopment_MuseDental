@@ -1,16 +1,23 @@
 package gui;
 
+import dao.LichHenDAO;
+import dao.PhieuXuatKhoDAO;
+import dao.VatTuDAO;
+import dto.ChiTietXuatInfo;
+import dto.LichHenInfo;
+import entity.ChiTietXuatKho;
+import entity.PhieuXuatKho;
+import entity.VatTu;
+import util.GiaoDienUtil;
+
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
-import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
-import java.awt.Font;
+import java.sql.SQLException;
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -20,576 +27,418 @@ import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JLabel;
-import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JSpinner;
 import javax.swing.JTable;
 import javax.swing.JTextField;
-import javax.swing.ListSelectionModel;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
 
 /**
- * Panel "Ghi nhận vật tư tiêu hao" (bước 7 trong luồng khám bệnh chính).
+ * Panel "Ghi nhận vật tư tiêu hao" (xuất kho dùng cho lần khám hoặc phòng khám).
+ * Kết nối CSDL trực tiếp qua PhieuXuatKhoDAO, VatTuDAO và LichHenDAO.
  *
- * Luồng xử lý:
- * 1. Chọn lịch hẹn đang khám / vừa khám xong (hoặc "Xuất dùng chung" nếu không
- * gắn với lịch hẹn nào, ứng với PhieuXuatKho.MaLichHen = NULL).
- * 2. Chọn vật tư trong danh mục, nhập số lượng, bấm "Thêm vào phiếu"
- * (bảng ChiTietXuatKho, khóa chính (MaPhieuXuat, MaVatTu) nên mỗi vật tư
- * chỉ có 1 dòng trong một phiếu).
- * 3. Bấm "Lưu phiếu xuất": tạo PhieuXuatKho + ChiTietXuatKho, trừ
- * VatTu.SoLuongTon. Một lịch hẹn có thể có nhiều phiếu xuất.
- *
- * Hiện tại dùng dữ liệu mẫu trong bộ nhớ. Chỗ cần nối DAO ghi "TODO DAO".
+ * Quy tắc nghiệp vụ:
+ * - Chọn lịch hẹn đang khám / hoàn thành, hoặc chọn "Xuất dùng chung".
+ * - Khi lưu phiếu xuất, hệ thống tạo PhieuXuatKho, ChiTietXuatKho và tự động
+ *   trừ số lượng tồn kho của VatTu trong một Transaction duy nhất.
  */
 public class CapNhatGhiNhanVatTuTieuHaoPanel extends JPanel {
-    private static final Color INK = new Color(32, 53, 68);
-    private static final Color MUTED = new Color(119, 139, 151);
-    private static final Color TEAL = new Color(26, 151, 151);
-    private static final Color LINE = new Color(226, 234, 237);
-
-    private static final DateTimeFormatter NGAY = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
     private static final String TAT_CA = "Tất cả";
-    private static final String KHONG_GAN_LICH = "Xuất dùng chung (không gắn lịch hẹn)";
-    // Khóa dùng trong map lịch sử cho phiếu không gắn lịch hẹn.
-    private static final String KHOA_DUNG_CHUNG = "-";
+    private static final String XUAT_DUNG_CHUNG = "Xuất dùng chung (không gắn lịch hẹn)";
+    private static final String MA_NHAN_VIEN_XUAT = "NV005"; // Mã thủ kho mặc định
 
-    // Chỉ số cột trong mỗi dòng vật tư (Object[]).
-    private static final int V_MA = 0;
-    private static final int V_TEN = 1;
-    private static final int V_LOAI = 2;
-    private static final int V_DVT = 3;
-    private static final int V_TON = 4; // Integer
-    private static final int V_NGUONG = 5; // Integer
-    private static final int V_HSD = 6; // LocalDate hoặc null
+    private final PhieuXuatKhoDAO phieuXuatKhoDAO = new PhieuXuatKhoDAO();
+    private final VatTuDAO vatTuDAO = new VatTuDAO();
+    private final LichHenDAO lichHenDAO = new LichHenDAO();
 
-    // ----- Dữ liệu mẫu -----
-    // TODO DAO: LichHenDAO.layLichDangKhamVaVuaKham() thay cho dữ liệu này.
-    // {MaLichHen, HoTen, MaBenhNhan, MaPhong, TrangThai}
-    private static final String[][] MOCK_LICH_HEN = {
-            { "LH003", "Đặng Quốc Khánh", "BN003", "P01", "Đang khám" },
-            { "LH004", "Nguyễn Thị Lan", "BN002", "P02", "Đang khám" },
-            { "LH005", "Trần Bảo Ngọc", "BN004", "P02", "Hoàn thành" }
-    };
+    // Danh sách lịch hẹn nạp từ CSDL
+    private final List<LichHenInfo> danhSachLichHen = new ArrayList<>();
+    // Dòng vật tư đang soạn trên phiếu: mã vật tư -> số lượng sử dụng
+    private final Map<String, Integer> mapVatTuDangSoan = new LinkedHashMap<>();
+    // Cache danh mục vật tư hiện hành: mã -> VatTu
+    private final Map<String, VatTu> mapCacheVatTu = new LinkedHashMap<>();
 
-    // Kho vật tư (bản sao trong bộ nhớ để trừ tồn). TODO DAO: VatTuDAO.
-    private final List<Object[]> kho = new ArrayList<>();
-    // Lịch sử đã xuất: maLichHen -> các dòng {maPhieu, maVatTu, soLuong}.
-    private final Map<String, List<Object[]>> daXuat = new HashMap<>();
-    // Các dòng đang soạn trên màn hình (chưa lưu): maVatTu -> số lượng sử dụng.
-    private final Map<String, Integer> dangSoan = new LinkedHashMap<>();
-    private int nextPhieuXuat = 5;
-
-    // ----- Chọn lịch hẹn -----
+    // ----- 1. Thẻ chọn lịch hẹn -----
     private final JComboBox<String> cboLichHen = new JComboBox<>();
     private final JLabel lblBenhNhan = new JLabel(" ");
 
-    // ----- Danh mục vật tư -----
-    private final JTextField txtTim = new JTextField();
+    // ----- 2. Thẻ danh mục vật tư bên trái -----
+    private final JTextField txtTimVatTu = new JTextField();
     private final JComboBox<String> cboLoai = new JComboBox<>(
             new String[] { TAT_CA, "Thuốc", "Tiêu hao", "Vật liệu" });
-    private final DefaultTableModel vatTuModel = new DefaultTableModel(
+    private final DefaultTableModel modelVatTu = new DefaultTableModel(
             new String[] { "Mã", "Tên vật tư", "Loại", "ĐVT", "Tồn" }, 0) {
         @Override
-        public boolean isCellEditable(int row, int column) {
-            return false;
-        }
+        public boolean isCellEditable(int row, int column) { return false; }
     };
-    private final JTable vatTuTable = new JTable(vatTuModel);
+    private final JTable bangVatTu = new JTable(modelVatTu);
     private final JSpinner spnSoLuong = new JSpinner(new SpinnerNumberModel(1, 1, 1000, 1));
 
-    // ----- Phiếu xuất đang soạn + lịch sử -----
-    private final DefaultTableModel phieuModel = new DefaultTableModel(
+    // ----- 3. Thẻ phiếu xuất và lịch sử bên phải -----
+    private final DefaultTableModel modelPhieu = new DefaultTableModel(
             new String[] { "Mã", "Tên vật tư", "ĐVT", "Số lượng dùng" }, 0) {
         @Override
-        public boolean isCellEditable(int row, int column) {
-            return false;
-        }
+        public boolean isCellEditable(int row, int column) { return false; }
     };
-    private final JTable phieuTable = new JTable(phieuModel);
-    private final DefaultTableModel lichSuModel = new DefaultTableModel(
-            new String[] { "Mã phiếu", "Mã VT", "Tên vật tư", "Số lượng" }, 0) {
+    private final JTable bangPhieu = new JTable(modelPhieu);
+
+    private final DefaultTableModel modelLichSu = new DefaultTableModel(
+            new String[] { "Mã phiếu", "Mã VT", "Tên vật tư", "ĐVT", "Số lượng" }, 0) {
         @Override
-        public boolean isCellEditable(int row, int column) {
-            return false;
-        }
+        public boolean isCellEditable(int row, int column) { return false; }
     };
-    private final JTable lichSuTable = new JTable(lichSuModel);
+    private final JTable bangLichSu = new JTable(modelLichSu);
 
     public CapNhatGhiNhanVatTuTieuHaoPanel() {
         setLayout(new BorderLayout(0, 16));
         setOpaque(false);
 
-        taoDuLieuMau();
+        add(taoTheLichHen(), BorderLayout.NORTH);
 
-        add(createLichHenCard(), BorderLayout.NORTH);
+        JPanel vungGiua = new JPanel(new BorderLayout(16, 0));
+        vungGiua.setOpaque(false);
+        vungGiua.add(taoTheVatTu(), BorderLayout.WEST);
+        vungGiua.add(taoThePhieuVaLichSu(), BorderLayout.CENTER);
+        add(vungGiua, BorderLayout.CENTER);
 
-        JPanel center = new JPanel(new BorderLayout(16, 0));
-        center.setOpaque(false);
-        center.add(createVatTuCard(), BorderLayout.WEST);
-        center.add(createPhieuCard(), BorderLayout.CENTER);
-        add(center, BorderLayout.CENTER);
-
-        loadVatTu();
-        cboLichHen.addItem(KHONG_GAN_LICH);
-        for (String[] lh : MOCK_LICH_HEN) {
-            cboLichHen.addItem(lh[0] + " - " + lh[1] + " (" + lh[4] + ", phòng " + lh[3] + ")");
-        }
-        // Gắn listener sau khi đã thêm item để không bị kích hoạt sớm.
-        cboLichHen.addActionListener(event -> chonLichHen());
-        chonLichHen();
+        // Nạp dữ liệu ban đầu
+        taiDanhSachLichHen();
+        taiDanhSachVatTu();
     }
 
-    // =====================================================================
-    // DỮ LIỆU MẪU
-    // =====================================================================
+    // =========================================================================
+    // 1. XÂY DỰNG GIAO DIỆN
+    // =========================================================================
 
-    private void taoDuLieuMau() {
-        // Khớp bảng VatTu trong SQL: {mã, tên, loại, ĐVT, tồn, ngưỡng tối thiểu, HSD}
-        kho.add(new Object[] { "VT001", "Amoxicillin 500mg", "Thuốc", "Viên", 200, 50, LocalDate.of(2027, 6, 30) });
-        kho.add(new Object[] { "VT002", "Paracetamol 500mg", "Thuốc", "Viên", 500, 100, LocalDate.of(2027, 12, 31) });
-        kho.add(new Object[] { "VT003", "Găng tay y tế", "Tiêu hao", "Hộp", 40, 10, LocalDate.of(2028, 1, 1) });
-        kho.add(new Object[] { "VT004", "Composite trám răng", "Vật liệu", "Tuýp", 25, 5, LocalDate.of(2027, 3, 15) });
-        kho.add(new Object[] { "VT005", "Thuốc tê Lidocaine 2%", "Thuốc", "Ống", 60, 20, LocalDate.of(2027, 2, 28) });
-        kho.add(new Object[] { "VT006", "Mão sứ (răng sứ)", "Vật liệu", "Cái", 15, 5, null });
+    /** Thẻ chọn lịch hẹn / lần khám để xuất vật tư. */
+    private JPanel taoTheLichHen() {
+        JPanel the = GiaoDienUtil.taoThe();
+        the.add(GiaoDienUtil.taoTieuDe("Lần khám / Lịch hẹn sử dụng vật tư"));
+        the.add(Box.createVerticalStrut(10));
 
-        // Lịch hẹn LH005 đã có sẵn một phiếu xuất để xem lịch sử.
-        List<Object[]> ds = new ArrayList<>();
-        ds.add(new Object[] { "PX004", "VT003", 2 });
-        daXuat.put("LH005", ds);
-    }
+        cboLichHen.setFont(GiaoDienUtil.CHU);
+        the.add(GiaoDienUtil.taoHang("Lịch hẹn", cboLichHen));
 
-    // =====================================================================
-    // GIAO DIỆN
-    // =====================================================================
-
-    private JPanel createLichHenCard() {
-        JPanel card = createCard();
-        card.add(createCardTitle("Lần khám cần ghi nhận vật tư"));
-        card.add(Box.createVerticalStrut(10));
-
-        cboLichHen.setFont(new Font("Arial", Font.PLAIN, 12));
-        card.add(createRow("Lịch hẹn", cboLichHen));
-
-        lblBenhNhan.setFont(new Font("Arial", Font.BOLD, 12));
-        lblBenhNhan.setForeground(INK);
+        lblBenhNhan.setFont(GiaoDienUtil.CHU_DAM);
+        lblBenhNhan.setForeground(GiaoDienUtil.INK);
         lblBenhNhan.setAlignmentX(Component.LEFT_ALIGNMENT);
-        card.add(lblBenhNhan);
-        card.add(Box.createVerticalStrut(4));
+        the.add(lblBenhNhan);
 
-        JLabel lblNgay = new JLabel();
-        lblNgay.setFont(new Font("Arial", Font.PLAIN, 12));
-        lblNgay.setForeground(MUTED);
-        lblNgay.setAlignmentX(Component.LEFT_ALIGNMENT);
-        lblNgay.setText("Ngày xuất kho: " + LocalDate.now().format(NGAY)
-                + "  ·  Người xuất: nhân viên đang đăng nhập");
-        card.add(lblNgay);
-        return card;
+        cboLichHen.addActionListener(e -> chonLichHen());
+        return the;
     }
 
-    // Danh mục vật tư bên trái.
-    private JPanel createVatTuCard() {
-        JPanel card = new JPanel(new BorderLayout(0, 12));
-        card.setBackground(Color.WHITE);
-        card.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(LINE), new EmptyBorder(16, 18, 16, 18)));
-        card.setPreferredSize(new Dimension(470, 0));
+    /** Thẻ danh mục vật tư bên trái: tìm kiếm, lọc theo loại, chọn số lượng. */
+    private JPanel taoTheVatTu() {
+        JPanel the = new JPanel(new BorderLayout(0, 12));
+        GiaoDienUtil.trangTriThe(the);
+        the.setPreferredSize(new Dimension(480, 0));
 
         JPanel top = new JPanel();
         top.setOpaque(false);
         top.setLayout(new BoxLayout(top, BoxLayout.Y_AXIS));
-        top.add(createCardTitle("Danh mục vật tư"));
+        top.add(GiaoDienUtil.taoTieuDe("Danh mục vật tư y tế"));
         top.add(Box.createVerticalStrut(8));
 
-        styleField(txtTim);
-        txtTim.setToolTipText("Nhập mã hoặc tên vật tư");
-        txtTim.addActionListener(event -> loadVatTu());
-        cboLoai.setFont(new Font("Arial", Font.PLAIN, 12));
-        cboLoai.addActionListener(event -> loadVatTu());
-        JButton btnTim = createButton("Tìm", false);
-        btnTim.addActionListener(event -> loadVatTu());
+        // Thanh tìm kiếm và bộ lọc loại vật tư
+        GiaoDienUtil.tuyChinhO(txtTimVatTu);
+        txtTimVatTu.setToolTipText("Nhập mã hoặc tên vật tư");
+        txtTimVatTu.addActionListener(e -> taiDanhSachVatTu());
 
-        JPanel buttons = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
-        buttons.setOpaque(false);
-        buttons.add(cboLoai);
-        buttons.add(btnTim);
-        JPanel searchRow = new JPanel(new BorderLayout(8, 0));
-        searchRow.setOpaque(false);
-        searchRow.setAlignmentX(Component.LEFT_ALIGNMENT);
-        searchRow.add(txtTim, BorderLayout.CENTER);
-        searchRow.add(buttons, BorderLayout.EAST);
-        searchRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
-        top.add(searchRow);
-        card.add(top, BorderLayout.NORTH);
+        cboLoai.setFont(GiaoDienUtil.CHU);
+        cboLoai.setPreferredSize(new Dimension(100, 32));
+        cboLoai.addActionListener(e -> taiDanhSachVatTu());
 
-        styleTable(vatTuTable);
-        vatTuTable.getColumnModel().getColumn(0).setPreferredWidth(55);
-        vatTuTable.getColumnModel().getColumn(1).setPreferredWidth(170);
-        vatTuTable.getColumnModel().getColumn(2).setPreferredWidth(65);
-        vatTuTable.getColumnModel().getColumn(3).setPreferredWidth(45);
-        vatTuTable.getColumnModel().getColumn(4).setPreferredWidth(45);
-        JScrollPane scroll = new JScrollPane(vatTuTable);
-        scroll.setBorder(BorderFactory.createLineBorder(LINE));
-        scroll.getViewport().setBackground(Color.WHITE);
-        card.add(scroll, BorderLayout.CENTER);
+        JButton btnTim = GiaoDienUtil.taoNut("Tìm", false);
+        btnTim.addActionListener(e -> taiDanhSachVatTu());
 
-        JPanel actions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
-        actions.setOpaque(false);
-        spnSoLuong.setFont(new Font("Arial", Font.PLAIN, 12));
-        spnSoLuong.setPreferredSize(new Dimension(70, 32));
-        JButton btnThem = createButton("Thêm vào phiếu", true);
-        btnThem.addActionListener(event -> themVatTu());
-        actions.add(createSmallLabel("Số lượng dùng:"));
-        actions.add(spnSoLuong);
-        actions.add(btnThem);
-        card.add(actions, BorderLayout.SOUTH);
-        return card;
-    }
+        JPanel filterRow = new JPanel(new BorderLayout(8, 0));
+        filterRow.setOpaque(false);
+        filterRow.setAlignmentX(Component.LEFT_ALIGNMENT);
+        filterRow.add(txtTimVatTu, BorderLayout.CENTER);
+        filterRow.add(cboLoai, BorderLayout.EAST);
+        filterRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 34));
+        top.add(filterRow);
+        the.add(top, BorderLayout.NORTH);
 
-    // Phiếu xuất đang soạn + lịch sử đã xuất bên phải.
-    private JPanel createPhieuCard() {
-        JPanel card = new JPanel(new BorderLayout());
-        card.setBackground(Color.WHITE);
-        card.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(LINE), new EmptyBorder(16, 18, 16, 18)));
+        // Bảng vật tư
+        GiaoDienUtil.tuyChinhBang(bangVatTu);
+        bangVatTu.getColumnModel().getColumn(0).setPreferredWidth(55);
+        bangVatTu.getColumnModel().getColumn(1).setPreferredWidth(175);
+        bangVatTu.getColumnModel().getColumn(2).setPreferredWidth(70);
+        bangVatTu.getColumnModel().getColumn(3).setPreferredWidth(45);
+        bangVatTu.getColumnModel().getColumn(4).setPreferredWidth(45);
 
-        JPanel content = new JPanel();
-        content.setOpaque(false);
-        content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
+        JScrollPane cuonBang = new JScrollPane(bangVatTu);
+        cuonBang.setBorder(BorderFactory.createLineBorder(GiaoDienUtil.LINE));
+        cuonBang.getViewport().setBackground(Color.WHITE);
+        the.add(cuonBang, BorderLayout.CENTER);
 
-        content.add(createCardTitle("Phiếu xuất đang soạn"));
-        content.add(Box.createVerticalStrut(8));
+        // Chọn số lượng và nút thêm
+        JPanel bottom = new JPanel();
+        bottom.setOpaque(false);
+        bottom.setLayout(new BoxLayout(bottom, BoxLayout.Y_AXIS));
+        bottom.add(GiaoDienUtil.taoHang("Số lượng xuất", spnSoLuong));
 
-        styleTable(phieuTable);
-        phieuTable.getColumnModel().getColumn(0).setPreferredWidth(55);
-        phieuTable.getColumnModel().getColumn(1).setPreferredWidth(190);
-        phieuTable.getColumnModel().getColumn(2).setPreferredWidth(50);
-        phieuTable.getColumnModel().getColumn(3).setPreferredWidth(90);
-        JScrollPane phieuScroll = new JScrollPane(phieuTable);
-        phieuScroll.setBorder(BorderFactory.createLineBorder(LINE));
-        phieuScroll.getViewport().setBackground(Color.WHITE);
-        phieuScroll.setAlignmentX(Component.LEFT_ALIGNMENT);
-        content.add(phieuScroll);
-        content.add(Box.createVerticalStrut(10));
-
-        JPanel actions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+        JPanel actions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
         actions.setOpaque(false);
         actions.setAlignmentX(Component.LEFT_ALIGNMENT);
-        JButton btnXoa = createButton("Xóa dòng", false);
-        JButton btnLamMoi = createButton("Làm mới", false);
-        JButton btnLuu = createButton("Lưu phiếu xuất", true);
-        btnXoa.addActionListener(event -> xoaVatTu());
-        btnLamMoi.addActionListener(event -> chonLichHen());
-        btnLuu.addActionListener(event -> luuPhieuXuat());
+        JButton btnThem = GiaoDienUtil.taoNut("Thêm vào phiếu", true);
+        btnThem.addActionListener(e -> themVatTu());
+        actions.add(btnThem);
+        actions.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
+        bottom.add(actions);
+
+        the.add(bottom, BorderLayout.SOUTH);
+        return the;
+    }
+
+    /** Thẻ bên phải: danh sách vật tư trong phiếu đang tạo và lịch sử đã xuất. */
+    private JPanel taoThePhieuVaLichSu() {
+        JPanel the = new JPanel(new BorderLayout(0, 12));
+        GiaoDienUtil.trangTriThe(the);
+
+        JPanel vungNoiDung = new JPanel();
+        vungNoiDung.setOpaque(false);
+        vungNoiDung.setLayout(new BoxLayout(vungNoiDung, BoxLayout.Y_AXIS));
+
+        // 1. Phiếu xuất đang soạn
+        vungNoiDung.add(GiaoDienUtil.taoTieuDe("Phiếu xuất đang soạn"));
+        vungNoiDung.add(Box.createVerticalStrut(8));
+
+        GiaoDienUtil.tuyChinhBang(bangPhieu);
+        JScrollPane cuonPhieu = new JScrollPane(bangPhieu);
+        cuonPhieu.setBorder(BorderFactory.createLineBorder(GiaoDienUtil.LINE));
+        cuonPhieu.getViewport().setBackground(Color.WHITE);
+        cuonPhieu.setPreferredSize(new Dimension(100, 160));
+        cuonPhieu.setAlignmentX(Component.LEFT_ALIGNMENT);
+        vungNoiDung.add(cuonPhieu);
+
+        // Cụm nút phiếu xuất
+        JPanel actions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 8));
+        actions.setOpaque(false);
+        actions.setAlignmentX(Component.LEFT_ALIGNMENT);
+        JButton btnXoa = GiaoDienUtil.taoNut("Xóa dòng", false);
+        JButton btnLamMoi = GiaoDienUtil.taoNut("Làm mới", false);
+        JButton btnLuu = GiaoDienUtil.taoNut("Lưu phiếu xuất", true);
+
+        btnXoa.addActionListener(e -> xoaVatTu());
+        btnLamMoi.addActionListener(e -> chonLichHen());
+        btnLuu.addActionListener(e -> luuPhieuXuat());
+
         actions.add(btnXoa);
         actions.add(btnLamMoi);
         actions.add(btnLuu);
-        actions.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
-        content.add(actions);
-        content.add(Box.createVerticalStrut(14));
+        vungNoiDung.add(actions);
 
-        content.add(createCardTitle("Đã xuất cho lần khám này"));
-        content.add(Box.createVerticalStrut(8));
+        // 2. Lịch sử đã xuất của lần khám này
+        vungNoiDung.add(Box.createVerticalStrut(10));
+        JLabel lblLichSuTitle = GiaoDienUtil.taoTieuDe("Lịch sử vật tư đã xuất cho lần này");
+        lblLichSuTitle.setAlignmentX(Component.LEFT_ALIGNMENT);
+        vungNoiDung.add(lblLichSuTitle);
+        vungNoiDung.add(Box.createVerticalStrut(8));
 
-        styleTable(lichSuTable);
-        JScrollPane lichSuScroll = new JScrollPane(lichSuTable);
-        lichSuScroll.setBorder(BorderFactory.createLineBorder(LINE));
-        lichSuScroll.getViewport().setBackground(Color.WHITE);
-        lichSuScroll.setAlignmentX(Component.LEFT_ALIGNMENT);
-        content.add(lichSuScroll);
+        GiaoDienUtil.tuyChinhBang(bangLichSu);
+        JScrollPane cuonLichSu = new JScrollPane(bangLichSu);
+        cuonLichSu.setBorder(BorderFactory.createLineBorder(GiaoDienUtil.LINE));
+        cuonLichSu.getViewport().setBackground(Color.WHITE);
+        cuonLichSu.setPreferredSize(new Dimension(100, 180));
+        cuonLichSu.setAlignmentX(Component.LEFT_ALIGNMENT);
+        vungNoiDung.add(cuonLichSu);
 
-        card.add(content, BorderLayout.CENTER);
-        return card;
+        the.add(vungNoiDung, BorderLayout.CENTER);
+        return the;
     }
 
-    // =====================================================================
-    // XỬ LÝ SỰ KIỆN
-    // =====================================================================
+    // =========================================================================
+    // 2. TẢI DỮ LIỆU TỪ DAO
+    // =========================================================================
 
-    /**
-     * Chọn lịch hẹn: hiện thông tin bệnh nhân, xóa phiếu đang soạn, nạp lịch sử.
-     */
+    /** Nạp các lịch hẹn đang khám hoặc vừa khám xong từ LichHenDAO. */
+    public void taiDanhSachLichHen() {
+        try {
+            danhSachLichHen.clear();
+            danhSachLichHen.addAll(lichHenDAO.layChoXuatKho());
+
+            cboLichHen.removeAllItems();
+            cboLichHen.addItem(XUAT_DUNG_CHUNG);
+            for (LichHenInfo lh : danhSachLichHen) {
+                cboLichHen.addItem(lh.maLichHen() + " - " + lh.hoTen() + " (" + lh.trangThai() + ", P." + lh.maPhong() + ")");
+            }
+            chonLichHen();
+        } catch (SQLException e) {
+            GiaoDienUtil.baoLoi(this, e);
+        }
+    }
+
+    /** Nạp danh mục vật tư y tế theo từ khóa và loại. */
+    public void taiDanhSachVatTu() {
+        String tuKhoa = txtTimVatTu.getText().trim();
+        String loai = (String) cboLoai.getSelectedItem();
+        String loaiLoc = TAT_CA.equals(loai) ? null : loai;
+
+        try {
+            List<VatTu> danhSach = vatTuDAO.timKiem(tuKhoa, loaiLoc);
+            modelVatTu.setRowCount(0);
+            for (VatTu vt : danhSach) {
+                mapCacheVatTu.put(vt.getMaVatTu(), vt);
+                modelVatTu.addRow(new Object[] {
+                        vt.getMaVatTu(),
+                        vt.getTenVatTu(),
+                        vt.getLoaiVatTu(),
+                        vt.getDonViTinh() == null ? "" : vt.getDonViTinh(),
+                        vt.getSoLuongTon()
+                });
+            }
+        } catch (SQLException e) {
+            GiaoDienUtil.baoLoi(this, e);
+        }
+    }
+
+    // =========================================================================
+    // 3. XỬ LÝ NGHIỆP VỤ XUẤT KHO
+    // =========================================================================
+
+    /** Khi thay đổi lựa chọn lịch hẹn: xóa phiếu đang soạn và tải lại lịch sử xuất. */
     private void chonLichHen() {
         int index = cboLichHen.getSelectedIndex();
-        if (index < 0) {
-            return;
-        }
+        if (index < 0) return;
+
         if (index == 0) {
-            lblBenhNhan.setText("Xuất dùng chung cho phòng khám, không gắn với bệnh nhân nào.");
+            lblBenhNhan.setText("Xuất dùng chung cho toàn phòng khám (không gắn với bệnh nhân nào).");
         } else {
-            String[] lh = MOCK_LICH_HEN[index - 1];
-            lblBenhNhan.setText("Bệnh nhân: " + lh[1] + "  ·  " + lh[2] + "  ·  Phòng " + lh[3]);
+            LichHenInfo lh = danhSachLichHen.get(index - 1);
+            lblBenhNhan.setText("Bệnh nhân: " + lh.hoTen() + "  ·  Mã BN: " + lh.maBenhNhan() + "  ·  Phòng: " + lh.maPhong());
         }
-        dangSoan.clear();
+
+        mapVatTuDangSoan.clear();
         spnSoLuong.setValue(1);
-        loadPhieu();
-        loadLichSu();
+        capNhatBangPhieu();
+        taiLichSuXuat();
     }
 
-    /** Thêm vật tư đang chọn vào phiếu (cộng dồn nếu đã có trong phiếu). */
-    private void themVatTu() {
-        int row = vatTuTable.getSelectedRow();
-        if (row < 0) {
-            showMessage("Vui lòng chọn một vật tư trong danh mục.");
-            return;
-        }
-        Object[] vt = timVatTu((String) vatTuModel.getValueAt(row, 0));
-        String maVatTu = (String) vt[V_MA];
-        int soLuong = (Integer) spnSoLuong.getValue();
-        int daCo = dangSoan.getOrDefault(maVatTu, 0);
-        int ton = (Integer) vt[V_TON];
-
-        if (daCo + soLuong > ton) {
-            showWarning("Số lượng dùng (" + (daCo + soLuong) + ") vượt quá tồn kho (" + ton + ").");
-            return;
-        }
-        LocalDate hsd = (LocalDate) vt[V_HSD];
-        if (hsd != null && hsd.isBefore(LocalDate.now())) {
-            showWarning("Vật tư " + vt[V_TEN] + " đã hết hạn sử dụng, không thể xuất.");
-            return;
-        }
-
-        dangSoan.put(maVatTu, daCo + soLuong);
-        spnSoLuong.setValue(1);
-        loadPhieu();
-    }
-
-    /** Bỏ dòng vật tư đang chọn ra khỏi phiếu. */
-    private void xoaVatTu() {
-        int row = phieuTable.getSelectedRow();
-        if (row < 0) {
-            showMessage("Vui lòng chọn một dòng trong phiếu để xóa.");
-            return;
-        }
-        dangSoan.remove((String) phieuModel.getValueAt(row, 0));
-        loadPhieu();
-    }
-
-    /** Lưu phiếu xuất kho: ghi chi tiết và trừ tồn kho. */
-    private void luuPhieuXuat() {
+    /** Nạp danh sách vật tư đã xuất của lần khám này từ CSDL. */
+    private void taiLichSuXuat() {
         int index = cboLichHen.getSelectedIndex();
-        if (index < 0) {
-            showMessage("Vui lòng chọn lịch hẹn.");
-            return;
-        }
-        if (dangSoan.isEmpty()) {
-            showWarning("Phiếu xuất cần có ít nhất một vật tư.");
-            return;
-        }
+        String maLichHen = (index <= 0) ? null : danhSachLichHen.get(index - 1).maLichHen();
 
-        // Kiểm tra lại tồn kho lần cuối trước khi trừ.
-        for (Map.Entry<String, Integer> entry : dangSoan.entrySet()) {
-            Object[] vt = timVatTu(entry.getKey());
-            if (entry.getValue() > (Integer) vt[V_TON]) {
-                showWarning("Vật tư " + vt[V_TEN] + " chỉ còn " + vt[V_TON] + " " + vt[V_DVT] + ".");
-                return;
+        try {
+            List<ChiTietXuatInfo> lichSu = phieuXuatKhoDAO.layLichSuXuatTheoLichHen(maLichHen);
+            modelLichSu.setRowCount(0);
+            for (ChiTietXuatInfo info : lichSu) {
+                modelLichSu.addRow(new Object[] {
+                        info.maPhieuXuat(),
+                        info.maVatTu(),
+                        info.tenVatTu(),
+                        info.donViTinh() == null ? "" : info.donViTinh(),
+                        info.soLuongSuDung()
+                });
             }
+        } catch (SQLException e) {
+            GiaoDienUtil.baoLoi(this, e);
         }
-
-        String khoa = index == 0 ? KHOA_DUNG_CHUNG : MOCK_LICH_HEN[index - 1][0];
-        // TODO DAO (một transaction):
-        // 1. PhieuXuatKhoDAO.them(maPhieuXuat, ngayXuat, maNhanVien, maLichHen hoặc
-        // NULL)
-        // 2. ChiTietXuatKhoDAO.them(maPhieuXuat, maVatTu, soLuongSuDung) cho từng dòng
-        // 3. VatTuDAO.truTon(maVatTu, soLuongSuDung) cho từng dòng
-        // (SoLuongTon có CHECK >= 0 nên DB cũng chặn xuất quá tồn.)
-        String maPhieu = String.format("PX%03d", nextPhieuXuat++);
-        List<Object[]> lichSu = daXuat.computeIfAbsent(khoa, k -> new ArrayList<>());
-        List<String> sapHet = new ArrayList<>();
-        for (Map.Entry<String, Integer> entry : dangSoan.entrySet()) {
-            Object[] vt = timVatTu(entry.getKey());
-            int tonMoi = (Integer) vt[V_TON] - entry.getValue();
-            vt[V_TON] = tonMoi;
-            lichSu.add(new Object[] { maPhieu, entry.getKey(), entry.getValue() });
-            if (tonMoi <= (Integer) vt[V_NGUONG]) {
-                sapHet.add(vt[V_TEN] + " (còn " + tonMoi + ")");
-            }
-        }
-        dangSoan.clear();
-        loadVatTu();
-        loadPhieu();
-        loadLichSu();
-
-        String thongBao = "Đã lưu phiếu xuất " + maPhieu + " và trừ tồn kho.";
-        if (!sapHet.isEmpty()) {
-            thongBao += "\nLưu ý, vật tư đã chạm ngưỡng tồn tối thiểu: " + String.join(", ", sapHet) + ".";
-        }
-        showMessage(thongBao);
     }
 
-    // =====================================================================
-    // HÀM HỖ TRỢ
-    // =====================================================================
+    /** Thêm vật tư vào phiếu đang soạn (cộng dồn nếu đã có trong phiếu). */
+    private void themVatTu() {
+        int row = bangVatTu.getSelectedRow();
+        if (row < 0) {
+            GiaoDienUtil.canhBao(this, "Vui lòng chọn một vật tư trong danh mục.");
+            return;
+        }
 
-    // Nạp danh mục vật tư, lọc theo từ khóa (mã/tên) và loại.
-    private void loadVatTu() {
-        String keyword = txtTim.getText().trim().toLowerCase();
-        String loai = (String) cboLoai.getSelectedItem();
-        // Giữ lại dòng đang chọn sau khi nạp lại (ví dụ sau khi trừ tồn).
-        String maDangChon = null;
-        if (vatTuTable.getSelectedRow() >= 0) {
-            maDangChon = (String) vatTuModel.getValueAt(vatTuTable.getSelectedRow(), 0);
+        String maVatTu = (String) modelVatTu.getValueAt(row, 0);
+        VatTu vt = mapCacheVatTu.get(maVatTu);
+        if (vt == null) return;
+
+        int soLuong = (Integer) spnSoLuong.getValue();
+        int daChon = mapVatTuDangSoan.getOrDefault(maVatTu, 0);
+
+        if (daChon + soLuong > vt.getSoLuongTon()) {
+            GiaoDienUtil.canhBao(this, "Tổng số lượng xuất (" + (daChon + soLuong) + ") vượt quá tồn kho hiện có (" + vt.getSoLuongTon() + ").");
+            return;
         }
-        vatTuModel.setRowCount(0);
-        // TODO DAO: VatTuDAO.timKiem(keyword, loai)
-        for (Object[] vt : kho) {
-            boolean khopTuKhoa = keyword.isEmpty()
-                    || ((String) vt[V_MA]).toLowerCase().contains(keyword)
-                    || ((String) vt[V_TEN]).toLowerCase().contains(keyword);
-            boolean khopLoai = loai == null || TAT_CA.equals(loai) || loai.equals(vt[V_LOAI]);
-            if (khopTuKhoa && khopLoai) {
-                vatTuModel.addRow(new Object[] { vt[V_MA], vt[V_TEN], vt[V_LOAI], vt[V_DVT], vt[V_TON] });
+
+        if (vt.getHanSuDung() != null && vt.getHanSuDung().isBefore(LocalDate.now())) {
+            GiaoDienUtil.canhBao(this, "Vật tư " + vt.getTenVatTu() + " đã hết hạn sử dụng, không thể xuất dùng!");
+            return;
+        }
+
+        mapVatTuDangSoan.put(maVatTu, daChon + soLuong);
+        spnSoLuong.setValue(1);
+        capNhatBangPhieu();
+    }
+
+    /** Xóa vật tư đang chọn khỏi phiếu. */
+    private void xoaVatTu() {
+        int row = bangPhieu.getSelectedRow();
+        if (row < 0) {
+            GiaoDienUtil.canhBao(this, "Vui lòng chọn dòng vật tư cần xóa khỏi phiếu.");
+            return;
+        }
+        String maVatTu = (String) modelPhieu.getValueAt(row, 0);
+        mapVatTuDangSoan.remove(maVatTu);
+        capNhatBangPhieu();
+    }
+
+    /** Cập nhật bảng phiếu xuất đang soạn. */
+    private void capNhatBangPhieu() {
+        modelPhieu.setRowCount(0);
+        for (Map.Entry<String, Integer> entry : mapVatTuDangSoan.entrySet()) {
+            VatTu vt = mapCacheVatTu.get(entry.getKey());
+            String ten = vt != null ? vt.getTenVatTu() : entry.getKey();
+            String dvt = (vt != null && vt.getDonViTinh() != null) ? vt.getDonViTinh() : "";
+            modelPhieu.addRow(new Object[] { entry.getKey(), ten, dvt, entry.getValue() });
+        }
+    }
+
+    /** Lưu phiếu xuất vào CSDL qua Transaction (tạo phiếu, ghi chi tiết, trừ tồn). */
+    private void luuPhieuXuat() {
+        if (mapVatTuDangSoan.isEmpty()) {
+            GiaoDienUtil.canhBao(this, "Phiếu xuất phải có ít nhất một vật tư tiêu hao.");
+            return;
+        }
+
+        int index = cboLichHen.getSelectedIndex();
+        String maLichHen = (index <= 0) ? null : danhSachLichHen.get(index - 1).maLichHen();
+
+        try {
+            String maPhieuMoi = phieuXuatKhoDAO.sinhMa();
+            PhieuXuatKho phieu = new PhieuXuatKho(maPhieuMoi, LocalDate.now(), MA_NHAN_VIEN_XUAT, maLichHen);
+
+            List<ChiTietXuatKho> chiTietList = new ArrayList<>();
+            for (Map.Entry<String, Integer> entry : mapVatTuDangSoan.entrySet()) {
+                chiTietList.add(new ChiTietXuatKho(maPhieuMoi, entry.getKey(), entry.getValue()));
             }
-        }
-        if (maDangChon != null) {
-            for (int i = 0; i < vatTuModel.getRowCount(); i++) {
-                if (maDangChon.equals(vatTuModel.getValueAt(i, 0))) {
-                    vatTuTable.setRowSelectionInterval(i, i);
-                    break;
+
+            phieuXuatKhoDAO.luuPhieuXuat(phieu, chiTietList);
+
+            // Kiểm tra các vật tư chạm ngưỡng tối thiểu để nhắc nhở
+            List<String> canhBaoTon = new ArrayList<>();
+            for (Map.Entry<String, Integer> entry : mapVatTuDangSoan.entrySet()) {
+                VatTu vt = vatTuDAO.timTheoMa(entry.getKey());
+                if (vt != null && vt.getSoLuongTon() <= vt.getNguongToiThieu()) {
+                    canhBaoTon.add(vt.getTenVatTu() + " (còn " + vt.getSoLuongTon() + " " + vt.getDonViTinh() + ")");
                 }
             }
-        }
-    }
 
-    // Nạp lại bảng phiếu đang soạn.
-    private void loadPhieu() {
-        phieuModel.setRowCount(0);
-        for (Map.Entry<String, Integer> entry : dangSoan.entrySet()) {
-            Object[] vt = timVatTu(entry.getKey());
-            phieuModel.addRow(new Object[] { vt[V_MA], vt[V_TEN], vt[V_DVT], entry.getValue() });
-        }
-    }
-
-    // Nạp lại bảng các phiếu đã xuất cho lịch hẹn đang chọn.
-    private void loadLichSu() {
-        lichSuModel.setRowCount(0);
-        int index = cboLichHen.getSelectedIndex();
-        if (index < 0) {
-            return;
-        }
-        String khoa = index == 0 ? KHOA_DUNG_CHUNG : MOCK_LICH_HEN[index - 1][0];
-        // TODO DAO: ChiTietXuatKhoDAO.timTheoLichHen(maLichHen)
-        List<Object[]> ds = daXuat.get(khoa);
-        if (ds == null) {
-            return;
-        }
-        for (Object[] dong : ds) {
-            Object[] vt = timVatTu((String) dong[1]);
-            lichSuModel.addRow(new Object[] { dong[0], dong[1], vt[V_TEN], dong[2] });
-        }
-    }
-
-    private Object[] timVatTu(String maVatTu) {
-        for (Object[] vt : kho) {
-            if (vt[V_MA].equals(maVatTu)) {
-                return vt;
+            String msg = "Đã lưu phiếu xuất " + maPhieuMoi + " thành công và tự động trừ tồn kho!";
+            if (!canhBaoTon.isEmpty()) {
+                msg += "\n\nLƯU Ý: Các vật tư sau đã chạm ngưỡng tối thiểu:\n- " + String.join("\n- ", canhBaoTon);
             }
+            GiaoDienUtil.thongBao(this, msg);
+
+            // Làm mới giao diện
+            mapVatTuDangSoan.clear();
+            capNhatBangPhieu();
+            taiDanhSachVatTu();
+            taiLichSuXuat();
+        } catch (SQLException e) {
+            GiaoDienUtil.baoLoi(this, e);
         }
-        return null;
-    }
-
-    private void showMessage(String message) {
-        JOptionPane.showMessageDialog(this, message, "Thông báo", JOptionPane.INFORMATION_MESSAGE);
-    }
-
-    private void showWarning(String message) {
-        JOptionPane.showMessageDialog(this, message, "Dữ liệu không hợp lệ", JOptionPane.WARNING_MESSAGE);
-    }
-
-    // ----- Tạo thành phần giao diện -----
-
-    private JPanel createCard() {
-        JPanel card = new JPanel();
-        card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
-        card.setBackground(Color.WHITE);
-        card.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(LINE), new EmptyBorder(16, 18, 16, 18)));
-        return card;
-    }
-
-    private JLabel createCardTitle(String text) {
-        JLabel label = new JLabel(text);
-        label.setFont(new Font("Arial", Font.BOLD, 15));
-        label.setForeground(INK);
-        label.setAlignmentX(Component.LEFT_ALIGNMENT);
-        return label;
-    }
-
-    private JLabel createSmallLabel(String text) {
-        JLabel label = new JLabel(text);
-        label.setFont(new Font("Arial", Font.BOLD, 11));
-        label.setForeground(MUTED);
-        return label;
-    }
-
-    /**
-     * Một hàng "nhãn + ô nhập": nhãn rộng cố định bên trái, ô nhập giãn hết phần
-     * còn lại.
-     */
-    private JPanel createRow(String labelText, Component field) {
-        if (field instanceof JTextField) {
-            styleField((JTextField) field);
-        } else {
-            field.setFont(new Font("Arial", Font.PLAIN, 12));
-        }
-        JLabel label = new JLabel(labelText);
-        label.setFont(new Font("Arial", Font.PLAIN, 12));
-        label.setForeground(INK);
-        label.setPreferredSize(new Dimension(110, 32));
-
-        JPanel row = new JPanel(new BorderLayout(8, 0));
-        row.setOpaque(false);
-        row.setAlignmentX(Component.LEFT_ALIGNMENT);
-        row.setBorder(new EmptyBorder(0, 0, 8, 0));
-        row.add(label, BorderLayout.WEST);
-        row.add(field, BorderLayout.CENTER);
-        row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 42));
-        return row;
-    }
-
-    private void styleField(JTextField field) {
-        field.setFont(new Font("Arial", Font.PLAIN, 12));
-        field.setForeground(INK);
-        field.setPreferredSize(new Dimension(160, 32));
-        field.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(LINE), new EmptyBorder(0, 8, 0, 8)));
-    }
-
-    private void styleTable(JTable table) {
-        table.setRowHeight(30);
-        table.setFont(new Font("Arial", Font.PLAIN, 12));
-        table.setForeground(INK);
-        table.setShowVerticalLines(false);
-        table.setGridColor(LINE);
-        table.setFillsViewportHeight(true);
-        table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        table.setSelectionBackground(new Color(231, 246, 245));
-        table.setSelectionForeground(INK);
-        table.getTableHeader().setFont(new Font("Arial", Font.BOLD, 11));
-        table.getTableHeader().setReorderingAllowed(false);
-    }
-
-    private JButton createButton(String text, boolean primary) {
-        JButton button = new JButton(text);
-        button.setFont(new Font("Arial", Font.BOLD, 12));
-        button.setFocusPainted(false);
-        button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        button.setOpaque(true);
-        if (primary) {
-            button.setBackground(TEAL);
-            button.setForeground(Color.WHITE);
-            button.setBorder(new EmptyBorder(8, 16, 8, 16));
-            button.setBorderPainted(false);
-        } else {
-            button.setBackground(Color.WHITE);
-            button.setForeground(INK);
-            button.setBorder(BorderFactory.createCompoundBorder(
-                    BorderFactory.createLineBorder(LINE), new EmptyBorder(7, 15, 7, 15)));
-        }
-        return button;
     }
 }

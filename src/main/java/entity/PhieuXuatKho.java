@@ -2,6 +2,10 @@ package entity;
 
 import java.time.LocalDate;
 
+/**
+ * Entity ánh xạ bảng PhieuXuatKho: phiếu xuất vật tư y tế, vật liệu tiêu hao
+ * phục vụ cho một lịch hẹn khám hoặc xuất dùng chung phòng khám.
+ */
 public class PhieuXuatKho {
     private String maPhieuXuat;
     private LocalDate ngayXuat;
@@ -13,10 +17,10 @@ public class PhieuXuatKho {
     }
 
     public PhieuXuatKho(String maPhieuXuat, LocalDate ngayXuat, String maNhanVien, String maLichHen) {
-        this.maPhieuXuat = maPhieuXuat;
-        this.ngayXuat = ngayXuat;
-        this.maNhanVien = maNhanVien;
-        this.maLichHen = maLichHen;
+        setMaPhieuXuat(maPhieuXuat);
+        setNgayXuat(ngayXuat);
+        setMaNhanVien(maNhanVien);
+        setMaLichHen(maLichHen);
     }
 
     public String getMaPhieuXuat() {
@@ -24,7 +28,11 @@ public class PhieuXuatKho {
     }
 
     public void setMaPhieuXuat(String maPhieuXuat) {
-        this.maPhieuXuat = maPhieuXuat;
+        if (maPhieuXuat == null || maPhieuXuat.trim().isEmpty())
+            throw new IllegalArgumentException("MaPhieuXuat không được để trống.");
+        if (maPhieuXuat.length() > 20)
+            throw new IllegalArgumentException("MaPhieuXuat tối đa 20 ký tự.");
+        this.maPhieuXuat = maPhieuXuat.trim();
     }
 
     public LocalDate getNgayXuat() {
@@ -32,6 +40,8 @@ public class PhieuXuatKho {
     }
 
     public void setNgayXuat(LocalDate ngayXuat) {
+        if (ngayXuat == null)
+            throw new IllegalArgumentException("NgayXuat không được null.");
         this.ngayXuat = ngayXuat;
     }
 
@@ -40,7 +50,11 @@ public class PhieuXuatKho {
     }
 
     public void setMaNhanVien(String maNhanVien) {
-        this.maNhanVien = maNhanVien;
+        if (maNhanVien == null || maNhanVien.trim().isEmpty())
+            throw new IllegalArgumentException("MaNhanVien không được để trống.");
+        if (maNhanVien.length() > 20)
+            throw new IllegalArgumentException("MaNhanVien tối đa 20 ký tự.");
+        this.maNhanVien = maNhanVien.trim();
     }
 
     public String getMaLichHen() {
@@ -48,6 +62,8 @@ public class PhieuXuatKho {
     }
 
     public void setMaLichHen(String maLichHen) {
-        this.maLichHen = maLichHen;
+        if (maLichHen != null && maLichHen.length() > 20)
+            throw new IllegalArgumentException("MaLichHen tối đa 20 ký tự.");
+        this.maLichHen = maLichHen == null || maLichHen.trim().isEmpty() ? null : maLichHen.trim();
     }
 }

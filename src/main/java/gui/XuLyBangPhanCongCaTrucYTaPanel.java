@@ -1,6 +1,9 @@
 package gui;
 
+import dao.CaTrucDAO;
 import entity.CaTruc;
+import entity.NhanVien;
+import entity.PhongKham;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
@@ -8,6 +11,7 @@ import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
+import java.sql.SQLException;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -16,7 +20,6 @@ import java.time.format.DateTimeFormatter;
 import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.Comparator;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
@@ -55,7 +58,7 @@ import javax.swing.table.DefaultTableModel;
  * - Một phòng được phép có nhiều nhân viên cùng ca (dữ liệu mẫu SQL có CA001
  * và CA003 cùng phòng P01 trùng giờ).
  *
- * Hiện tại dùng dữ liệu mẫu trong bộ nhớ. Chỗ cần nối DAO ghi "TODO DAO".
+ * Dữ liệu được đọc và cập nhật trực tiếp qua CaTrucDAO.
  */
 public class XuLyBangPhanCongCaTrucYTaPanel extends JPanel {
     private static final Color INK = new Color(32, 53, 68);
@@ -77,39 +80,21 @@ public class XuLyBangPhanCongCaTrucYTaPanel extends JPanel {
     private static final String HANH_CHINH = "Hành chính";
     private static final String[] LOAI_CA = { CA_SANG, CA_CHIEU, HANH_CHINH };
 
-    // Trạng thái phòng và nhân viên (hiển thị có dấu, DB lưu không dấu).
-    private static final String PHONG_BAO_TRI = "Bảo trì";
+    // Nhân viên được hiển thị có dấu; trạng thái phòng trong entity dùng giá trị
+    // chuẩn của schema.
+    private static final String PHONG_BAO_TRI = "Bao tri";
     private static final String NV_DANG_LAM = "Đang làm việc";
 
     private static final String[] THU = { "Thứ hai", "Thứ ba", "Thứ tư", "Thứ năm", "Thứ sáu", "Thứ bảy",
             "Chủ nhật" };
 
-    // ----- Dữ liệu mẫu -----
-    // TODO DAO: NhanVienDAO.layTatCa() thay cho dữ liệu này.
-    // {MaNhanVien, HoTen, ChuyenMon, TrangThaiLamViec}
-    private static final String[][] MOCK_NHAN_VIEN = {
-            { "NV001", "Nguyễn Văn An", "Nha sĩ - Nhổ răng", NV_DANG_LAM },
-            { "NV002", "Trần Thị Bình", "Nha sĩ - Chỉnh nha", NV_DANG_LAM },
-            { "NV003", "Lê Minh Châu", "Lễ tân", NV_DANG_LAM },
-            { "NV004", "Phạm Quốc Dũng", "Thu ngân", NV_DANG_LAM },
-            { "NV005", "Hoàng Thị Em", "Thu kho", NV_DANG_LAM },
-            { "NV006", "Võ Thị Phương", "Y tá", NV_DANG_LAM },
-            { "NV007", "Đỗ Văn Giang", "Y tá", "Đã nghỉ việc" }
-    };
-
-    // TODO DAO: PhongKhamDAO.layTatCa() thay cho dữ liệu này (khớp bảng PhongKham).
-    // {MaPhong, TenPhong, TrangThai}
-    private static final String[][] MOCK_PHONG = {
-            { "P01", "Phòng khám số 1", "Sẵn sàng" },
-            { "P02", "Phòng khám số 2", "Sẵn sàng" },
-            { "P03", "Phòng tiểu phẫu", PHONG_BAO_TRI }
-    };
-
+    private final CaTrucDAO caTrucDAO = new CaTrucDAO();
     private final List<CaTruc> dsCa = new ArrayList<>();
+    private final List<NhanVien> dsNhanVien = new ArrayList<>();
+    private final List<PhongKham> dsPhong = new ArrayList<>();
     // Các ca đang hiển thị trong bảng (cùng thứ tự với dòng của bảng).
     private final List<CaTruc> dangHienThi = new ArrayList<>();
     private LocalDate dauTuan = LocalDate.now().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
-    private int nextCa = 1;
     // true khi đang nạp dữ liệu bằng code, để bỏ qua sự kiện của người dùng.
     private boolean dangNap = false;
 
@@ -148,8 +133,11 @@ public class XuLyBangPhanCongCaTrucYTaPanel extends JPanel {
         setLayout(new BorderLayout(0, 18));
         setOpaque(false);
 
-        taoDuLieuMau();
-        napCombo();
+        try {
+            napCombo();
+        } catch (SQLException ex) {
+            showDatabaseError("Không thể tải danh sách nhân viên và phòng khám.", ex);
+        }
 
         spnNgay.setEditor(new JSpinner.DateEditor(spnNgay, "dd/MM/yyyy"));
         spnBatDau.setEditor(new JSpinner.DateEditor(spnBatDau, "HH:mm"));
@@ -168,43 +156,30 @@ public class XuLyBangPhanCongCaTrucYTaPanel extends JPanel {
     }
 
     // =====================================================================
-    // DỮ LIỆU MẪU
+    // DỮ LIỆU BAN ĐẦU
     // =====================================================================
 
-    private void taoDuLieuMau() {
-        // Dựa theo dữ liệu CaTruc trong SQL, dời về tuần hiện tại để luôn thấy dữ liệu.
-        // TODO DAO: CaTrucDAO.layTheoTuan(dauTuan) thay cho dữ liệu này.
-        themMau(0, "NV001", "P01", LocalTime.of(8, 0), LocalTime.of(12, 0), CA_SANG);
-        themMau(0, "NV002", "P02", LocalTime.of(13, 0), LocalTime.of(17, 0), CA_CHIEU);
-        themMau(0, "NV003", "P01", LocalTime.of(8, 0), LocalTime.of(17, 0), HANH_CHINH);
-        themMau(1, "NV002", "P02", LocalTime.of(8, 0), LocalTime.of(12, 0), CA_SANG);
-        themMau(1, "NV001", "P01", LocalTime.of(13, 0), LocalTime.of(17, 0), CA_CHIEU);
-        themMau(2, "NV004", "P01", LocalTime.of(8, 0), LocalTime.of(17, 0), HANH_CHINH);
-        themMau(2, "NV005", "P01", LocalTime.of(8, 0), LocalTime.of(17, 0), HANH_CHINH);
-        themMau(3, "NV006", "P02", LocalTime.of(8, 0), LocalTime.of(12, 0), CA_SANG);
-    }
-
-    private void themMau(int ngayTrongTuan, String maNv, String maPhong, LocalTime batDau, LocalTime ketThuc,
-            String loai) {
-        CaTruc ca = new CaTruc(String.format("CA%03d", nextCa++), dauTuan.plusDays(ngayTrongTuan),
-                batDau, ketThuc, loai, maNv, maPhong);
-        dsCa.add(ca);
-    }
-
     // Nạp các combo (phải làm trước khi gắn listener).
-    private void napCombo() {
+    private void napCombo() throws SQLException {
+        dsNhanVien.clear();
+        dsNhanVien.addAll(caTrucDAO.layTatCaNhanVien());
+        dsPhong.clear();
+        dsPhong.addAll(caTrucDAO.layTatCaPhong());
+
         cboLocNhanVien.addItem(TAT_CA);
-        for (String[] nv : MOCK_NHAN_VIEN) {
-            cboLocNhanVien.addItem(nv[0] + " - " + nv[1]);
+        for (NhanVien nv : dsNhanVien) {
+            cboLocNhanVien.addItem(nv.getMaNhanVien() + " - " + nv.getHoTen());
             // Chỉ nhân viên đang làm việc mới được phân ca mới.
-            if (NV_DANG_LAM.equals(nv[3])) {
-                cboNhanVien.addItem(nv[0] + " - " + nv[1] + " (" + nv[2] + ")");
+            if (NV_DANG_LAM.equals(nv.getTrangThaiLamViec())) {
+                cboNhanVien.addItem(nv.getMaNhanVien() + " - " + nv.getHoTen() + " ("
+                        + (nv.getChuyenMon() == null ? "" : nv.getChuyenMon()) + ")");
             }
         }
         cboLocPhong.addItem(TAT_CA);
-        for (String[] p : MOCK_PHONG) {
-            cboLocPhong.addItem(p[0] + " - " + p[1]);
-            cboPhong.addItem(p[0] + " - " + p[1] + " (" + p[2] + ")");
+        for (PhongKham phong : dsPhong) {
+            cboLocPhong.addItem(phong.getMaPhong() + " - " + phong.getTenPhong());
+            cboPhong.addItem(phong.getMaPhong() + " - " + phong.getTenPhong() + " ("
+                    + trangThaiPhongHienThi(phong.getTrangThai()) + ")");
         }
     }
 
@@ -423,15 +398,17 @@ public class XuLyBangPhanCongCaTrucYTaPanel extends JPanel {
         if (moi == null) {
             return;
         }
-        String loi = kiemTra(moi, null);
-        if (loi != null) {
-            showWarning(loi);
+        try {
+            String loi = kiemTra(moi, null);
+            if (loi != null) {
+                showWarning(loi);
+                return;
+            }
+            caTrucDAO.them(moi);
+        } catch (SQLException ex) {
+            showDatabaseError("Không thể thêm ca trực.", ex);
             return;
         }
-        // TODO DAO: CaTrucDAO.them(maCa, ngay, gioBatDau, gioKetThuc, loaiCa,
-        // maNhanVien, maPhong). Mã ca sinh từ DB.
-        moi.setMaCa(String.format("CA%03d", nextCa++));
-        dsCa.add(moi);
 
         // Chuyển sang tuần chứa ca vừa thêm để người dùng thấy ngay.
         dauTuan = moi.getNgay().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
@@ -455,26 +432,23 @@ public class XuLyBangPhanCongCaTrucYTaPanel extends JPanel {
         if (moi == null) {
             return;
         }
-        String loi = kiemTra(moi, ca);
-        if (loi != null) {
-            showWarning(loi);
+        try {
+            String loi = kiemTra(moi, ca);
+            if (loi != null) {
+                showWarning(loi);
+                return;
+            }
+            moi.setMaCa(ca.getMaCa());
+            if (!caTrucDAO.capNhat(moi)) {
+                showWarning("Không tìm thấy ca trực trong cơ sở dữ liệu để cập nhật.");
+                return;
+            }
+        } catch (SQLException ex) {
+            showDatabaseError("Không thể cập nhật ca trực.", ex);
             return;
         }
-        // TODO DAO: CaTrucDAO.capNhat(maCa, ngay, gioBatDau, gioKetThuc, loaiCa,
-        // maNhanVien, maPhong)
-        ca.setNgay(moi.getNgay());
-        if (moi.getGioBatDau().isBefore(ca.getGioKetThuc())) {
-            ca.setGioBatDau(moi.getGioBatDau());
-            ca.setGioKetThuc(moi.getGioKetThuc());
-        } else {
-            ca.setGioKetThuc(moi.getGioKetThuc());
-            ca.setGioBatDau(moi.getGioBatDau());
-        }
-        ca.setLoaiCa(moi.getLoaiCa());
-        ca.setMaNhanVien(moi.getMaNhanVien());
-        ca.setMaPhong(moi.getMaPhong());
 
-        dauTuan = ca.getNgay().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+        dauTuan = moi.getNgay().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
         lamMoiBang(ca.getMaCa());
         showMessage("Đã cập nhật ca " + ca.getMaCa() + ".");
     }
@@ -490,8 +464,6 @@ public class XuLyBangPhanCongCaTrucYTaPanel extends JPanel {
             showWarning("Ca của ngày đã qua không được xóa.");
             return;
         }
-        // TODO DAO: nếu nhân viên là nha sĩ, kiểm tra LichHen (MaNhaSiPhuTrach, trong
-        // khoảng giờ của ca) còn lịch chưa hoàn thành thì cảnh báo hoặc chặn xóa.
         int choice = JOptionPane.showConfirmDialog(this,
                 "Xóa ca " + ca.getMaCa() + " của " + tenNhanVien(ca.getMaNhanVien()) + " ngày "
                         + ca.getNgay().format(NGAY) + "?",
@@ -499,8 +471,15 @@ public class XuLyBangPhanCongCaTrucYTaPanel extends JPanel {
         if (choice != JOptionPane.YES_OPTION) {
             return;
         }
-        // TODO DAO: CaTrucDAO.xoa(maCa)
-        dsCa.remove(ca);
+        try {
+            if (!caTrucDAO.xoa(ca.getMaCa())) {
+                showWarning("Không tìm thấy ca trực trong cơ sở dữ liệu để xóa.");
+                return;
+            }
+        } catch (SQLException ex) {
+            showDatabaseError("Không thể xóa ca trực.", ex);
+            return;
+        }
         lamMoiBang();
         lamMoiForm();
     }
@@ -513,7 +492,7 @@ public class XuLyBangPhanCongCaTrucYTaPanel extends JPanel {
      * Trả về thông báo lỗi, hoặc null nếu hợp lệ. boQua là ca đang sửa (không tính
      * trùng với chính nó).
      */
-    private String kiemTra(CaTruc moi, CaTruc boQua) {
+    private String kiemTra(CaTruc moi, CaTruc boQua) throws SQLException {
         if (moi.getMaNhanVien() == null) {
             return "Vui lòng chọn nhân viên.";
         }
@@ -526,24 +505,15 @@ public class XuLyBangPhanCongCaTrucYTaPanel extends JPanel {
         if (!moi.getGioKetThuc().isAfter(moi.getGioBatDau())) {
             return "Giờ kết thúc phải sau giờ bắt đầu.";
         }
+        dsPhong.clear();
+        dsPhong.addAll(caTrucDAO.layTatCaPhong());
         String trangThaiPhong = trangThaiPhong(moi.getMaPhong());
         if (PHONG_BAO_TRI.equals(trangThaiPhong)) {
             return "Phòng " + moi.getMaPhong() + " đang bảo trì, không thể phân ca vào phòng này.";
         }
-        // TODO DAO: CaTrucDAO.timCaTrung(maNhanVien, ngay, gioBatDau, gioKetThuc,
-        // maCaBoQua)
-        for (CaTruc khac : dsCa) {
-            if (khac == boQua || !khac.getMaNhanVien().equals(moi.getMaNhanVien())
-                    || !khac.getNgay().equals(moi.getNgay())) {
-                continue;
-            }
-            boolean trungGio = moi.getGioBatDau().isBefore(khac.getGioKetThuc())
-                    && khac.getGioBatDau().isBefore(moi.getGioKetThuc());
-            if (trungGio) {
-                return tenNhanVien(moi.getMaNhanVien()) + " đã có ca " + khac.getMaCa() + " ("
-                        + khac.getGioBatDau().format(GIO) + " - " + khac.getGioKetThuc().format(GIO)
-                        + ") trùng giờ trong ngày này.";
-            }
+        if (caTrucDAO.coCaTrung(moi, boQua == null ? null : boQua.getMaCa())) {
+            return tenNhanVien(moi.getMaNhanVien())
+                    + " đã có ca trùng giờ trong ngày này.";
         }
         return null;
     }
@@ -562,6 +532,15 @@ public class XuLyBangPhanCongCaTrucYTaPanel extends JPanel {
         String maPhongLoc = layMaTuCombo(cboLocPhong);
         LocalDate cuoiTuan = dauTuan.plusDays(6);
 
+        try {
+            List<CaTruc> caTrucMoi = caTrucDAO.layTatCa();
+            dsCa.clear();
+            dsCa.addAll(caTrucMoi);
+        } catch (SQLException ex) {
+            showDatabaseError("Không thể tải danh sách ca trực.", ex);
+            return;
+        }
+
         dangNap = true;
         tableModel.setRowCount(0);
         dangHienThi.clear();
@@ -572,9 +551,6 @@ public class XuLyBangPhanCongCaTrucYTaPanel extends JPanel {
                 trongTuan.add(ca);
             }
         }
-        trongTuan.sort(Comparator.comparing(CaTruc::getNgay).thenComparing(CaTruc::getGioBatDau)
-                .thenComparing(CaTruc::getMaNhanVien));
-
         for (CaTruc ca : trongTuan) {
             if (maNhanVienLoc != null && !maNhanVienLoc.equals(ca.getMaNhanVien())) {
                 continue;
@@ -583,7 +559,7 @@ public class XuLyBangPhanCongCaTrucYTaPanel extends JPanel {
                 continue;
             }
             dangHienThi.add(ca);
-            String[] nv = timNhanVien(ca.getMaNhanVien());
+            NhanVien nv = timNhanVien(ca.getMaNhanVien());
             tableModel.addRow(new Object[] {
                     ca.getMaCa(),
                     ca.getNgay().format(NGAY),
@@ -591,8 +567,8 @@ public class XuLyBangPhanCongCaTrucYTaPanel extends JPanel {
                     ca.getGioBatDau().format(GIO),
                     ca.getGioKetThuc().format(GIO),
                     ca.getLoaiCa(),
-                    nv == null ? ca.getMaNhanVien() : nv[1],
-                    nv == null ? "" : nv[2],
+                    nv == null ? ca.getMaNhanVien() : nv.getHoTen(),
+                    nv == null || nv.getChuyenMon() == null ? "" : nv.getChuyenMon(),
                     ca.getMaPhong() });
         }
 
@@ -674,8 +650,8 @@ public class XuLyBangPhanCongCaTrucYTaPanel extends JPanel {
             cboNhanVien.setSelectedIndex(0);
         }
         // Chọn sẵn phòng đầu tiên không bảo trì.
-        for (int i = 0; i < MOCK_PHONG.length; i++) {
-            if (!PHONG_BAO_TRI.equals(MOCK_PHONG[i][2])) {
+        for (int i = 0; i < dsPhong.size(); i++) {
+            if (!PHONG_BAO_TRI.equals(dsPhong.get(i).getTrangThai())) {
                 cboPhong.setSelectedIndex(i);
                 break;
             }
@@ -750,9 +726,9 @@ public class XuLyBangPhanCongCaTrucYTaPanel extends JPanel {
         combo.setSelectedIndex(-1);
     }
 
-    private String[] timNhanVien(String maNhanVien) {
-        for (String[] nv : MOCK_NHAN_VIEN) {
-            if (nv[0].equals(maNhanVien)) {
+    private NhanVien timNhanVien(String maNhanVien) {
+        for (NhanVien nv : dsNhanVien) {
+            if (nv.getMaNhanVien().equals(maNhanVien)) {
                 return nv;
             }
         }
@@ -760,17 +736,40 @@ public class XuLyBangPhanCongCaTrucYTaPanel extends JPanel {
     }
 
     private String tenNhanVien(String maNhanVien) {
-        String[] nv = timNhanVien(maNhanVien);
-        return nv == null ? maNhanVien : nv[1];
+        NhanVien nv = timNhanVien(maNhanVien);
+        return nv == null ? maNhanVien : nv.getHoTen();
     }
 
     private String trangThaiPhong(String maPhong) {
-        for (String[] p : MOCK_PHONG) {
-            if (p[0].equals(maPhong)) {
-                return p[2];
+        for (PhongKham phong : dsPhong) {
+            if (phong.getMaPhong().equals(maPhong)) {
+                return phong.getTrangThai();
             }
         }
         return "";
+    }
+
+    private String trangThaiPhongHienThi(String trangThai) {
+        if ("San sang".equals(trangThai)) {
+            return "Sẵn sàng";
+        }
+        if ("Dang kham".equals(trangThai)) {
+            return "Đang khám";
+        }
+        if ("Can ve sinh".equals(trangThai)) {
+            return "Cần vệ sinh";
+        }
+        if (PHONG_BAO_TRI.equals(trangThai)) {
+            return "Bảo trì";
+        }
+        return trangThai;
+    }
+
+    private void showDatabaseError(String message, SQLException ex) {
+        String detail = ex.getMessage();
+        JOptionPane.showMessageDialog(this,
+                detail == null || detail.trim().isEmpty() ? message : message + "\n" + detail,
+                "Lỗi cơ sở dữ liệu", JOptionPane.ERROR_MESSAGE);
     }
 
     private LocalDate layNgay() {

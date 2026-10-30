@@ -1,5 +1,9 @@
 package entity;
 
+/**
+ * Entity ánh xạ bảng ChiTietXuatKho: một dòng vật tư tiêu hao trong phiếu xuất
+ * (khóa chính phức hợp (MaPhieuXuat, MaVatTu)).
+ */
 public class ChiTietXuatKho {
     private String maPhieuXuat;
     private String maVatTu;
@@ -9,9 +13,9 @@ public class ChiTietXuatKho {
     }
 
     public ChiTietXuatKho(String maPhieuXuat, String maVatTu, int soLuongSuDung) {
-        this.maPhieuXuat = maPhieuXuat;
-        this.maVatTu = maVatTu;
-        this.soLuongSuDung = soLuongSuDung;
+        setMaPhieuXuat(maPhieuXuat);
+        setMaVatTu(maVatTu);
+        setSoLuongSuDung(soLuongSuDung);
     }
 
     public String getMaPhieuXuat() {
@@ -19,7 +23,11 @@ public class ChiTietXuatKho {
     }
 
     public void setMaPhieuXuat(String maPhieuXuat) {
-        this.maPhieuXuat = maPhieuXuat;
+        if (maPhieuXuat == null || maPhieuXuat.trim().isEmpty())
+            throw new IllegalArgumentException("MaPhieuXuat không được để trống.");
+        if (maPhieuXuat.length() > 20)
+            throw new IllegalArgumentException("MaPhieuXuat tối đa 20 ký tự.");
+        this.maPhieuXuat = maPhieuXuat.trim();
     }
 
     public String getMaVatTu() {
@@ -27,7 +35,11 @@ public class ChiTietXuatKho {
     }
 
     public void setMaVatTu(String maVatTu) {
-        this.maVatTu = maVatTu;
+        if (maVatTu == null || maVatTu.trim().isEmpty())
+            throw new IllegalArgumentException("MaVatTu không được để trống.");
+        if (maVatTu.length() > 20)
+            throw new IllegalArgumentException("MaVatTu tối đa 20 ký tự.");
+        this.maVatTu = maVatTu.trim();
     }
 
     public int getSoLuongSuDung() {
@@ -35,6 +47,8 @@ public class ChiTietXuatKho {
     }
 
     public void setSoLuongSuDung(int soLuongSuDung) {
+        if (soLuongSuDung <= 0)
+            throw new IllegalArgumentException("SoLuongSuDung phải > 0.");
         this.soLuongSuDung = soLuongSuDung;
     }
 }

@@ -1,6 +1,9 @@
 package entity;
 
-
+/**
+ * Entity ánh xạ bảng ChiTietDonThuoc: một dòng thuốc trong đơn
+ * (khóa chính (MaDonThuoc, MaVatTu)).
+ */
 public class ChiTietDonThuoc {
     private String maDonThuoc;
     private String maVatTu;
@@ -24,8 +27,10 @@ public class ChiTietDonThuoc {
     }
 
     public void setMaDonThuoc(String maDonThuoc) {
-        if (maDonThuoc == null) throw new IllegalArgumentException("MaDonThuoc không được null.");
-        if (maDonThuoc != null && maDonThuoc.length() > 20) throw new IllegalArgumentException("MaDonThuoc tối đa 20 ký tự.");
+        if (maDonThuoc == null)
+            throw new IllegalArgumentException("MaDonThuoc không được null.");
+        if (maDonThuoc.length() > 20)
+            throw new IllegalArgumentException("MaDonThuoc tối đa 20 ký tự.");
         this.maDonThuoc = maDonThuoc;
     }
 
@@ -34,8 +39,10 @@ public class ChiTietDonThuoc {
     }
 
     public void setMaVatTu(String maVatTu) {
-        if (maVatTu == null) throw new IllegalArgumentException("MaVatTu không được null.");
-        if (maVatTu != null && maVatTu.length() > 20) throw new IllegalArgumentException("MaVatTu tối đa 20 ký tự.");
+        if (maVatTu == null)
+            throw new IllegalArgumentException("MaVatTu không được null.");
+        if (maVatTu.length() > 20)
+            throw new IllegalArgumentException("MaVatTu tối đa 20 ký tự.");
         this.maVatTu = maVatTu;
     }
 
@@ -44,7 +51,8 @@ public class ChiTietDonThuoc {
     }
 
     public void setLieuDung(String lieuDung) {
-        if (lieuDung != null && lieuDung.length() > 100) throw new IllegalArgumentException("LieuDung tối đa 100 ký tự.");
+        if (lieuDung != null && lieuDung.length() > 100)
+            throw new IllegalArgumentException("LieuDung tối đa 100 ký tự.");
         this.lieuDung = lieuDung;
     }
 
@@ -53,7 +61,8 @@ public class ChiTietDonThuoc {
     }
 
     public void setDuongDung(String duongDung) {
-        if (duongDung != null && duongDung.length() > 50) throw new IllegalArgumentException("DuongDung tối đa 50 ký tự.");
+        if (duongDung != null && duongDung.length() > 50)
+            throw new IllegalArgumentException("DuongDung tối đa 50 ký tự.");
         this.duongDung = duongDung;
     }
 
@@ -62,8 +71,8 @@ public class ChiTietDonThuoc {
     }
 
     public void setSoLuong(int soLuong) {
-        if (soLuong <= 0) throw new IllegalArgumentException("SoLuong phải > 0.");
+        if (soLuong <= 0)
+            throw new IllegalArgumentException("SoLuong phải > 0.");
         this.soLuong = soLuong;
     }
-
 }

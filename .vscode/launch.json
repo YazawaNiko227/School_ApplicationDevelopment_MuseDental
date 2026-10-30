@@ -3,6 +3,13 @@
     "configurations": [
         {
             "type": "java",
+            "name": "TestDAO",
+            "request": "launch",
+            "mainClass": "dao.TestDAO",
+            "projectName": "School_ApplicationDevelopment_MuseDental_50daa2f1"
+        },
+        {
+            "type": "java",
             "name": "Muse Dental",
             "request": "launch",
             "mainClass": "gui.DangNhapFrame",

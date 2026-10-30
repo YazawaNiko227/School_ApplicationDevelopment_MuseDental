@@ -9,7 +9,6 @@ import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
-import java.awt.Font;
 import java.sql.SQLException;
 import java.text.NumberFormat;
 import java.time.LocalDate;
@@ -280,7 +279,8 @@ public class DanhMucQuanLyThuocPanel extends JPanel {
         try {
             txtMa.setText(vatTuDAO.sinhMa());
         } catch (SQLException e) {
-            txtMa.setText("VT001");
+            txtMa.setText("");
+            GiaoDienUtil.baoLoi(this, e);
         }
         txtTen.setText("");
         txtDonVi.setText("");

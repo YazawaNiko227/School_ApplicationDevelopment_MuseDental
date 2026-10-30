@@ -2,6 +2,10 @@ package entity;
 
 import java.time.LocalDate;
 
+/**
+ * Entity ánh xạ bảng DonThuoc: đơn thuốc của một lần khám
+ * (mỗi ChanDoan tối đa 1 đơn, mã DT###).
+ */
 public class DonThuoc {
     private String maDonThuoc;
     private LocalDate ngayKe;
@@ -23,8 +27,10 @@ public class DonThuoc {
     }
 
     public void setMaDonThuoc(String maDonThuoc) {
-        if (maDonThuoc == null) throw new IllegalArgumentException("MaDonThuoc không được null.");
-        if (maDonThuoc != null && maDonThuoc.length() > 20) throw new IllegalArgumentException("MaDonThuoc tối đa 20 ký tự.");
+        if (maDonThuoc == null)
+            throw new IllegalArgumentException("MaDonThuoc không được null.");
+        if (maDonThuoc.length() > 20)
+            throw new IllegalArgumentException("MaDonThuoc tối đa 20 ký tự.");
         this.maDonThuoc = maDonThuoc;
     }
 
@@ -33,7 +39,8 @@ public class DonThuoc {
     }
 
     public void setNgayKe(LocalDate ngayKe) {
-        if (ngayKe == null) throw new IllegalArgumentException("NgayKe không được null.");
+        if (ngayKe == null)
+            throw new IllegalArgumentException("NgayKe không được null.");
         this.ngayKe = ngayKe;
     }
 
@@ -42,7 +49,8 @@ public class DonThuoc {
     }
 
     public void setLoiDanChamSoc(String loiDanChamSoc) {
-        if (loiDanChamSoc != null && loiDanChamSoc.length() > 500) throw new IllegalArgumentException("LoiDanChamSoc tối đa 500 ký tự.");
+        if (loiDanChamSoc != null && loiDanChamSoc.length() > 500)
+            throw new IllegalArgumentException("LoiDanChamSoc tối đa 500 ký tự.");
         this.loiDanChamSoc = loiDanChamSoc;
     }
 
@@ -51,9 +59,10 @@ public class DonThuoc {
     }
 
     public void setMaChanDoan(String maChanDoan) {
-        if (maChanDoan == null) throw new IllegalArgumentException("MaChanDoan không được null.");
-        if (maChanDoan != null && maChanDoan.length() > 20) throw new IllegalArgumentException("MaChanDoan tối đa 20 ký tự.");
+        if (maChanDoan == null)
+            throw new IllegalArgumentException("MaChanDoan không được null.");
+        if (maChanDoan.length() > 20)
+            throw new IllegalArgumentException("MaChanDoan tối đa 20 ký tự.");
         this.maChanDoan = maChanDoan;
     }
-
 }

@@ -640,7 +640,7 @@ public final class ManHinhChinhFrame extends JFrame {
         showContentPanel(
                 "Lịch làm việc cá nhân",
                 "Theo dõi lịch trực hàng tuần và bệnh nhân hẹn khám",
-                new XuLyTimKiemLichLamViecCaNhanPanel());
+                new XuLyTimKiemLichLamViecCaNhanPanel(username));
     }
 
     // Mở bảng ca trực và lịch làm việc nhân viên y tế.

@@ -4,40 +4,64 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 
+/**
+ * Nguồn kết nối duy nhất (Singleton) đến SQL Server cho toàn bộ DAO.
+ *
+ * Thông tin đăng nhập đọc từ biến môi trường (xem README), có giá trị mặc định
+ * cho máy phát triển:
+ * <ul>
+ *   <li>MUSE_DB_URL: chuỗi kết nối JDBC</li>
+ *   <li>MUSE_DB_USER: tên đăng nhập SQL Server</li>
+ *   <li>MUSE_DB_PASSWORD: mật khẩu</li>
+ * </ul>
+ */
 public class ConnectDB {
-	private static Connection con = null;
-	private static ConnectDB instance = new ConnectDB();
 
-	public static ConnectDB getInstance() {
-		return instance;
-	}
+    private static final String URL_MAC_DINH =
+            "jdbc:sqlserver://localhost:1433;databaseName=QuanLyPhongKhamMuse"
+                    + ";encrypt=true;trustServerCertificate=true";
 
-	public void connect() {
-		String url = "jdbc:sqlserver://localhost:1433;databaseName=QuanLyPhongKhamMuse;encrypt=true;trustServerCertificate=true";
-		String user = "sa";
-		String password = "123456789";
+    private static Connection con;
+    private static final ConnectDB INSTANCE = new ConnectDB();
 
-		try {
-			con = DriverManager.getConnection(url, user, password);
+    private ConnectDB() {
+    }
 
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
+    public static ConnectDB getInstance() {
+        return INSTANCE;
+    }
 
-	}
+    /** Mở kết nối; nếu kết nối cũ còn mở thì dùng lại. */
+    public void connect() throws SQLException {
+        if (con != null && !con.isClosed()) {
+            return;
+        }
+        String url = bienMoiTruongHoacMacDinh("MUSE_DB_URL", URL_MAC_DINH);
+        String user = bienMoiTruongHoacMacDinh("MUSE_DB_USER", "sa");
+        String password = bienMoiTruongHoacMacDinh("MUSE_DB_PASSWORD", "123456789");
+        con = DriverManager.getConnection(url, user, password);
+    }
 
-	public static void disconection() {
-		if (con != null) {
-			try {
-				con.close();
-			} catch (SQLException e) {
-				e.printStackTrace();
-			}
-		}
+    /** Kết nối cho DAO: tự mở lại nếu chưa kết nối hoặc kết nối đã đứt. */
+    public static Connection getConnection() throws SQLException {
+        getInstance().connect();
+        return con;
+    }
 
-	}
+    /** Đóng kết nối (gọi khi thoát ứng dụng). */
+    public static void dongKetNoi() {
+        if (con == null) {
+            return;
+        }
+        try {
+            con.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
 
-	public static Connection getConnection() {
-		return con;
-	}
+    private static String bienMoiTruongHoacMacDinh(String tenBien, String macDinh) {
+        String giaTri = System.getenv(tenBien);
+        return giaTri == null || giaTri.trim().isEmpty() ? macDinh : giaTri.trim();
+    }
 }

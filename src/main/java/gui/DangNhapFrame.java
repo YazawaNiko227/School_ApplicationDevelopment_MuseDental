@@ -423,8 +423,24 @@ public final class DangNhapFrame extends JFrame {
             try {
                 UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
                 ConnectDB.getInstance().connect();
+            } catch (java.sql.SQLException exception) {
+                String message;
+                if (exception.getErrorCode() == 18456 || "28000".equals(exception.getSQLState())) {
+                    message = "SQL Server đã nhận được kết nối nhưng từ chối đăng nhập CSDL.\n\n"
+                            + "Kiểm tra lại MUSE_DB_USER và MUSE_DB_PASSWORD. Nếu dùng tài khoản sa, "
+                            + "hãy bật SQL Server Authentication và đảm bảo sa đang được kích hoạt.\n\n"
+                            + "Chi tiết: " + exception.getMessage();
+                } else {
+                    message = "Không kết nối được CSDL:\n" + exception.getMessage();
+                }
+                JOptionPane.showMessageDialog(null, message, "Lỗi kết nối CSDL", JOptionPane.ERROR_MESSAGE);
+                return;
             } catch (Exception e) {
-                JOptionPane.showMessageDialog(null, "Không kết nối được CSDL:\n" + e.getMessage());
+                JOptionPane.showMessageDialog(
+                        null,
+                        "Không thể khởi động giao diện đăng nhập:\n" + e.getMessage(),
+                        "Lỗi khởi động",
+                        JOptionPane.ERROR_MESSAGE);
                 return;
             }
             new DangNhapFrame().setVisible(true);

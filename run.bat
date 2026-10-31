@@ -1,4 +1,5 @@
 @echo off
+set MUSE_DB_PASSWORD=123456789
 setlocal
 cd /d "%~dp0"
 

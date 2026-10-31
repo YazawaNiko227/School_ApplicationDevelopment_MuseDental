@@ -294,7 +294,8 @@ public class DatLichHenDAO {
         String sql = "SELECT TOP 1 1 FROM CaTruc ct "
                 + "INNER JOIN NhanVien nv ON nv.MaNhanVien = ct.MaNhanVien "
                 + "WHERE ct.MaNhanVien = ? AND ct.Ngay = ? "
-                + "AND ct.GioBatDau <= ? AND ct.GioKetThuc > ? "
+                + "AND ct.GioBatDau <= CAST(? AS TIME(0)) "
+                + "AND ct.GioKetThuc > CAST(? AS TIME(0)) "
                 + "AND nv.TrangThaiLamViec = N'Dang lam viec' "
                 + "AND nv.ChuyenMon LIKE N'Nha si%'";
         try (PreparedStatement statement = connection.prepareStatement(sql)) {

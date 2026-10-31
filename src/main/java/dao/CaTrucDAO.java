@@ -97,7 +97,8 @@ public class CaTrucDAO {
 
     public boolean coCaTrung(CaTruc ca, String maCaBoQua) throws SQLException {
         String sql = "SELECT TOP 1 1 FROM CaTruc "
-                + "WHERE MaNhanVien = ? AND Ngay = ? AND GioBatDau < ? AND GioKetThuc > ? "
+                + "WHERE MaNhanVien = ? AND Ngay = ? "
+                + "AND GioBatDau < CAST(? AS TIME(0)) AND GioKetThuc > CAST(? AS TIME(0)) "
                 + "AND (? IS NULL OR MaCa <> ?)";
         try (PreparedStatement statement = getConnection().prepareStatement(sql)) {
             statement.setString(1, ca.getMaNhanVien());

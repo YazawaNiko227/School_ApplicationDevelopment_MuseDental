@@ -10,16 +10,15 @@ import java.sql.SQLException;
  * Thông tin đăng nhập đọc từ biến môi trường (xem README), có giá trị mặc định
  * cho máy phát triển:
  * <ul>
- *   <li>MUSE_DB_URL: chuỗi kết nối JDBC</li>
- *   <li>MUSE_DB_USER: tên đăng nhập SQL Server</li>
- *   <li>MUSE_DB_PASSWORD: mật khẩu</li>
+ * <li>MUSE_DB_URL: chuỗi kết nối JDBC</li>
+ * <li>MUSE_DB_USER: tên đăng nhập SQL Server</li>
+ * <li>MUSE_DB_PASSWORD: mật khẩu</li>
  * </ul>
  */
 public class ConnectDB {
 
-    private static final String URL_MAC_DINH =
-            "jdbc:sqlserver://localhost:1433;databaseName=QuanLyPhongKhamMuse"
-                    + ";encrypt=true;trustServerCertificate=true";
+    private static final String URL_MAC_DINH = "jdbc:sqlserver://localhost:1433;databaseName=QuanLyPhongKhamMuse"
+            + ";encrypt=true;trustServerCertificate=true";
 
     private static Connection con;
     private static final ConnectDB INSTANCE = new ConnectDB();

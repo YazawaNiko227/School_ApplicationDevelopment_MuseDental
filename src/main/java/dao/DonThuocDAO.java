@@ -152,7 +152,7 @@ public class DonThuocDAO {
             }
             con.commit();
             return don;
-        } catch (SQLException e) {
+        } catch (SQLException | RuntimeException e) {
             con.rollback();
             throw e;
         } finally {

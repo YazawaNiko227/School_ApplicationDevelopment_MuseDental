@@ -12,10 +12,37 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Time;
 import java.sql.Types;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
 public class CaTrucDAO {
+    public List<CaTruc> layTheoTuan(String maNhanVien, LocalDate dauTuan, LocalDate cuoiTuan)
+            throws SQLException {
+        String sql = "SELECT MaCa, Ngay, GioBatDau, GioKetThuc, LoaiCa, MaNhanVien, MaPhong "
+                + "FROM CaTruc WHERE MaNhanVien = ? AND Ngay BETWEEN ? AND ? "
+                + "ORDER BY Ngay, GioBatDau, MaCa";
+        List<CaTruc> caTrucList = new ArrayList<>();
+        try (PreparedStatement statement = getConnection().prepareStatement(sql)) {
+            statement.setString(1, maNhanVien);
+            statement.setDate(2, Date.valueOf(dauTuan));
+            statement.setDate(3, Date.valueOf(cuoiTuan));
+            try (ResultSet result = statement.executeQuery()) {
+                while (result.next()) {
+                    caTrucList.add(new CaTruc(
+                            result.getString("MaCa"),
+                            result.getDate("Ngay").toLocalDate(),
+                            result.getTime("GioBatDau").toLocalTime(),
+                            result.getTime("GioKetThuc").toLocalTime(),
+                            loaiCaHienThi(result.getString("LoaiCa")),
+                            result.getString("MaNhanVien"),
+                            result.getString("MaPhong")));
+                }
+            }
+        }
+        return caTrucList;
+    }
+
     public List<CaTruc> layTatCa() throws SQLException {
         String sql = "SELECT MaCa, Ngay, GioBatDau, GioKetThuc, LoaiCa, MaNhanVien, MaPhong "
                 + "FROM CaTruc ORDER BY Ngay, GioBatDau, MaNhanVien";

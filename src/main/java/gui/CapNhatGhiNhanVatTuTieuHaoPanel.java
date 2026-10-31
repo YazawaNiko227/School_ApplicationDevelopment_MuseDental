@@ -33,17 +33,17 @@ import javax.swing.JSpinner;
 import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.SpinnerNumberModel;
-import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
 
 /**
- * Panel "Ghi nhận vật tư tiêu hao" (xuất kho dùng cho lần khám hoặc phòng khám).
+ * Panel "Ghi nhận vật tư tiêu hao" (xuất kho dùng cho lần khám hoặc phòng
+ * khám).
  * Kết nối CSDL trực tiếp qua PhieuXuatKhoDAO, VatTuDAO và LichHenDAO.
  *
  * Quy tắc nghiệp vụ:
  * - Chọn lịch hẹn đang khám / hoàn thành, hoặc chọn "Xuất dùng chung".
  * - Khi lưu phiếu xuất, hệ thống tạo PhieuXuatKho, ChiTietXuatKho và tự động
- *   trừ số lượng tồn kho của VatTu trong một Transaction duy nhất.
+ * trừ số lượng tồn kho của VatTu trong một Transaction duy nhất.
  */
 public class CapNhatGhiNhanVatTuTieuHaoPanel extends JPanel {
 
@@ -73,7 +73,9 @@ public class CapNhatGhiNhanVatTuTieuHaoPanel extends JPanel {
     private final DefaultTableModel modelVatTu = new DefaultTableModel(
             new String[] { "Mã", "Tên vật tư", "Loại", "ĐVT", "Tồn" }, 0) {
         @Override
-        public boolean isCellEditable(int row, int column) { return false; }
+        public boolean isCellEditable(int row, int column) {
+            return false;
+        }
     };
     private final JTable bangVatTu = new JTable(modelVatTu);
     private final JSpinner spnSoLuong = new JSpinner(new SpinnerNumberModel(1, 1, 1000, 1));
@@ -82,14 +84,18 @@ public class CapNhatGhiNhanVatTuTieuHaoPanel extends JPanel {
     private final DefaultTableModel modelPhieu = new DefaultTableModel(
             new String[] { "Mã", "Tên vật tư", "ĐVT", "Số lượng dùng" }, 0) {
         @Override
-        public boolean isCellEditable(int row, int column) { return false; }
+        public boolean isCellEditable(int row, int column) {
+            return false;
+        }
     };
     private final JTable bangPhieu = new JTable(modelPhieu);
 
     private final DefaultTableModel modelLichSu = new DefaultTableModel(
             new String[] { "Mã phiếu", "Mã VT", "Tên vật tư", "ĐVT", "Số lượng" }, 0) {
         @Override
-        public boolean isCellEditable(int row, int column) { return false; }
+        public boolean isCellEditable(int row, int column) {
+            return false;
+        }
     };
     private final JTable bangLichSu = new JTable(modelLichSu);
 
@@ -267,7 +273,8 @@ public class CapNhatGhiNhanVatTuTieuHaoPanel extends JPanel {
             cboLichHen.removeAllItems();
             cboLichHen.addItem(XUAT_DUNG_CHUNG);
             for (LichHenInfo lh : danhSachLichHen) {
-                cboLichHen.addItem(lh.maLichHen() + " - " + lh.hoTen() + " (" + lh.trangThai() + ", P." + lh.maPhong() + ")");
+                cboLichHen.addItem(
+                        lh.maLichHen() + " - " + lh.hoTen() + " (" + lh.trangThai() + ", P." + lh.maPhong() + ")");
             }
             chonLichHen();
         } catch (SQLException e) {
@@ -303,16 +310,20 @@ public class CapNhatGhiNhanVatTuTieuHaoPanel extends JPanel {
     // 3. XỬ LÝ NGHIỆP VỤ XUẤT KHO
     // =========================================================================
 
-    /** Khi thay đổi lựa chọn lịch hẹn: xóa phiếu đang soạn và tải lại lịch sử xuất. */
+    /**
+     * Khi thay đổi lựa chọn lịch hẹn: xóa phiếu đang soạn và tải lại lịch sử xuất.
+     */
     private void chonLichHen() {
         int index = cboLichHen.getSelectedIndex();
-        if (index < 0) return;
+        if (index < 0)
+            return;
 
         if (index == 0) {
             lblBenhNhan.setText("Xuất dùng chung cho toàn phòng khám (không gắn với bệnh nhân nào).");
         } else {
             LichHenInfo lh = danhSachLichHen.get(index - 1);
-            lblBenhNhan.setText("Bệnh nhân: " + lh.hoTen() + "  ·  Mã BN: " + lh.maBenhNhan() + "  ·  Phòng: " + lh.maPhong());
+            lblBenhNhan.setText(
+                    "Bệnh nhân: " + lh.hoTen() + "  ·  Mã BN: " + lh.maBenhNhan() + "  ·  Phòng: " + lh.maPhong());
         }
 
         mapVatTuDangSoan.clear();
@@ -353,13 +364,15 @@ public class CapNhatGhiNhanVatTuTieuHaoPanel extends JPanel {
 
         String maVatTu = (String) modelVatTu.getValueAt(row, 0);
         VatTu vt = mapCacheVatTu.get(maVatTu);
-        if (vt == null) return;
+        if (vt == null)
+            return;
 
         int soLuong = (Integer) spnSoLuong.getValue();
         int daChon = mapVatTuDangSoan.getOrDefault(maVatTu, 0);
 
         if (daChon + soLuong > vt.getSoLuongTon()) {
-            GiaoDienUtil.canhBao(this, "Tổng số lượng xuất (" + (daChon + soLuong) + ") vượt quá tồn kho hiện có (" + vt.getSoLuongTon() + ").");
+            GiaoDienUtil.canhBao(this, "Tổng số lượng xuất (" + (daChon + soLuong) + ") vượt quá tồn kho hiện có ("
+                    + vt.getSoLuongTon() + ").");
             return;
         }
 
@@ -396,7 +409,9 @@ public class CapNhatGhiNhanVatTuTieuHaoPanel extends JPanel {
         }
     }
 
-    /** Lưu phiếu xuất vào CSDL qua Transaction (tạo phiếu, ghi chi tiết, trừ tồn). */
+    /**
+     * Lưu phiếu xuất vào CSDL qua Transaction (tạo phiếu, ghi chi tiết, trừ tồn).
+     */
     private void luuPhieuXuat() {
         if (mapVatTuDangSoan.isEmpty()) {
             GiaoDienUtil.canhBao(this, "Phiếu xuất phải có ít nhất một vật tư tiêu hao.");

@@ -1,69 +1,59 @@
-/* trinhKiet */
 package dao;
 
 import connectDB.ConnectDB;
-import java.sql.Connection;
 import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
 public class HoaDonDAO {
 
-    public boolean lapHoaDon(String maHD, String maBN, String maNV, LocalDate ngayLap, double tongTien, double giamGia,
-            double thanhTien, String pttt, String ghiChu) {
-        Connection con = ConnectDB.getConnection();
-        if (con == null)
-            return false;
-
-        String sql = "INSERT INTO HoaDon (maHoaDon, maBenhNhan, maNhanVien, ngayLap, tongTien, giamGia, thanhTien, phuongThucThanhToan, ghiChu) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
-        try {
-            PreparedStatement stmt = con.prepareStatement(sql);
+    public boolean lapHoaDon(String maHD, LocalDate ngayLap, String trangThaiThanhToan,
+            String pttt, String maNV, String maBN, String maChanDoan) throws SQLException {
+        String sql = "INSERT INTO HoaDon "
+                + "(MaHoaDon, NgayLap, TrangThaiThanhToan, PhuongThucThanhToan, "
+                + "MaNhanVien, MaBenhNhan, MaChanDoan) VALUES (?, ?, ?, ?, ?, ?, ?)";
+        try (PreparedStatement stmt = ConnectDB.getConnection().prepareStatement(sql)) {
             stmt.setString(1, maHD);
-            stmt.setString(2, maBN);
-            stmt.setString(3, maNV);
-            stmt.setDate(4, ngayLap != null ? Date.valueOf(ngayLap) : null);
-            stmt.setDouble(5, tongTien);
-            stmt.setDouble(6, giamGia);
-            stmt.setDouble(7, thanhTien);
-            stmt.setString(8, pttt);
-            stmt.setString(9, ghiChu);
-            return stmt.executeUpdate() > 0;
-        } catch (Exception e) {
-            e.printStackTrace();
+            stmt.setDate(2, Date.valueOf(ngayLap));
+            stmt.setString(3, trangThaiThanhToan);
+            stmt.setString(4, pttt);
+            stmt.setString(5, maNV);
+            stmt.setString(6, maBN);
+            stmt.setString(7, maChanDoan);
+            return stmt.executeUpdate() == 1;
         }
-        return false;
     }
 
-    public List<String[]> traCuuHoaDon(String tuKhoa) {
+    public List<String[]> traCuuHoaDon(String tuKhoa) throws SQLException {
+        String sql = "SELECT hd.MaHoaDon, bn.HoTen, hd.NgayLap, "
+                + "COALESCE((SELECT SUM(ct.SoLuong * ct.DonGiaTaiThoiDiem) "
+                + "FROM ChiTietHoaDon ct WHERE ct.MaHoaDon = hd.MaHoaDon), 0) "
+                + "+ COALESCE((SELECT SUM(ctt.SoLuong * ctt.DonGiaTaiThoiDiem) "
+                + "FROM ChiTietHoaDonThuoc ctt WHERE ctt.MaHoaDon = hd.MaHoaDon), 0) AS ThanhTien "
+                + "FROM HoaDon hd LEFT JOIN BenhNhan bn ON hd.MaBenhNhan = bn.MaBenhNhan "
+                + "WHERE hd.MaHoaDon LIKE ? OR bn.MaBenhNhan LIKE ? OR bn.HoTen LIKE ?";
+        String keyword = tuKhoa == null ? "" : tuKhoa.trim();
+        String pattern = "%" + keyword + "%";
         List<String[]> ds = new ArrayList<>();
-        Connection con = ConnectDB.getConnection();
-        if (con == null)
-            return ds;
-
-        String sql = "SELECT hd.maHoaDon, bn.hoTen, hd.ngayLap, hd.thanhTien "
-                + "FROM HoaDon hd LEFT JOIN BenhNhan bn ON hd.maBenhNhan = bn.maBenhNhan "
-                + "WHERE hd.maHoaDon LIKE ? OR bn.maBenhNhan LIKE ? OR bn.hoTen LIKE ?";
-        try {
-            PreparedStatement stmt = con.prepareStatement(sql);
-            stmt.setString(1, "%" + tuKhoa + "%");
-            stmt.setString(2, "%" + tuKhoa + "%");
-            stmt.setString(3, "%" + tuKhoa + "%");
-            ResultSet rs = stmt.executeQuery();
-            while (rs.next()) {
-                ds.add(new String[] {
-                        rs.getString("maHoaDon"),
-                        rs.getString("hoTen"),
-                        rs.getString("ngayLap"),
-                        String.valueOf(rs.getDouble("thanhTien"))
-                });
+        try (PreparedStatement stmt = ConnectDB.getConnection().prepareStatement(sql)) {
+            stmt.setString(1, pattern);
+            stmt.setString(2, pattern);
+            stmt.setString(3, pattern);
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    ds.add(new String[] {
+                            rs.getString("MaHoaDon"),
+                            rs.getString("HoTen"),
+                            rs.getString("NgayLap"),
+                            String.valueOf(rs.getDouble("ThanhTien"))
+                    });
+                }
             }
-        } catch (Exception e) {
-            e.printStackTrace();
         }
         return ds;
     }
 }
-/* end trinhKiet */

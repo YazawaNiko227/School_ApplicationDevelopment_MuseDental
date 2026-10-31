@@ -48,7 +48,7 @@ public class PhieuXuatKhoDAO {
             }
             con.commit();
             return true;
-        } catch (SQLException e) {
+        } catch (SQLException | RuntimeException e) {
             con.rollback();
             throw e;
         } finally {

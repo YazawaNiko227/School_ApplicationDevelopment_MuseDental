@@ -7,8 +7,7 @@ import java.sql.SQLException;
 /**
  * Nguồn kết nối duy nhất (Singleton) đến SQL Server cho toàn bộ DAO.
  *
- * Thông tin đăng nhập đọc từ biến môi trường (xem README), có giá trị mặc định
- * cho máy phát triển:
+ * Thông tin đăng nhập đọc từ biến môi trường (xem README):
  * <ul>
  * <li>MUSE_DB_URL: chuỗi kết nối JDBC</li>
  * <li>MUSE_DB_USER: tên đăng nhập SQL Server</li>
@@ -36,8 +35,8 @@ public class ConnectDB {
             return;
         }
         String url = bienMoiTruongHoacMacDinh("MUSE_DB_URL", URL_MAC_DINH);
-        String user = bienMoiTruongHoacMacDinh("MUSE_DB_USER", "sa");
-        String password = bienMoiTruongHoacMacDinh("MUSE_DB_PASSWORD", "123456789");
+        String user = bienMoiTruongBatBuoc("MUSE_DB_USER");
+        String password = bienMoiTruongBatBuoc("MUSE_DB_PASSWORD");
         con = DriverManager.getConnection(url, user, password);
     }
 
@@ -62,5 +61,13 @@ public class ConnectDB {
     private static String bienMoiTruongHoacMacDinh(String tenBien, String macDinh) {
         String giaTri = System.getenv(tenBien);
         return giaTri == null || giaTri.trim().isEmpty() ? macDinh : giaTri.trim();
+    }
+
+    private static String bienMoiTruongBatBuoc(String tenBien) throws SQLException {
+        String giaTri = System.getenv(tenBien);
+        if (giaTri == null || giaTri.trim().isEmpty()) {
+            throw new SQLException("Chưa cấu hình biến môi trường " + tenBien + ".");
+        }
+        return giaTri.trim();
     }
 }

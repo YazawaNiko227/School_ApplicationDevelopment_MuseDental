@@ -38,6 +38,9 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.text.JTextComponent;
 
 import connectDB.ConnectDB;
+import dao.DangNhapDAO;
+import dao.PhanQuyenDAO;
+import entity.TaiKhoan;
 
 /**
  * DangNhapFrame là màn hình đăng nhập của ứng dụng Muse Dental.
@@ -61,6 +64,8 @@ public final class DangNhapFrame extends JFrame {
     private final JTextField usernameField = new JTextField();
     private final JPasswordField passwordField = new JPasswordField();
     private final JCheckBox rememberCheckBox = new JCheckBox("Ghi nhớ đăng nhập");
+    private final DangNhapDAO dangNhapDAO = new DangNhapDAO();
+    private final PhanQuyenDAO phanQuyenDAO = new PhanQuyenDAO();
 
     public DangNhapFrame() {
         super("Nha khoa Muse | Đăng nhập");
@@ -312,19 +317,45 @@ public final class DangNhapFrame extends JFrame {
         String username = usernameField.getText().trim();
         char[] password = passwordField.getPassword();
 
-        // Chỉ kiểm tra dữ liệu bắt buộc; xác thực tài khoản cần được nối với backend.
-        if (username.isEmpty()) {
-            showValidationMessage("Vui lòng nhập tên đăng nhập.", usernameField);
-        } else if (password.length == 0) {
-            showValidationMessage("Vui lòng nhập mật khẩu.", passwordField);
-        } else {
-            // Màn hình đăng nhập hiện chưa kết nối xác thực; mở dashboard với tài khoản đã
-            // nhập.
-            new ManHinhChinhFrame(username).setVisible(true);
+        try {
+            if (username.isEmpty()) {
+                showValidationMessage("Vui lòng nhập tên đăng nhập.", usernameField);
+                return;
+            }
+            if (password.length == 0) {
+                showValidationMessage("Vui lòng nhập mật khẩu.", passwordField);
+                return;
+            }
+
+            TaiKhoan account = dangNhapDAO.dangNhap(username, password);
+            if (account == null) {
+                JOptionPane.showMessageDialog(
+                        this,
+                        "Tên đăng nhập hoặc mật khẩu không đúng, hoặc tài khoản đã bị khóa.",
+                        "Đăng nhập thất bại",
+                        JOptionPane.WARNING_MESSAGE);
+                passwordField.setText("");
+                passwordField.requestFocusInWindow();
+                return;
+            }
+
+            phanQuyenDAO.khoiTaoQuyenMacDinhNeuChuaCo();
+            java.util.Set<String> allowedMenus = phanQuyenDAO
+                    .layChucNangDuocXem(account.getVaiTro().getMaVaiTro());
+            String displayName = account.getNhanVien() == null
+                    ? account.getTenDangNhap()
+                    : account.getNhanVien().getHoTen();
+            new ManHinhChinhFrame(account.getTenDangNhap(), displayName, allowedMenus).setVisible(true);
             dispose();
+        } catch (java.sql.SQLException exception) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Không thể đăng nhập do lỗi CSDL:\n" + exception.getMessage(),
+                    "Lỗi đăng nhập",
+                    JOptionPane.ERROR_MESSAGE);
+        } finally {
+            java.util.Arrays.fill(password, '\0');
         }
-        // Xóa bản sao mật khẩu khỏi bộ nhớ sau khi xử lý.
-        java.util.Arrays.fill(password, '\0');
     }
 
     /**

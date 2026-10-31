@@ -38,13 +38,26 @@ CREATE TABLE NhanVien (
 );
 GO
 
-/* [MOI] Bang vai tro: chi luu danh sach vai tro.
-   Ma tran quyen theo menu duoc cau hinh trong code Java (PhanQuyenMenu),
-   khong luu xuong DB. */
+/* Danh sach vai tro va quyen xem menu theo vai tro. */
 CREATE TABLE VaiTro (
     MaVaiTro    NVARCHAR(20)  NOT NULL,
     TenVaiTro   NVARCHAR(50)  NOT NULL,
     CONSTRAINT PK_VaiTro PRIMARY KEY (MaVaiTro)
+);
+GO
+
+CREATE TABLE QuyenVaiTro (
+    MaVaiTro       NVARCHAR(20)  NOT NULL,
+    TenChucNang    NVARCHAR(150) NOT NULL,
+    CONSTRAINT PK_QuyenVaiTro PRIMARY KEY (MaVaiTro, TenChucNang),
+    CONSTRAINT FK_QuyenVaiTro_VaiTro FOREIGN KEY (MaVaiTro) REFERENCES VaiTro(MaVaiTro)
+);
+GO
+
+CREATE TABLE CauHinhHeThong (
+    MaCauHinh    NVARCHAR(50)  NOT NULL,
+    GiaTri       NVARCHAR(200) NOT NULL,
+    CONSTRAINT PK_CauHinhHeThong PRIMARY KEY (MaCauHinh)
 );
 GO
 

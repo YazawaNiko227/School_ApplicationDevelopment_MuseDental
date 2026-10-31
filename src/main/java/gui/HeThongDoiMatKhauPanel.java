@@ -4,6 +4,7 @@
 */
 package gui;
 
+import dao.DoiMatKhauDAO;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Cursor;
@@ -30,6 +31,7 @@ public final class HeThongDoiMatKhauPanel extends JPanel {
     private static final Color ACCENT = new Color(218, 241, 239);
 
     private final String username;
+    private final DoiMatKhauDAO doiMatKhauDAO = new DoiMatKhauDAO();
     private final JPasswordField currentPassword = new JPasswordField();
     private final JPasswordField newPassword = new JPasswordField();
     private final JPasswordField confirmPassword = new JPasswordField();
@@ -141,7 +143,7 @@ public final class HeThongDoiMatKhauPanel extends JPanel {
         return button;
     }
 
-    // Kiểm tra các trường trước khi báo trạng thái tích hợp backend.
+    // Kiểm tra dữ liệu rồi yêu cầu DAO đổi mật khẩu trong CSDL.
     private void validateAndSubmit() {
         char[] current = currentPassword.getPassword();
         char[] next = newPassword.getPassword();
@@ -163,11 +165,27 @@ public final class HeThongDoiMatKhauPanel extends JPanel {
                 showValidation("Mật khẩu xác nhận không khớp.", confirmPassword);
                 return;
             }
+            if (!doiMatKhauDAO.doiMatKhau(username, current, next)) {
+                feedback.setText("Mật khẩu hiện tại không đúng hoặc tài khoản không còn hoạt động.");
+                feedback.setForeground(new Color(184, 55, 55));
+                JOptionPane.showMessageDialog(
+                        this,
+                        "Không thể đổi mật khẩu. Kiểm tra mật khẩu hiện tại và trạng thái tài khoản.",
+                        "Đổi mật khẩu thất bại",
+                        JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            JOptionPane.showMessageDialog(this, "Đã đổi mật khẩu thành công.", "Thành công",
+                    JOptionPane.INFORMATION_MESSAGE);
+            clearFields();
+        } catch (java.sql.SQLException exception) {
+            feedback.setText("Lỗi CSDL khi đổi mật khẩu.");
+            feedback.setForeground(new Color(184, 55, 55));
             JOptionPane.showMessageDialog(
                     this,
-                    "Thông tin đã qua kiểm tra, nhưng hệ thống chưa kết nối chức năng xác thực để lưu mật khẩu.",
-                    "Chưa thể lưu mật khẩu",
-                    JOptionPane.INFORMATION_MESSAGE);
+                    "Không thể đổi mật khẩu do lỗi CSDL:\n" + exception.getMessage(),
+                    "Lỗi CSDL",
+                    JOptionPane.ERROR_MESSAGE);
         } finally {
             java.util.Arrays.fill(current, '\0');
             java.util.Arrays.fill(next, '\0');

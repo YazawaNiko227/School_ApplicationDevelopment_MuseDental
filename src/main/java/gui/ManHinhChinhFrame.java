@@ -21,8 +21,13 @@ import java.awt.event.ActionEvent;
 import java.net.URL;
 import java.text.Normalizer;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.text.NumberFormat;
+import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Locale;
+import java.util.Set;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
@@ -38,6 +43,10 @@ import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import javax.swing.border.EmptyBorder;
+
+import dao.DashboardDAO;
+import entity.LichHenTongQuan;
+import entity.ThongKeTongQuan;
 
 /**
  * ManHinhChinhFrame là màn hình chính của hệ thống quản lý phòng khám Muse
@@ -66,6 +75,9 @@ public final class ManHinhChinhFrame extends JFrame {
 
     // Tên hiển thị trong thanh đầu trang và lời chào dashboard.
     private final String username;
+    private final String tenDangNhap;
+    private final Set<String> menuDuocXem;
+    private final DashboardDAO dashboardDAO = new DashboardDAO();
     // Các thành phần này được giữ lại để cập nhật trang khi người dùng chọn menu.
     private final JPanel contentPanel = new JPanel(new BorderLayout());
     private final JLabel pageTitle = new JLabel("Tổng quan");
@@ -75,8 +87,15 @@ public final class ManHinhChinhFrame extends JFrame {
     private JPanel expandedSectionItems;
 
     public ManHinhChinhFrame(String username) {
+        this(username, username, java.util.Collections.emptySet());
+    }
+
+    public ManHinhChinhFrame(String tenDangNhap, String username, Set<String> menuDuocXem) {
         super("Nha khoa Muse | Hệ thống quản lý phòng khám");
         this.username = username == null || username.trim().isEmpty() ? "Nhân viên" : username.trim();
+        this.tenDangNhap = tenDangNhap == null ? "" : tenDangNhap.trim();
+        this.menuDuocXem = menuDuocXem == null ? java.util.Collections.emptySet()
+                : java.util.Collections.unmodifiableSet(new java.util.LinkedHashSet<>(menuDuocXem));
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setMinimumSize(new Dimension(1080, 700));
         setSize(1360, 850);
@@ -251,6 +270,16 @@ public final class ManHinhChinhFrame extends JFrame {
      * dõi.
      */
     private void addCollapsibleSection(JPanel navigation, String title, String[] items) {
+        java.util.List<String> visibleItems = new ArrayList<>();
+        for (String item : items) {
+            if (menuDuocXem.contains(item)) {
+                visibleItems.add(item);
+            }
+        }
+        if (visibleItems.isEmpty()) {
+            return;
+        }
+
         JButton sectionButton = new JButton(title, new SectionToggleIcon(false));
         sectionButton.setHorizontalAlignment(SwingConstants.LEFT);
         sectionButton.setIconTextGap(10);
@@ -270,7 +299,7 @@ public final class ManHinhChinhFrame extends JFrame {
         itemPanel.setLayout(new BoxLayout(itemPanel, BoxLayout.Y_AXIS));
         itemPanel.setVisible(false);
 
-        for (String item : items) {
+        for (String item : visibleItems) {
             JButton itemButton = createNavigationButton(item);
             itemButton.setBorder(new EmptyBorder(9, 22, 9, 8));
             itemButton.setAlignmentX(LEFT_ALIGNMENT);
@@ -496,20 +525,27 @@ public final class ManHinhChinhFrame extends JFrame {
         selectedNavigationButton.setContentAreaFilled(true);
     }
 
-    /**
-     * Hiển thị màn hình tổng quan của phòng khám với các chỉ số hoạt động chính.
-     * Dữ liệu đang dùng ở đây là mock data để minh họa UI; khi tích hợp backend,
-     * phần
-     * // này sẽ
-     * được thay bằng dữ liệu thật từ cơ sở dữ liệu hoặc API của hệ thống.
-     */
+    /** Hiển thị dashboard từ số liệu truy vấn trong CSDL. */
     private void showDashboard() {
-        // Hiển thị trang tổng quan; số liệu hiện tại là dữ liệu minh họa, chưa lấy từ
-        // CSDL.
         pageTitle.setText("Tổng quan");
-        pageDescription.setText("Dữ liệu minh họa · Tình hình hoạt động phòng khám hôm nay");
         contentPanel.removeAll();
-        contentPanel.add(createDashboardContent(), BorderLayout.CENTER);
+        try {
+            ThongKeTongQuan stats = dashboardDAO.layThongKeHomNay();
+            java.util.List<LichHenTongQuan> appointments = dashboardDAO.layLichHenSapToi(4);
+            pageDescription.setText("Số liệu thực tế từ cơ sở dữ liệu · Cập nhật " +
+                    LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm")));
+            contentPanel.add(createDashboardContent(stats, appointments), BorderLayout.CENTER);
+        } catch (SQLException exception) {
+            pageDescription.setText("Không thể tải dữ liệu tổng quan.");
+            JPanel error = new JPanel(new GridBagLayout());
+            error.setBackground(Color.WHITE);
+            error.setBorder(BorderFactory.createLineBorder(LINE));
+            JLabel message = new JLabel("<html><b>Không thể tải dashboard từ CSDL.</b><br>"
+                    + exception.getMessage() + "</html>");
+            message.setForeground(new Color(184, 55, 55));
+            error.add(message);
+            contentPanel.add(error, BorderLayout.CENTER);
+        }
         contentPanel.revalidate();
         contentPanel.repaint();
     }
@@ -519,8 +555,8 @@ public final class ManHinhChinhFrame extends JFrame {
     private void showPasswordChange() {
         showContentPanel(
                 "Đổi mật khẩu",
-                "Thay đổi mật khẩu cho tài khoản " + username,
-                new HeThongDoiMatKhauPanel(username));
+                "Thay đổi mật khẩu cho tài khoản " + tenDangNhap,
+                new HeThongDoiMatKhauPanel(tenDangNhap));
     }
 
     // Mở ma trận quyền truy cập theo vai trò người dùng.
@@ -744,15 +780,15 @@ public final class ManHinhChinhFrame extends JFrame {
      * nắm nhanh tình hình hoạt động trong ngày mà không cần đọc từng chi tiết riêng
      * lẻ.
      */
-    private JPanel createDashboardContent() {
+    private JPanel createDashboardContent(ThongKeTongQuan stats, java.util.List<LichHenTongQuan> appointments) {
         JPanel dashboard = new JPanel(new BorderLayout(0, 22));
         dashboard.setOpaque(false);
         dashboard.add(createGreeting(), BorderLayout.NORTH);
 
         JPanel center = new JPanel(new BorderLayout(0, 22));
         center.setOpaque(false);
-        center.add(createSummaryCards(), BorderLayout.NORTH);
-        center.add(createActivityPanel(), BorderLayout.CENTER);
+        center.add(createSummaryCards(stats), BorderLayout.NORTH);
+        center.add(createActivityPanel(appointments), BorderLayout.CENTER);
         dashboard.add(center, BorderLayout.CENTER);
         return dashboard;
     }
@@ -796,15 +832,19 @@ public final class ManHinhChinhFrame extends JFrame {
      * nhìn tổng quan
      * tình trạng hoạt động trong ngày ngay tại trang đầu tiên.
      */
-    private JPanel createSummaryCards() {
-        // Các thẻ tóm tắt những chỉ số vận hành chính theo menu dự án.
+    private JPanel createSummaryCards(ThongKeTongQuan stats) {
         JPanel cards = new JPanel(new GridLayout(1, 4, 14, 0));
         cards.setOpaque(false);
+        String revenue = NumberFormat.getNumberInstance(Locale.forLanguageTag("vi-VN"))
+                .format(stats.getDoanhThuHomNay()) + " ₫";
 
-        cards.add(createSummaryCard("LỊCH HẸN HÔM NAY", "24", "+ 4 so với hôm qua", "LH", new Color(231, 246, 245)));
-        cards.add(createSummaryCard("BỆNH NHÂN MỚI", "08", "Trong ngày hôm nay", "BN", new Color(237, 242, 255)));
-        cards.add(createSummaryCard("CHỜ TIẾP ĐÓN", "05", "Cần được hỗ trợ", "TD", new Color(255, 246, 232)));
-        cards.add(createSummaryCard("DOANH THU HÔM NAY", "12,8 tr", "Tạm tính trong ngày", "DT",
+        cards.add(createSummaryCard("LỊCH HẸN HÔM NAY", String.valueOf(stats.getLichHenHomNay()),
+                "Theo lịch hẹn trong ngày", "LH", new Color(231, 246, 245)));
+        cards.add(createSummaryCard("TỔNG BỆNH NHÂN", String.valueOf(stats.getTongBenhNhan()),
+                "Hồ sơ trong hệ thống", "BN", new Color(237, 242, 255)));
+        cards.add(createSummaryCard("CHỜ TIẾP ĐÓN", String.valueOf(stats.getChoTiepDon()),
+                "Chờ xác nhận hoặc check-in", "TD", new Color(255, 246, 232)));
+        cards.add(createSummaryCard("DOANH THU HÔM NAY", revenue, "Hóa đơn đã thanh toán", "DT",
                 new Color(253, 237, 244)));
         return cards;
     }
@@ -854,8 +894,7 @@ public final class ManHinhChinhFrame extends JFrame {
      * thái xác nhận,
      * giúp nhân viên chuẩn bị ca làm và làm việc hiệu quả hơn.
      */
-    private JPanel createActivityPanel() {
-        // Danh sách lịch hẹn mẫu để minh họa khu vực điều phối trong dashboard.
+    private JPanel createActivityPanel(java.util.List<LichHenTongQuan> appointments) {
         JPanel panel = new JPanel(new BorderLayout(0, 16));
         panel.setBackground(Color.WHITE);
         panel.setBorder(BorderFactory.createCompoundBorder(
@@ -878,18 +917,23 @@ public final class ManHinhChinhFrame extends JFrame {
         heading.add(title, BorderLayout.WEST);
         heading.add(viewAll, BorderLayout.EAST);
 
-        JPanel appointmentList = new JPanel(new GridLayout(4, 1, 0, 0));
-
+        JPanel appointmentList = new JPanel(new GridLayout(Math.max(1, appointments.size()), 1, 0, 0));
         appointmentList.setOpaque(false);
-
-        appointmentList.add(createAppointmentRow("09:00", "Nguyễn Minh Anh", "Khám tổng quát · BS. Tuấn", "Đang chờ",
-                new Color(255, 246, 232)));
-        appointmentList.add(createAppointmentRow("09:30", "Trần Hoàng Nam", "Lấy cao răng · BS. Linh", "Đã xác nhận",
-                new Color(231, 246, 245)));
-        appointmentList.add(createAppointmentRow("10:00", "Lê Ngọc Hà", "Tái khám · BS. Tuấn", "Đã xác nhận",
-                new Color(231, 246, 245)));
-        appointmentList.add(createAppointmentRow("10:30", "Phạm Gia Bảo", "Tư vấn điều trị · BS. Minh", "Đang chờ",
-                new Color(255, 246, 232)));
+        if (appointments.isEmpty()) {
+            appointmentList.add(new JLabel("Không có lịch hẹn sắp tới.", SwingConstants.CENTER));
+        } else {
+            for (LichHenTongQuan appointment : appointments) {
+                Color statusBackground = "Da xac nhan".equals(appointment.getTrangThai())
+                        || "Da check-in".equals(appointment.getTrangThai())
+                        ? new Color(231, 246, 245) : new Color(255, 246, 232);
+                appointmentList.add(createAppointmentRow(
+                        appointment.getThoiGianHen().format(DateTimeFormatter.ofPattern("dd/MM HH:mm")),
+                        appointment.getTenBenhNhan(),
+                        appointment.getNoiDung(),
+                        appointment.getTrangThai(),
+                        statusBackground));
+            }
+        }
 
         panel.add(heading, BorderLayout.NORTH);
         panel.add(appointmentList, BorderLayout.CENTER);

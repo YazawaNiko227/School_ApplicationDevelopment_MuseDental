@@ -1,5 +1,6 @@
 package gui;
 
+import dao.NhanVienDAO;
 import entity.NhanVien;
 
 import java.awt.BorderLayout;
@@ -67,6 +68,7 @@ public class DanhMucQuanLyNhanVienPanel extends JPanel {
 
         // Dữ liệu và bảng.
         private final List<NhanVien> danhSach = new ArrayList<>();
+        private final NhanVienDAO nhanVienDAO = new NhanVienDAO();
         private final DefaultTableModel tableModel = new DefaultTableModel(
                         new String[] { "Mã NV", "Họ tên", "Giới tính", "Số điện thoại", "Chuyên môn", "Trạng thái" },
                         0) {
@@ -118,27 +120,17 @@ public class DanhMucQuanLyNhanVienPanel extends JPanel {
         // Dữ liệu
         // ------------------------------------------------------------------
 
-        /**
-         * TODO DAO: thay bằng nhanVienDAO.getAll(). Hiện dùng dữ liệu mẫu theo file
-         * SQL.
-         */
         private void loadData() {
                 danhSach.clear();
-                danhSach.add(new NhanVien("NV001", "Nguyen Van An", LocalDate.of(1985, 3, 12), "Nam", "0901000001",
-                                "an.nguyen@muse.vn", "Quan 1, TP.HCM", LocalDate.of(2020, 1, 5), TT_DANG_LAM,
-                                "Nha si - Nho rang", "CCHN-001"));
-                danhSach.add(new NhanVien("NV002", "Tran Thi Binh", LocalDate.of(1988, 7, 25), "Nu", "0901000002",
-                                "binh.tran@muse.vn", "Quan 3, TP.HCM", LocalDate.of(2021, 2, 10), TT_DANG_LAM,
-                                "Nha si - Chinh nha", "CCHN-002"));
-                danhSach.add(new NhanVien("NV003", "Le Minh Chau", LocalDate.of(1996, 11, 2), "Nu", "0901000003",
-                                "chau.le@muse.vn", "Quan Binh Thanh", LocalDate.of(2022, 6, 1), TT_DANG_LAM, "Le tan",
-                                null));
-                danhSach.add(new NhanVien("NV004", "Pham Quoc Dung", LocalDate.of(1994, 5, 18), "Nam", "0901000004",
-                                "dung.pham@muse.vn", "Quan Go Vap", LocalDate.of(2022, 9, 15), TT_DANG_LAM, "Thu ngan",
-                                null));
-                danhSach.add(new NhanVien("NV005", "Hoang Thi Em", LocalDate.of(1992, 12, 30), "Nu", "0901000005",
-                                "em.hoang@muse.vn", "Quan Tan Binh", LocalDate.of(2023, 3, 20), TT_DANG_LAM, "Thu kho",
-                                null));
+                try {
+                        danhSach.addAll(nhanVienDAO.layTatCa());
+                } catch (java.sql.SQLException exception) {
+                        JOptionPane.showMessageDialog(
+                                        this,
+                                        "Không thể tải danh sách nhân viên từ CSDL:\n" + exception.getMessage(),
+                                        "Lỗi CSDL",
+                                        JOptionPane.ERROR_MESSAGE);
+                }
         }
 
         private NhanVien findById(String ma) {
@@ -477,7 +469,9 @@ public class DanhMucQuanLyNhanVienPanel extends JPanel {
                                 throw new IllegalArgumentException(
                                                 "Mã nhân viên " + nv.getMaNhanVien() + " đã tồn tại.");
                         }
-                        // TODO DAO: nhanVienDAO.insert(nv);
+                        if (!nhanVienDAO.them(nv)) {
+                                throw new java.sql.SQLException("Không thêm được hồ sơ nhân viên.");
+                        }
                         danhSach.add(nv);
                         refreshTable();
                         clearForm();
@@ -486,6 +480,8 @@ public class DanhMucQuanLyNhanVienPanel extends JPanel {
                 } catch (IllegalArgumentException ex) {
                         JOptionPane.showMessageDialog(this, ex.getMessage(), "Dữ liệu không hợp lệ",
                                         JOptionPane.WARNING_MESSAGE);
+                } catch (java.sql.SQLException ex) {
+                        hienThiLoiCSDL("Không thể thêm nhân viên", ex);
                 }
         }
 
@@ -496,7 +492,9 @@ public class DanhMucQuanLyNhanVienPanel extends JPanel {
                         if (current == null) {
                                 throw new IllegalArgumentException("Không tìm thấy nhân viên cần cập nhật.");
                         }
-                        // TODO DAO: nhanVienDAO.update(updated);
+                        if (!nhanVienDAO.capNhat(updated)) {
+                                throw new java.sql.SQLException("Không tìm thấy nhân viên cần cập nhật trong CSDL.");
+                        }
                         danhSach.set(danhSach.indexOf(current), updated);
                         refreshTable();
                         selectRowById(updated.getMaNhanVien());
@@ -505,6 +503,8 @@ public class DanhMucQuanLyNhanVienPanel extends JPanel {
                 } catch (IllegalArgumentException ex) {
                         JOptionPane.showMessageDialog(this, ex.getMessage(), "Dữ liệu không hợp lệ",
                                         JOptionPane.WARNING_MESSAGE);
+                } catch (java.sql.SQLException ex) {
+                        hienThiLoiCSDL("Không thể cập nhật nhân viên", ex);
                 }
         }
 
@@ -527,17 +527,36 @@ public class DanhMucQuanLyNhanVienPanel extends JPanel {
                                 null, options, options[1]);
 
                 if (choice == 0) {
-                        // TODO DAO: nhanVienDAO.delete(ma); bắt SQLException (lỗi FK) và báo cho người
-                        // dùng.
-                        danhSach.remove(nv);
-                        refreshTable();
-                        clearForm();
+                        try {
+                                if (!nhanVienDAO.xoa(nv.getMaNhanVien())) {
+                                        throw new java.sql.SQLException("Không tìm thấy nhân viên trong CSDL.");
+                                }
+                                danhSach.remove(nv);
+                                refreshTable();
+                                clearForm();
+                        } catch (java.sql.SQLException exception) {
+                                hienThiLoiCSDL("Không thể xóa nhân viên", exception);
+                        }
                 } else if (choice == 1) {
-                        // TODO DAO: nhanVienDAO.updateStatus(ma, TT_DA_NGHI);
-                        nv.setTrangThaiLamViec(TT_DA_NGHI);
-                        refreshTable();
-                        selectRowById(nv.getMaNhanVien());
+                        try {
+                                if (!nhanVienDAO.capNhatTrangThai(nv.getMaNhanVien(), TT_DA_NGHI)) {
+                                        throw new java.sql.SQLException("Không tìm thấy nhân viên trong CSDL.");
+                                }
+                                nv.setTrangThaiLamViec(TT_DA_NGHI);
+                                refreshTable();
+                                selectRowById(nv.getMaNhanVien());
+                        } catch (java.sql.SQLException exception) {
+                                hienThiLoiCSDL("Không thể cập nhật trạng thái nhân viên", exception);
+                        }
                 }
+        }
+
+        private void hienThiLoiCSDL(String thaoTac, java.sql.SQLException exception) {
+                JOptionPane.showMessageDialog(
+                                this,
+                                thaoTac + " do lỗi CSDL:\n" + exception.getMessage(),
+                                "Lỗi CSDL",
+                                JOptionPane.ERROR_MESSAGE);
         }
 
         private void selectRowById(String ma) {

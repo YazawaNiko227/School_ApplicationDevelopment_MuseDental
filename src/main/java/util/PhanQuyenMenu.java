@@ -145,6 +145,11 @@ public final class PhanQuyenMenu {
         return VAI_TRO.getOrDefault(maVaiTro, maVaiTro == null ? "" : maVaiTro);
     }
 
+    /** Quyền mặc định dùng một lần để khởi tạo dữ liệu phân quyền trong CSDL. */
+    public static Map<String, Set<String>> quyenMacDinhTheoVaiTro() {
+        return Collections.unmodifiableMap(MENU_THEO_VAI_TRO);
+    }
+
     /**
      * Các nhóm menu và mục con, theo thứ tự sidebar (dùng cho panel phân quyền).
      */

@@ -21,8 +21,9 @@
                 "${workspaceFolder}/lib/mssql-jdbc-14.1.0.jre11-preview.jar"
             ],
             "env": {
-                "MUSE_DB_USER": "sa",
-                "MUSE_DB_PASSWORD": "mat_khau_cua_ban"
+                "MUSE_DB_USER": "${env:MUSE_DB_USER}",
+                "MUSE_DB_PASSWORD": "${env:MUSE_DB_PASSWORD}",
+                "MUSE_DB_URL": "${env:MUSE_DB_URL}"
             }
         }
     ]

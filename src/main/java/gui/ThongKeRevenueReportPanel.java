@@ -1,5 +1,8 @@
 package gui;
 
+import com.toedter.calendar.JDateChooser;
+import util.GiaoDienUtil;
+
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
@@ -9,9 +12,6 @@ import java.awt.FlowLayout;
 import java.awt.Font;
 import java.text.DecimalFormat;
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
-import java.time.format.ResolverStyle;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -29,7 +29,6 @@ import javax.swing.JPanel;
 import javax.swing.JProgressBar;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
-import javax.swing.JTextField;
 import javax.swing.SwingConstants;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableCellRenderer;
@@ -59,8 +58,6 @@ public class ThongKeRevenueReportPanel extends JPanel {
     private static final Color BLUE = new Color(51, 91, 177);
     private static final Color ORANGE = new Color(177, 125, 47);
 
-    private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("dd/MM/uuuu")
-            .withResolverStyle(ResolverStyle.STRICT);
     private static final DecimalFormat TIEN = new DecimalFormat("#,##0");
     private static final DecimalFormat PHAN_TRAM = new DecimalFormat("0.0");
 
@@ -98,8 +95,8 @@ public class ThongKeRevenueReportPanel extends JPanel {
     private final List<Object[]> dsChiTiet = new ArrayList<>();
 
     // ----- Bộ lọc -----
-    private final JTextField txtTuNgay = new JTextField(9);
-    private final JTextField txtDenNgay = new JTextField(9);
+    private final JDateChooser chonTuNgay = new JDateChooser();
+    private final JDateChooser chonDenNgay = new JDateChooser();
     private final JComboBox<String> cboNhom = new JComboBox<>(
             new String[] { THEO_THANG, THEO_NGAY, THEO_MUC, THEO_PHUONG_THUC });
 
@@ -131,8 +128,8 @@ public class ThongKeRevenueReportPanel extends JPanel {
         add(createResultCard(), BorderLayout.CENTER);
 
         // Mặc định thống kê từ đầu năm đến hôm nay.
-        txtTuNgay.setText(LocalDate.now().withDayOfYear(1).format(DATE_FMT));
-        txtDenNgay.setText(LocalDate.now().format(DATE_FMT));
+        GiaoDienUtil.datNgayDuocChon(chonTuNgay, LocalDate.now().withDayOfYear(1));
+        GiaoDienUtil.datNgayDuocChon(chonDenNgay, LocalDate.now());
         thongKe();
     }
 
@@ -219,10 +216,12 @@ public class ThongKeRevenueReportPanel extends JPanel {
         JPanel row = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
         row.setOpaque(false);
 
-        styleField(txtTuNgay);
-        styleField(txtDenNgay);
-        txtTuNgay.setToolTipText("Định dạng dd/MM/yyyy");
-        txtDenNgay.setToolTipText("Định dạng dd/MM/yyyy");
+        GiaoDienUtil.cauHinhChonNgay(chonTuNgay, "dd/MM/yyyy");
+        GiaoDienUtil.cauHinhChonNgay(chonDenNgay, "dd/MM/yyyy");
+        chonTuNgay.setPreferredSize(new Dimension(140, 32));
+        chonDenNgay.setPreferredSize(new Dimension(140, 32));
+        chonTuNgay.setToolTipText("Chọn ngày bắt đầu từ lịch");
+        chonDenNgay.setToolTipText("Chọn ngày kết thúc từ lịch");
         cboNhom.setFont(new Font("Arial", Font.PLAIN, 12));
 
         JButton btnThongKe = createButton("Thống kê", true);
@@ -231,9 +230,9 @@ public class ThongKeRevenueReportPanel extends JPanel {
         btnLamMoi.addActionListener(event -> lamMoi());
 
         row.add(createLabel("Từ ngày"));
-        row.add(txtTuNgay);
+        row.add(chonTuNgay);
         row.add(createLabel("Đến ngày"));
-        row.add(txtDenNgay);
+        row.add(chonDenNgay);
         row.add(createLabel("Nhóm"));
         row.add(cboNhom);
         row.add(btnThongKe);
@@ -284,13 +283,10 @@ public class ThongKeRevenueReportPanel extends JPanel {
 
     /** Đọc bộ lọc, tổng hợp doanh thu rồi cập nhật bảng, biểu đồ và thẻ tổng. */
     private void thongKe() {
-        LocalDate tuNgay;
-        LocalDate denNgay;
-        try {
-            tuNgay = LocalDate.parse(txtTuNgay.getText().trim(), DATE_FMT);
-            denNgay = LocalDate.parse(txtDenNgay.getText().trim(), DATE_FMT);
-        } catch (DateTimeParseException ex) {
-            showWarning("Ngày phải theo dạng dd/MM/yyyy.");
+        LocalDate tuNgay = GiaoDienUtil.layNgayDaChon(chonTuNgay);
+        LocalDate denNgay = GiaoDienUtil.layNgayDaChon(chonDenNgay);
+        if (tuNgay == null || denNgay == null) {
+            showWarning("Vui lòng chọn đầy đủ Từ ngày và Đến ngày.");
             return;
         }
         if (tuNgay.isAfter(denNgay)) {
@@ -385,8 +381,8 @@ public class ThongKeRevenueReportPanel extends JPanel {
     }
 
     private void lamMoi() {
-        txtTuNgay.setText(LocalDate.now().withDayOfYear(1).format(DATE_FMT));
-        txtDenNgay.setText(LocalDate.now().format(DATE_FMT));
+        GiaoDienUtil.datNgayDuocChon(chonTuNgay, LocalDate.now().withDayOfYear(1));
+        GiaoDienUtil.datNgayDuocChon(chonDenNgay, LocalDate.now());
         cboNhom.setSelectedIndex(0);
         thongKe();
     }
@@ -440,14 +436,6 @@ public class ThongKeRevenueReportPanel extends JPanel {
         label.setFont(new Font("Arial", Font.PLAIN, 12));
         label.setForeground(INK);
         return label;
-    }
-
-    private void styleField(JTextField field) {
-        field.setFont(new Font("Arial", Font.PLAIN, 12));
-        field.setForeground(INK);
-        field.setPreferredSize(new Dimension(100, 32));
-        field.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(LINE), new EmptyBorder(0, 8, 0, 8)));
     }
 
     private JButton createButton(String text, boolean primary) {

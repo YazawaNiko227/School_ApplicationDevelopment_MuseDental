@@ -32,6 +32,7 @@ import javax.swing.table.DefaultTableModel;
 import javax.swing.table.JTableHeader;
 
 import com.toedter.calendar.JDateChooser;
+import util.GiaoDienUtil;
 
 public class TimKiemTraCuuBenhAnPanel extends JPanel {
     private static final Color INK = new Color(32, 53, 68);
@@ -104,6 +105,8 @@ public class TimKiemTraCuuBenhAnPanel extends JPanel {
         keywordField.setToolTipText("Mã hồ sơ, mã chẩn đoán, mã/tên bệnh nhân, lý do khám, kết luận...");
         styleCombo(dentistCombo, 190);
 
+        GiaoDienUtil.cauHinhChonNgay(fromDateField, "dd/MM/yyyy");
+        GiaoDienUtil.cauHinhChonNgay(toDateField, "dd/MM/yyyy");
         fromDateField.setPreferredSize(new Dimension(190, 36));
         toDateField.setPreferredSize(new Dimension(190, 36));
 

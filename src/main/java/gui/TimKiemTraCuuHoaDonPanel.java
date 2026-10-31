@@ -1,6 +1,7 @@
 package gui;
 
 import com.toedter.calendar.JDateChooser;
+import util.GiaoDienUtil;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
@@ -586,7 +587,7 @@ public class TimKiemTraCuuHoaDonPanel extends JPanel {
     }
 
     private void styleDate(JDateChooser chooser) {
-        chooser.setDateFormatString("dd/MM/yyyy");
+        GiaoDienUtil.cauHinhChonNgay(chooser, "dd/MM/yyyy");
         chooser.setPreferredSize(new Dimension(160, 36));
     }
 

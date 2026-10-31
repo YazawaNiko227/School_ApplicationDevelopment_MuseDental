@@ -6,6 +6,7 @@ import entity.BenhNhan;
 import entity.NhanVien;
 import entity.PhongKham;
 import com.toedter.calendar.JDateChooser;
+import util.GiaoDienUtil;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -85,8 +86,7 @@ public final class XuLyDatLichHenPanel extends JPanel {
     // ----- Form lịch hẹn -----
     private final JComboBox<ComboItem> cboNhaSi = new JComboBox<>();
     private final JComboBox<ComboItem> cboPhong = new JComboBox<>();
-    private final JSpinner spnNgayHen = new JSpinner(
-            new SpinnerDateModel(new Date(), null, null, Calendar.DAY_OF_MONTH));
+    private final JDateChooser chonNgayHen = new JDateChooser();
     private final JSpinner spnGioHen = new JSpinner(new SpinnerDateModel(new Date(), null, null, Calendar.MINUTE));
 
     // ----- Bảng danh sách -----
@@ -114,9 +114,10 @@ public final class XuLyDatLichHenPanel extends JPanel {
         add(createFormCard(), BorderLayout.NORTH);
         add(createTableCard(), BorderLayout.CENTER);
 
-        spnNgayHen.setEditor(new JSpinner.DateEditor(spnNgayHen, "dd/MM/yyyy"));
         spnGioHen.setEditor(new JSpinner.DateEditor(spnGioHen, "HH:mm"));
-        chonNgaySinh.setDateFormatString("dd/MM/yyyy");
+        GiaoDienUtil.cauHinhChonNgay(chonNgaySinh, "dd/MM/yyyy");
+        GiaoDienUtil.cauHinhChonNgay(chonNgayHen, "dd/MM/yyyy");
+        GiaoDienUtil.datNgayDuocChon(chonNgayHen, LocalDateTime.now().toLocalDate());
 
         khoaThongTinBenhNhan(true);
         napDanhMuc();
@@ -193,7 +194,7 @@ public final class XuLyDatLichHenPanel extends JPanel {
         JPanel column = createColumn("Thông tin lịch hẹn");
         column.add(createRow("Nha sĩ phụ trách", cboNhaSi));
         column.add(createRow("Phòng khám", cboPhong));
-        column.add(createRow("Ngày hẹn", spnNgayHen));
+        column.add(createRow("Ngày hẹn", chonNgayHen));
         column.add(createRow("Giờ hẹn", spnGioHen));
 
         JLabel hint = new JLabel("<html>Lịch mới được lưu với trạng thái <b>Chờ xác nhận</b>."
@@ -319,6 +320,10 @@ public final class XuLyDatLichHenPanel extends JPanel {
         }
 
         LocalDateTime thoiGianHen = getSelectedDateTime();
+        if (thoiGianHen == null) {
+            showMessage("Vui lòng chọn ngày hẹn từ lịch.");
+            return;
+        }
         if (thoiGianHen.isBefore(LocalDateTime.now())) {
             showMessage("Thời gian hẹn phải sau thời điểm hiện tại.");
             return;
@@ -506,8 +511,12 @@ public final class XuLyDatLichHenPanel extends JPanel {
     }
 
     private LocalDateTime getSelectedDateTime() {
+        Date selectedDay = chonNgayHen.getDate();
+        if (selectedDay == null) {
+            return null;
+        }
         Calendar day = Calendar.getInstance();
-        day.setTime((Date) spnNgayHen.getValue());
+        day.setTime(selectedDay);
         Calendar time = Calendar.getInstance();
         time.setTime((Date) spnGioHen.getValue());
         day.set(Calendar.HOUR_OF_DAY, time.get(Calendar.HOUR_OF_DAY));
@@ -557,7 +566,7 @@ public final class XuLyDatLichHenPanel extends JPanel {
         khoaThongTinBenhNhan(true);
         cboNhaSi.setSelectedIndex(cboNhaSi.getItemCount() == 0 ? -1 : 0);
         cboPhong.setSelectedIndex(cboPhong.getItemCount() == 0 ? -1 : 0);
-        spnNgayHen.setValue(new Date());
+        GiaoDienUtil.datNgayDuocChon(chonNgayHen, LocalDateTime.now().toLocalDate());
         spnGioHen.setValue(new Date());
     }
 

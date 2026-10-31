@@ -1,7 +1,9 @@
 package gui;
 
+import com.toedter.calendar.JDateChooser;
 import entity.VatTu;
 import dao.VatTuDAO;
+import util.GiaoDienUtil;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -99,7 +101,7 @@ public class DanhMucQuanLyVatTuYTePanel extends JPanel {
     private final JTextField txtTon = new JTextField();
     private final JTextField txtNguong = new JTextField();
     private final JTextField txtGiaBan = new JTextField();
-    private final JTextField txtHan = new JTextField();
+    private final JDateChooser chonHanSuDung = new JDateChooser();
 
     private final JButton btnAdd = createButton("Thêm", TEAL, Color.WHITE);
     private final JButton btnUpdate = createButton("Sửa", new Color(51, 91, 177), Color.WHITE);
@@ -254,14 +256,16 @@ public class DanhMucQuanLyVatTuYTePanel extends JPanel {
         heading.setForeground(INK);
         card.add(heading, BorderLayout.NORTH);
 
-        for (JTextField f : new JTextField[] { txtMa, txtTen, txtDonVi, txtTon, txtNguong, txtGiaBan, txtHan }) {
+        for (JTextField f : new JTextField[] { txtMa, txtTen, txtDonVi, txtTon, txtNguong, txtGiaBan }) {
             styleTextField(f);
         }
+        GiaoDienUtil.cauHinhChonNgay(chonHanSuDung, "dd/MM/yyyy");
+        chonHanSuDung.setPreferredSize(new Dimension(160, 36));
         styleCombo(cbLoai);
         cbLoai.setEditable(true); // cho phép nhập loại mới ngoài danh sách gợi ý
         txtMa.setEditable(false);
         txtMa.setBackground(new Color(244, 247, 250));
-        txtHan.setToolTipText("Định dạng dd/MM/yyyy, để trống nếu vật tư không có hạn dùng");
+        chonHanSuDung.setToolTipText("Chọn hạn sử dụng từ lịch, để trống nếu vật tư không có hạn dùng");
         txtGiaBan.setToolTipText("Giá bán cho bệnh nhân. Nhập 0 nếu vật tư chỉ dùng nội bộ, không tính tiền riêng");
 
         JPanel form = new JPanel();
@@ -277,7 +281,7 @@ public class DanhMucQuanLyVatTuYTePanel extends JPanel {
         form.add(Box.createVerticalStrut(12));
         form.add(createRow(field("Giá bán (VNĐ)", txtGiaBan)));
         form.add(Box.createVerticalStrut(12));
-        form.add(createRow(field("Hạn sử dụng (dd/MM/yyyy)", txtHan)));
+        form.add(createRow(field("Hạn sử dụng", chonHanSuDung)));
         form.add(Box.createVerticalGlue());
         card.add(form, BorderLayout.CENTER);
 
@@ -387,7 +391,7 @@ public class DanhMucQuanLyVatTuYTePanel extends JPanel {
         txtTon.setText(String.valueOf(vt.getSoLuongTon()));
         txtNguong.setText(String.valueOf(vt.getNguongToiThieu()));
         txtGiaBan.setText(MONEY_FMT.format(vt.getDonGiaBan()));
-        txtHan.setText(vt.getHanSuDung() == null ? "" : vt.getHanSuDung().format(DATE_FMT));
+        GiaoDienUtil.datNgayDuocChon(chonHanSuDung, vt.getHanSuDung());
     }
 
     private void clearForm() {
@@ -399,7 +403,7 @@ public class DanhMucQuanLyVatTuYTePanel extends JPanel {
         txtTon.setText("0");
         txtNguong.setText("0");
         txtGiaBan.setText("0");
-        txtHan.setText("");
+        GiaoDienUtil.datNgayDuocChon(chonHanSuDung, null);
         setEditing(false);
         btnAdd.setEnabled(!txtMa.getText().isEmpty());
         txtTen.requestFocusInWindow();
@@ -517,15 +521,7 @@ public class DanhMucQuanLyVatTuYTePanel extends JPanel {
         double giaBan = parseMoney(txtGiaBan, "Giá bán");
 
         LocalDate han = null;
-        String hanText = txtHan.getText().trim();
-        if (!hanText.isEmpty()) {
-            try {
-                han = LocalDate.parse(hanText, DATE_FMT);
-            } catch (DateTimeParseException ex) {
-                txtHan.requestFocusInWindow();
-                throw new IllegalArgumentException("Hạn sử dụng phải theo dạng dd/MM/yyyy.");
-            }
-        }
+        han = GiaoDienUtil.layNgayDaChon(chonHanSuDung);
         String donVi = txtDonVi.getText().trim();
         return new VatTu(ma, ten, loai, donVi.isEmpty() ? null : donVi, ton, nguong, han, giaBan);
     }

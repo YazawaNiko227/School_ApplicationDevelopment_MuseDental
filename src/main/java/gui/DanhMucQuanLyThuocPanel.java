@@ -1,5 +1,6 @@
 package gui;
 
+import com.toedter.calendar.JDateChooser;
 import dao.VatTuDAO;
 import entity.VatTu;
 import util.GiaoDienUtil;
@@ -80,7 +81,7 @@ public class DanhMucQuanLyThuocPanel extends JPanel {
     private final JTextField txtTon = new JTextField();
     private final JTextField txtNguong = new JTextField();
     private final JTextField txtGiaBan = new JTextField();
-    private final JTextField txtHan = new JTextField();
+    private final JDateChooser chonHanSuDung = new JDateChooser();
 
     // Các nút chức năng
     private final JButton btnThem = GiaoDienUtil.taoNut("Thêm", true);
@@ -151,7 +152,9 @@ public class DanhMucQuanLyThuocPanel extends JPanel {
 
         txtMa.setEditable(false);
         txtMa.setBackground(new Color(244, 247, 250));
-        txtHan.setToolTipText("Định dạng dd/MM/yyyy (ví dụ: 30/12/2027)");
+        GiaoDienUtil.cauHinhChonNgay(chonHanSuDung, "dd/MM/yyyy");
+        chonHanSuDung.setPreferredSize(new Dimension(160, 32));
+        chonHanSuDung.setToolTipText("Chọn hạn sử dụng từ lịch");
         txtGiaBan.setToolTipText("Giá bán cho bệnh nhân. Nhập 0 nếu chỉ dùng nội bộ");
 
         JPanel form = new JPanel();
@@ -166,7 +169,7 @@ public class DanhMucQuanLyThuocPanel extends JPanel {
         form.add(Box.createVerticalStrut(10));
         form.add(taoO("Giá bán (VNĐ)", txtGiaBan));
         form.add(Box.createVerticalStrut(10));
-        form.add(taoO("Hạn sử dụng (dd/MM/yyyy)", txtHan));
+        form.add(taoO("Hạn sử dụng", chonHanSuDung));
         form.add(Box.createVerticalGlue());
         the.add(form, BorderLayout.CENTER);
 
@@ -270,7 +273,7 @@ public class DanhMucQuanLyThuocPanel extends JPanel {
         txtTon.setText(String.valueOf(vt.getSoLuongTon()));
         txtNguong.setText(String.valueOf(vt.getNguongToiThieu()));
         txtGiaBan.setText(DINH_DANG_TIEN.format(vt.getDonGiaBan()));
-        txtHan.setText(vt.getHanSuDung() == null ? "" : vt.getHanSuDung().format(DINH_DANG_NGAY));
+        GiaoDienUtil.datNgayDuocChon(chonHanSuDung, vt.getHanSuDung());
     }
 
     /** Xóa trắng form, sinh mã thuốc tiếp theo và trả về chế độ thêm mới. */
@@ -287,7 +290,7 @@ public class DanhMucQuanLyThuocPanel extends JPanel {
         txtTon.setText("0");
         txtNguong.setText("0");
         txtGiaBan.setText("0");
-        txtHan.setText("");
+        GiaoDienUtil.datNgayDuocChon(chonHanSuDung, null);
         chuyenCheDo(false);
         txtTen.requestFocusInWindow();
     }
@@ -384,15 +387,7 @@ public class DanhMucQuanLyThuocPanel extends JPanel {
         double giaBan = docSoTien(txtGiaBan, "Giá bán");
 
         LocalDate han = null;
-        String hanStr = txtHan.getText().trim();
-        if (!hanStr.isEmpty()) {
-            try {
-                han = LocalDate.parse(hanStr, DINH_DANG_NGAY);
-            } catch (DateTimeParseException ex) {
-                txtHan.requestFocusInWindow();
-                throw new IllegalArgumentException("Hạn sử dụng không đúng định dạng dd/MM/yyyy.");
-            }
-        }
+        han = GiaoDienUtil.layNgayDaChon(chonHanSuDung);
 
         String donVi = txtDonVi.getText().trim();
         return new VatTu(ma, ten, VatTuDAO.LOAI_THUOC, donVi.isEmpty() ? null : donVi, ton, nguong, han, giaBan);

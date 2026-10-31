@@ -4,6 +4,8 @@ import dao.CaTrucDAO;
 import entity.CaTruc;
 import entity.NhanVien;
 import entity.PhongKham;
+import com.toedter.calendar.JDateChooser;
+import util.GiaoDienUtil;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
@@ -35,8 +37,8 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JSpinner;
 import javax.swing.JTable;
-import javax.swing.ListSelectionModel;
 import javax.swing.SpinnerDateModel;
+import javax.swing.ListSelectionModel;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
@@ -118,7 +120,7 @@ public class XuLyBangPhanCongCaTrucYTaPanel extends JPanel {
 
     // ----- Form phân công -----
     private final JLabel lblMaCa = new JLabel("(tự sinh khi lưu)");
-    private final JSpinner spnNgay = new JSpinner(new SpinnerDateModel(new Date(), null, null, Calendar.DAY_OF_MONTH));
+    private final JDateChooser chonNgay = new JDateChooser();
     private final JComboBox<String> cboLoai = new JComboBox<>(LOAI_CA);
     private final JSpinner spnBatDau = new JSpinner(new SpinnerDateModel(new Date(), null, null, Calendar.MINUTE));
     private final JSpinner spnKetThuc = new JSpinner(new SpinnerDateModel(new Date(), null, null, Calendar.MINUTE));
@@ -139,7 +141,8 @@ public class XuLyBangPhanCongCaTrucYTaPanel extends JPanel {
             showDatabaseError("Không thể tải danh sách nhân viên và phòng khám.", ex);
         }
 
-        spnNgay.setEditor(new JSpinner.DateEditor(spnNgay, "dd/MM/yyyy"));
+        GiaoDienUtil.cauHinhChonNgay(chonNgay, "dd/MM/yyyy");
+        chonNgay.setPreferredSize(new Dimension(160, 34));
         spnBatDau.setEditor(new JSpinner.DateEditor(spnBatDau, "HH:mm"));
         spnKetThuc.setEditor(new JSpinner.DateEditor(spnKetThuc, "HH:mm"));
 
@@ -333,7 +336,7 @@ public class XuLyBangPhanCongCaTrucYTaPanel extends JPanel {
         lblMaCa.setFont(new Font("Arial", Font.BOLD, 12));
         lblMaCa.setForeground(INK);
         card.add(createRow("Mã ca", lblMaCa));
-        card.add(createRow("Ngày *", spnNgay));
+        card.add(createRow("Ngày *", chonNgay));
         card.add(createRow("Loại ca", cboLoai));
         card.add(createRow("Giờ bắt đầu *", spnBatDau));
         card.add(createRow("Giờ kết thúc *", spnKetThuc));
@@ -691,7 +694,12 @@ public class XuLyBangPhanCongCaTrucYTaPanel extends JPanel {
             showWarning("Giờ kết thúc phải sau giờ bắt đầu.");
             return null;
         }
-        return new CaTruc("", layNgay(), batDau, ketThuc, (String) cboLoai.getSelectedItem(), maNhanVien, maPhong);
+        LocalDate ngay = layNgay();
+        if (ngay == null) {
+            showWarning("Vui lòng chọn ngày phân ca từ lịch.");
+            return null;
+        }
+        return new CaTruc("", ngay, batDau, ketThuc, (String) cboLoai.getSelectedItem(), maNhanVien, maPhong);
     }
 
     // =====================================================================
@@ -773,7 +781,7 @@ public class XuLyBangPhanCongCaTrucYTaPanel extends JPanel {
     }
 
     private LocalDate layNgay() {
-        return ((Date) spnNgay.getValue()).toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+        return GiaoDienUtil.layNgayDaChon(chonNgay);
     }
 
     private LocalTime layGio(JSpinner spinner) {
@@ -782,7 +790,7 @@ public class XuLyBangPhanCongCaTrucYTaPanel extends JPanel {
     }
 
     private void datNgay(LocalDate ngay) {
-        spnNgay.setValue(Date.from(ngay.atStartOfDay(ZoneId.systemDefault()).toInstant()));
+        GiaoDienUtil.datNgayDuocChon(chonNgay, ngay);
     }
 
     private void datGio(JSpinner spinner, LocalTime gio) {

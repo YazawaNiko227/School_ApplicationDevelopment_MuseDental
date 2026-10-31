@@ -1,7 +1,9 @@
 package gui;
 
+import com.toedter.calendar.JDateChooser;
 import dao.NhanVienDAO;
 import entity.NhanVien;
+import util.GiaoDienUtil;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -11,9 +13,6 @@ import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
-import java.time.format.ResolverStyle;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
@@ -61,8 +60,6 @@ public class DanhMucQuanLyNhanVienPanel extends JPanel {
                         "Y ta", "Le tan", "Thu ngan", "Thu kho"
         };
 
-        private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("dd/MM/uuuu")
-                        .withResolverStyle(ResolverStyle.STRICT);
         private static final Pattern PHONE_PATTERN = Pattern.compile("^0\\d{9,10}$");
         private static final Pattern EMAIL_PATTERN = Pattern.compile("^[\\w.+-]+@[\\w-]+(\\.[\\w-]+)+$");
 
@@ -88,12 +85,12 @@ public class DanhMucQuanLyNhanVienPanel extends JPanel {
         // Biểu mẫu.
         private final JTextField txtMa = new JTextField();
         private final JTextField txtHoTen = new JTextField();
-        private final JTextField txtNgaySinh = new JTextField();
+        private final JDateChooser chonNgaySinh = new JDateChooser();
         private final JComboBox<String> cbGioiTinh = new JComboBox<>(GIOI_TINH);
         private final JTextField txtSdt = new JTextField();
         private final JTextField txtEmail = new JTextField();
         private final JTextField txtDiaChi = new JTextField();
-        private final JTextField txtNgayVaoLam = new JTextField();
+        private final JDateChooser chonNgayVaoLam = new JDateChooser();
         private final JComboBox<String> cbTrangThai = new JComboBox<>(TRANG_THAI);
         private final JComboBox<String> cbChuyenMon = new JComboBox<>(CHUYEN_MON);
         private final JTextField txtChungChi = new JTextField();
@@ -278,17 +275,21 @@ public class DanhMucQuanLyNhanVienPanel extends JPanel {
                 heading.setForeground(INK);
                 card.add(heading, BorderLayout.NORTH);
 
-                for (JTextField field : new JTextField[] { txtMa, txtHoTen, txtNgaySinh, txtSdt, txtEmail, txtDiaChi,
-                                txtNgayVaoLam, txtChungChi }) {
+                for (JTextField field : new JTextField[] { txtMa, txtHoTen, txtSdt, txtEmail, txtDiaChi,
+                                txtChungChi }) {
                         styleTextField(field);
                 }
+                GiaoDienUtil.cauHinhChonNgay(chonNgaySinh, "dd/MM/yyyy");
+                GiaoDienUtil.cauHinhChonNgay(chonNgayVaoLam, "dd/MM/yyyy");
+                chonNgaySinh.setPreferredSize(new Dimension(160, 34));
+                chonNgayVaoLam.setPreferredSize(new Dimension(160, 34));
                 for (JComboBox<String> combo : java.util.Arrays.asList(cbGioiTinh, cbTrangThai, cbChuyenMon)) {
                         styleCombo(combo);
                 }
                 cbChuyenMon.setEditable(true);
                 txtMa.setBackground(new Color(244, 247, 250));
-                txtNgaySinh.setToolTipText("Định dạng dd/MM/yyyy");
-                txtNgayVaoLam.setToolTipText("Định dạng dd/MM/yyyy");
+                chonNgaySinh.setToolTipText("Chọn ngày sinh từ lịch");
+                chonNgayVaoLam.setToolTipText("Chọn ngày vào làm từ lịch");
 
                 JPanel form = new JPanel();
                 form.setOpaque(false);
@@ -297,8 +298,8 @@ public class DanhMucQuanLyNhanVienPanel extends JPanel {
                 form.add(Box.createVerticalStrut(12));
                 form.add(createRow(field("Họ tên *", txtHoTen)));
                 form.add(Box.createVerticalStrut(12));
-                form.add(createRow(field("Ngày sinh (dd/MM/yyyy)", txtNgaySinh),
-                                field("Ngày vào làm", txtNgayVaoLam)));
+                form.add(createRow(field("Ngày sinh", chonNgaySinh),
+                                field("Ngày vào làm", chonNgayVaoLam)));
                 form.add(Box.createVerticalStrut(12));
                 form.add(createRow(field("Số điện thoại *", txtSdt), field("Trạng thái", cbTrangThai)));
                 form.add(Box.createVerticalStrut(12));
@@ -422,12 +423,12 @@ public class DanhMucQuanLyNhanVienPanel extends JPanel {
         private void fillForm(NhanVien nv) {
                 txtMa.setText(nv.getMaNhanVien());
                 txtHoTen.setText(nv.getHoTen());
-                txtNgaySinh.setText(nv.getNgaySinh() == null ? "" : nv.getNgaySinh().format(DATE_FMT));
+                GiaoDienUtil.datNgayDuocChon(chonNgaySinh, nv.getNgaySinh());
                 cbGioiTinh.setSelectedItem(nv.getGioiTinh());
                 txtSdt.setText(nv.getSoDienThoai());
                 txtEmail.setText(nv.getEmail() == null ? "" : nv.getEmail());
                 txtDiaChi.setText(nv.getDiaChi() == null ? "" : nv.getDiaChi());
-                txtNgayVaoLam.setText(nv.getNgayVaoLam() == null ? "" : nv.getNgayVaoLam().format(DATE_FMT));
+                GiaoDienUtil.datNgayDuocChon(chonNgayVaoLam, nv.getNgayVaoLam());
                 cbTrangThai.setSelectedItem(nv.getTrangThaiLamViec());
                 cbChuyenMon.setSelectedItem(nv.getChuyenMon() == null ? "" : nv.getChuyenMon());
                 txtChungChi.setText(nv.getSoChungChiHanhNghe() == null ? "" : nv.getSoChungChiHanhNghe());
@@ -438,12 +439,12 @@ public class DanhMucQuanLyNhanVienPanel extends JPanel {
                 table.clearSelection();
                 txtMa.setText(nextId());
                 txtHoTen.setText("");
-                txtNgaySinh.setText("");
+                GiaoDienUtil.datNgayDuocChon(chonNgaySinh, null);
                 cbGioiTinh.setSelectedIndex(0);
                 txtSdt.setText("");
                 txtEmail.setText("");
                 txtDiaChi.setText("");
-                txtNgayVaoLam.setText(LocalDate.now().format(DATE_FMT));
+                GiaoDienUtil.datNgayDuocChon(chonNgayVaoLam, LocalDate.now());
                 cbTrangThai.setSelectedItem(TT_DANG_LAM);
                 cbChuyenMon.setSelectedItem("");
                 txtChungChi.setText("");
@@ -582,11 +583,11 @@ public class DanhMucQuanLyNhanVienPanel extends JPanel {
                         throw new IllegalArgumentException("Họ tên tối đa 100 ký tự.");
                 }
 
-                LocalDate ngaySinh = parseDate(txtNgaySinh, "Ngày sinh");
+                LocalDate ngaySinh = GiaoDienUtil.layNgayDaChon(chonNgaySinh);
                 if (ngaySinh != null && !ngaySinh.isBefore(LocalDate.now())) {
                         throw new IllegalArgumentException("Ngày sinh phải nhỏ hơn ngày hiện tại.");
                 }
-                LocalDate ngayVaoLam = parseDate(txtNgayVaoLam, "Ngày vào làm");
+                LocalDate ngayVaoLam = GiaoDienUtil.layNgayDaChon(chonNgayVaoLam);
                 if (ngaySinh != null && ngayVaoLam != null && ngayVaoLam.isBefore(ngaySinh)) {
                         throw new IllegalArgumentException("Ngày vào làm không được trước ngày sinh.");
                 }
@@ -622,19 +623,6 @@ public class DanhMucQuanLyNhanVienPanel extends JPanel {
                 return new NhanVien(ma, hoTen, ngaySinh, (String) cbGioiTinh.getSelectedItem(), sdt,
                                 emptyToNull(email), emptyToNull(diaChi), ngayVaoLam,
                                 (String) cbTrangThai.getSelectedItem(), emptyToNull(chuyenMon), emptyToNull(chungChi));
-        }
-
-        private LocalDate parseDate(JTextField field, String name) {
-                String text = field.getText().trim();
-                if (text.isEmpty()) {
-                        return null;
-                }
-                try {
-                        return LocalDate.parse(text, DATE_FMT);
-                } catch (DateTimeParseException ex) {
-                        field.requestFocusInWindow();
-                        throw new IllegalArgumentException(name + " không hợp lệ. Vui lòng nhập theo dạng dd/MM/yyyy.");
-                }
         }
 
         private static String emptyToNull(String value) {

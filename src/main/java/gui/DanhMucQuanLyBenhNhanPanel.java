@@ -1,6 +1,8 @@
 package gui;
 
+import com.toedter.calendar.JDateChooser;
 import entity.BenhNhan;
+import util.GiaoDienUtil;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -12,7 +14,6 @@ import java.awt.Font;
 import java.time.LocalDate;
 import java.time.Period;
 import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
 import java.time.format.ResolverStyle;
 import java.util.ArrayList;
 import java.util.List;
@@ -78,7 +79,7 @@ public class DanhMucQuanLyBenhNhanPanel extends JPanel {
     private final JTextField txtMa = new JTextField();
     private final JTextField txtHoTen = new JTextField();
     private final JComboBox<String> cbGioiTinh = new JComboBox<>(GIOI_TINH);
-    private final JTextField txtNgaySinh = new JTextField();
+    private final JDateChooser chonNgaySinh = new JDateChooser();
     private final JTextField txtSdt = new JTextField();
     private final JTextField txtCccd = new JTextField();
     private final JTextField txtDiaChi = new JTextField();
@@ -253,16 +254,18 @@ public class DanhMucQuanLyBenhNhanPanel extends JPanel {
         heading.setForeground(INK);
         card.add(heading, BorderLayout.NORTH);
 
-        for (JTextField f : new JTextField[] { txtMa, txtHoTen, txtNgaySinh, txtSdt, txtCccd, txtDiaChi,
+        for (JTextField f : new JTextField[] { txtMa, txtHoTen, txtSdt, txtCccd, txtDiaChi,
                 txtNguoiBaoHo }) {
             styleTextField(f);
         }
+        GiaoDienUtil.cauHinhChonNgay(chonNgaySinh, "dd/MM/yyyy");
+        chonNgaySinh.setPreferredSize(new Dimension(160, 34));
         cbGioiTinh.setFont(new Font("Arial", Font.PLAIN, 12));
         cbGioiTinh.setBackground(Color.WHITE);
         cbGioiTinh.setForeground(INK);
         txtMa.setEditable(false);
         txtMa.setBackground(new Color(244, 247, 250));
-        txtNgaySinh.setToolTipText("Định dạng dd/MM/yyyy");
+        chonNgaySinh.setToolTipText("Chọn ngày sinh từ lịch");
         txtCccd.setToolTipText("12 chữ số. Có thể để trống với trẻ em chưa có CCCD");
         txtNguoiBaoHo.setToolTipText("Bắt buộc với bệnh nhân dưới 18 tuổi");
 
@@ -276,7 +279,7 @@ public class DanhMucQuanLyBenhNhanPanel extends JPanel {
         form.add(Box.createVerticalStrut(12));
         form.add(createRow(field("Họ tên *", txtHoTen)));
         form.add(Box.createVerticalStrut(12));
-        form.add(createRow(field("Ngày sinh (dd/MM/yyyy)", txtNgaySinh), field("Số điện thoại *", txtSdt)));
+        form.add(createRow(field("Ngày sinh", chonNgaySinh), field("Số điện thoại *", txtSdt)));
         form.add(Box.createVerticalStrut(12));
         form.add(createRow(field("Số CCCD", txtCccd)));
         form.add(Box.createVerticalStrut(12));
@@ -417,7 +420,7 @@ public class DanhMucQuanLyBenhNhanPanel extends JPanel {
         txtMa.setText(bn.getMaBenhNhan());
         txtHoTen.setText(bn.getHoTen());
         cbGioiTinh.setSelectedItem(bn.getGioiTinh());
-        txtNgaySinh.setText(bn.getNgaySinh() == null ? "" : bn.getNgaySinh().format(DATE_FMT));
+        GiaoDienUtil.datNgayDuocChon(chonNgaySinh, bn.getNgaySinh());
         txtSdt.setText(nullToEmpty(bn.getSoDienThoai()));
         txtCccd.setText(nullToEmpty(bn.getSoCCCD()));
         txtDiaChi.setText(nullToEmpty(bn.getDiaChi()));
@@ -433,7 +436,7 @@ public class DanhMucQuanLyBenhNhanPanel extends JPanel {
         txtMa.setText(nextId());
         txtHoTen.setText("");
         cbGioiTinh.setSelectedIndex(0);
-        txtNgaySinh.setText("");
+        GiaoDienUtil.datNgayDuocChon(chonNgaySinh, null);
         txtSdt.setText("");
         txtCccd.setText("");
         txtDiaChi.setText("");
@@ -524,19 +527,10 @@ public class DanhMucQuanLyBenhNhanPanel extends JPanel {
             throw new IllegalArgumentException("Họ tên tối đa 100 ký tự.");
         }
 
-        LocalDate ngaySinh = null;
-        String ngaySinhText = txtNgaySinh.getText().trim();
-        if (!ngaySinhText.isEmpty()) {
-            try {
-                ngaySinh = LocalDate.parse(ngaySinhText, DATE_FMT);
-            } catch (DateTimeParseException ex) {
-                txtNgaySinh.requestFocusInWindow();
-                throw new IllegalArgumentException("Ngày sinh phải theo dạng dd/MM/yyyy.");
-            }
-            if (ngaySinh.isAfter(LocalDate.now())) {
-                txtNgaySinh.requestFocusInWindow();
-                throw new IllegalArgumentException("Ngày sinh không được sau ngày hiện tại.");
-            }
+        LocalDate ngaySinh = GiaoDienUtil.layNgayDaChon(chonNgaySinh);
+        if (ngaySinh != null && ngaySinh.isAfter(LocalDate.now())) {
+            chonNgaySinh.requestFocusInWindow();
+            throw new IllegalArgumentException("Ngày sinh không được sau ngày hiện tại.");
         }
 
         String sdt = txtSdt.getText().trim();

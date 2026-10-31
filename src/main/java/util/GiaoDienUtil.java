@@ -1,5 +1,6 @@
 package util;
 
+import com.toedter.calendar.JDateChooser;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Cursor;
@@ -8,10 +9,12 @@ import java.awt.Font;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.sql.SQLException;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
+import java.util.Date;
 import java.util.Locale;
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
@@ -166,6 +169,26 @@ public final class GiaoDienUtil {
 
     public static String dinhDangNgay(LocalDate ngay) {
         return ngay == null ? "" : ngay.format(NGAY);
+    }
+
+    /** Cấu hình lịch chọn ngày và khóa nhập ngày trực tiếp bằng bàn phím. */
+    public static void cauHinhChonNgay(JDateChooser chonNgay, String dinhDang) {
+        chonNgay.setDateFormatString(dinhDang);
+        chonNgay.setFont(CHU);
+        if (chonNgay.getDateEditor().getUiComponent() instanceof JTextField truongNgay) {
+            truongNgay.setEditable(false);
+        }
+    }
+
+    /** Đọc ngày được chọn; trả về null nếu người dùng chưa chọn ngày. */
+    public static LocalDate layNgayDaChon(JDateChooser chonNgay) {
+        Date ngay = chonNgay.getDate();
+        return ngay == null ? null : ngay.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+    }
+
+    /** Hiển thị ngày trong lịch; truyền null để xóa lựa chọn hiện tại. */
+    public static void datNgayDuocChon(JDateChooser chonNgay, LocalDate ngay) {
+        chonNgay.setDate(ngay == null ? null : Date.from(ngay.atStartOfDay(ZoneId.systemDefault()).toInstant()));
     }
 
     public static String dinhDangGio(LocalTime gio) {

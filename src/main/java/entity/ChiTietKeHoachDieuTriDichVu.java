@@ -20,8 +20,10 @@ public class ChiTietKeHoachDieuTriDichVu {
     }
 
     public void setMaKeHoach(String maKeHoach) {
-        if (maKeHoach == null) throw new IllegalArgumentException("MaKeHoach không được null.");
-        if (maKeHoach != null && maKeHoach.length() > 20) throw new IllegalArgumentException("MaKeHoach tối đa 20 ký tự.");
+        if (maKeHoach == null)
+            throw new IllegalArgumentException("MaKeHoach không được null.");
+        if (maKeHoach != null && maKeHoach.length() > 20)
+            throw new IllegalArgumentException("MaKeHoach tối đa 20 ký tự.");
         this.maKeHoach = maKeHoach;
     }
 
@@ -30,8 +32,10 @@ public class ChiTietKeHoachDieuTriDichVu {
     }
 
     public void setMaDichVu(String maDichVu) {
-        if (maDichVu == null) throw new IllegalArgumentException("MaDichVu không được null.");
-        if (maDichVu != null && maDichVu.length() > 20) throw new IllegalArgumentException("MaDichVu tối đa 20 ký tự.");
+        if (maDichVu == null)
+            throw new IllegalArgumentException("MaDichVu không được null.");
+        if (maDichVu != null && maDichVu.length() > 20)
+            throw new IllegalArgumentException("MaDichVu tối đa 20 ký tự.");
         this.maDichVu = maDichVu;
     }
 
@@ -40,6 +44,8 @@ public class ChiTietKeHoachDieuTriDichVu {
     }
 
     public void setSoLuong(int soLuong) {
+        if (soLuong <= 0)
+            throw new IllegalArgumentException("SoLuong phải > 0.");
         this.soLuong = soLuong;
     }
 

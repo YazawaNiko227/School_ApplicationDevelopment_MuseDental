@@ -1,7 +1,9 @@
 package entity;
 
-
 public class KeHoachDieuTri {
+    public static final String DANG_THUC_HIEN = "Dang thuc hien";
+    public static final String HOAN_THANH = "Hoan thanh";
+    public static final String HUY = "Huy";
     private String maKeHoach;
     private String tenPhacDo;
     private Integer thoiGianDuKien;
@@ -13,7 +15,8 @@ public class KeHoachDieuTri {
         this.trangThai = "Dang thuc hien";
     }
 
-    public KeHoachDieuTri(String maKeHoach, String tenPhacDo, Integer thoiGianDuKien, String trangThai, String maChanDoan, String maBenhNhan) {
+    public KeHoachDieuTri(String maKeHoach, String tenPhacDo, Integer thoiGianDuKien, String trangThai,
+            String maChanDoan, String maBenhNhan) {
         setMaKeHoach(maKeHoach);
         setTenPhacDo(tenPhacDo);
         setThoiGianDuKien(thoiGianDuKien);
@@ -27,8 +30,10 @@ public class KeHoachDieuTri {
     }
 
     public void setMaKeHoach(String maKeHoach) {
-        if (maKeHoach == null) throw new IllegalArgumentException("MaKeHoach không được null.");
-        if (maKeHoach != null && maKeHoach.length() > 20) throw new IllegalArgumentException("MaKeHoach tối đa 20 ký tự.");
+        if (maKeHoach == null)
+            throw new IllegalArgumentException("MaKeHoach không được null.");
+        if (maKeHoach != null && maKeHoach.length() > 20)
+            throw new IllegalArgumentException("MaKeHoach tối đa 20 ký tự.");
         this.maKeHoach = maKeHoach;
     }
 
@@ -37,8 +42,10 @@ public class KeHoachDieuTri {
     }
 
     public void setTenPhacDo(String tenPhacDo) {
-        if (tenPhacDo == null) throw new IllegalArgumentException("TenPhacDo không được null.");
-        if (tenPhacDo != null && tenPhacDo.length() > 150) throw new IllegalArgumentException("TenPhacDo tối đa 150 ký tự.");
+        if (tenPhacDo == null)
+            throw new IllegalArgumentException("TenPhacDo không được null.");
+        if (tenPhacDo != null && tenPhacDo.length() > 150)
+            throw new IllegalArgumentException("TenPhacDo tối đa 150 ký tự.");
         this.tenPhacDo = tenPhacDo;
     }
 
@@ -55,8 +62,8 @@ public class KeHoachDieuTri {
     }
 
     public void setTrangThai(String trangThai) {
-        if (trangThai == null) throw new IllegalArgumentException("TrangThai không được null.");
-        if (trangThai != null && trangThai.length() > 30) throw new IllegalArgumentException("TrangThai tối đa 30 ký tự.");
+        if (!DANG_THUC_HIEN.equals(trangThai) && !HOAN_THANH.equals(trangThai) && !HUY.equals(trangThai))
+            throw new IllegalArgumentException("TrangThai không thuộc trạng thái hợp lệ.");
         this.trangThai = trangThai;
     }
 
@@ -65,8 +72,10 @@ public class KeHoachDieuTri {
     }
 
     public void setMaChanDoan(String maChanDoan) {
-        if (maChanDoan == null) throw new IllegalArgumentException("MaChanDoan không được null.");
-        if (maChanDoan != null && maChanDoan.length() > 20) throw new IllegalArgumentException("MaChanDoan tối đa 20 ký tự.");
+        if (maChanDoan == null)
+            throw new IllegalArgumentException("MaChanDoan không được null.");
+        if (maChanDoan != null && maChanDoan.length() > 20)
+            throw new IllegalArgumentException("MaChanDoan tối đa 20 ký tự.");
         this.maChanDoan = maChanDoan;
     }
 
@@ -75,8 +84,10 @@ public class KeHoachDieuTri {
     }
 
     public void setMaBenhNhan(String maBenhNhan) {
-        if (maBenhNhan == null) throw new IllegalArgumentException("MaBenhNhan không được null.");
-        if (maBenhNhan != null && maBenhNhan.length() > 20) throw new IllegalArgumentException("MaBenhNhan tối đa 20 ký tự.");
+        if (maBenhNhan == null)
+            throw new IllegalArgumentException("MaBenhNhan không được null.");
+        if (maBenhNhan != null && maBenhNhan.length() > 20)
+            throw new IllegalArgumentException("MaBenhNhan tối đa 20 ký tự.");
         this.maBenhNhan = maBenhNhan;
     }
 

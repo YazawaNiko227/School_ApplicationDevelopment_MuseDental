@@ -3,6 +3,9 @@ package entity;
 import java.time.LocalDate;
 
 public class DotThanhToan {
+    public static final String CHUA_DEN_HAN = "Chua den han";
+    public static final String DA_THANH_TOAN = "Da thanh toan";
+    public static final String QUA_HAN = "Qua han";
     private String maDot;
     private LocalDate ngayDenHan;
     private double soTienDot;
@@ -14,7 +17,8 @@ public class DotThanhToan {
         this.trangThai = "Chua den han";
     }
 
-    public DotThanhToan(String maDot, LocalDate ngayDenHan, double soTienDot, String trangThai, LocalDate ngayThanhToanThucTe, String maCongNo) {
+    public DotThanhToan(String maDot, LocalDate ngayDenHan, double soTienDot, String trangThai,
+            LocalDate ngayThanhToanThucTe, String maCongNo) {
         setMaDot(maDot);
         setNgayDenHan(ngayDenHan);
         setSoTienDot(soTienDot);
@@ -28,8 +32,10 @@ public class DotThanhToan {
     }
 
     public void setMaDot(String maDot) {
-        if (maDot == null) throw new IllegalArgumentException("MaDot không được null.");
-        if (maDot != null && maDot.length() > 20) throw new IllegalArgumentException("MaDot tối đa 20 ký tự.");
+        if (maDot == null)
+            throw new IllegalArgumentException("MaDot không được null.");
+        if (maDot != null && maDot.length() > 20)
+            throw new IllegalArgumentException("MaDot tối đa 20 ký tự.");
         this.maDot = maDot;
     }
 
@@ -38,7 +44,8 @@ public class DotThanhToan {
     }
 
     public void setNgayDenHan(LocalDate ngayDenHan) {
-        if (ngayDenHan == null) throw new IllegalArgumentException("NgayDenHan không được null.");
+        if (ngayDenHan == null)
+            throw new IllegalArgumentException("NgayDenHan không được null.");
         this.ngayDenHan = ngayDenHan;
     }
 
@@ -47,8 +54,10 @@ public class DotThanhToan {
     }
 
     public void setSoTienDot(double soTienDot) {
-        if (!Double.isFinite(soTienDot)) throw new IllegalArgumentException("SoTienDot phải là số hữu hạn.");
-        if (soTienDot < 0) throw new IllegalArgumentException("SoTienDot phải >= 0.");
+        if (!Double.isFinite(soTienDot))
+            throw new IllegalArgumentException("SoTienDot phải là số hữu hạn.");
+        if (soTienDot < 0)
+            throw new IllegalArgumentException("SoTienDot phải >= 0.");
         this.soTienDot = soTienDot;
     }
 
@@ -57,8 +66,8 @@ public class DotThanhToan {
     }
 
     public void setTrangThai(String trangThai) {
-        if (trangThai == null) throw new IllegalArgumentException("TrangThai không được null.");
-        if (trangThai != null && trangThai.length() > 30) throw new IllegalArgumentException("TrangThai tối đa 30 ký tự.");
+        if (!CHUA_DEN_HAN.equals(trangThai) && !DA_THANH_TOAN.equals(trangThai) && !QUA_HAN.equals(trangThai))
+            throw new IllegalArgumentException("TrangThai không thuộc trạng thái hợp lệ.");
         this.trangThai = trangThai;
     }
 
@@ -75,8 +84,10 @@ public class DotThanhToan {
     }
 
     public void setMaCongNo(String maCongNo) {
-        if (maCongNo == null) throw new IllegalArgumentException("MaCongNo không được null.");
-        if (maCongNo != null && maCongNo.length() > 20) throw new IllegalArgumentException("MaCongNo tối đa 20 ký tự.");
+        if (maCongNo == null)
+            throw new IllegalArgumentException("MaCongNo không được null.");
+        if (maCongNo != null && maCongNo.length() > 20)
+            throw new IllegalArgumentException("MaCongNo tối đa 20 ký tự.");
         this.maCongNo = maCongNo;
     }
 

@@ -11,7 +11,7 @@ Lập hóa đơn: thu ngân lập hóa đơn. Nếu trả góp thì sang Công n
 
 
 #	Panel	Ai	Làm gì	Bảng chính
-1	Đặt lịch hẹn	Lễ tân	Chọn bệnh nhân → chọn nha sĩ, phòng, giờ. Kiểm tra nha sĩ có ca trực giờ đó không, có báo bận không, phòng có đang “Bảo trì” không, có trùng lịch không. Lưu với trạng thái Chờ xác nhận	LichHen
+1	Đặt lịch hẹn	Lễ tân	Chọn bệnh nhân → chọn nha sĩ, phòng, giờ. Kiểm tra nha sĩ có ca trực giờ đó không, phòng có đang “Bảo trì” không, có trùng lịch không. Lưu với trạng thái Chờ xác nhận	LichHen
 2	Cùng panel (nhắc lịch)	Lễ tân	Gọi hoặc nhắn xác nhận → Đã xác nhận	LichHen
 3	Chuẩn bị dụng cụ & trạng thái phòng	Y tá	Xem lịch hẹn sắp tới của phòng mình, chuẩn bị dụng cụ theo dịch vụ dự kiến, đặt phòng “Sẵn sàng”	PhongKham, LichHen
 4	Điều phối/Check-in	Lễ tân	Bệnh nhân đến → check-in. Xác nhận lại thông tin, dị ứng. Bệnh nhân vào hàng chờ	LichHen.TrangThai

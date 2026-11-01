@@ -90,6 +90,8 @@ public class VatTu {
     }
 
     public void setNguongToiThieu(int nguongToiThieu) {
+        if (nguongToiThieu < 0)
+            throw new IllegalArgumentException("NguongToiThieu phải >= 0.");
         this.nguongToiThieu = nguongToiThieu;
     }
 

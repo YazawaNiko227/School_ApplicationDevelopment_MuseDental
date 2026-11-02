@@ -11,8 +11,6 @@ import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
 import java.sql.SQLException;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -53,7 +51,6 @@ public class XuLyChuanBiPhongKhamPanel extends JPanel {
     private static final Color ORANGE = new Color(177, 125, 47);
     private static final Color RED = new Color(200, 70, 70);
     private static final Color BLUE = new Color(51, 91, 177);
-
     // Trạng thái hiển thị; PhongKhamDAO lưu các giá trị không dấu theo schema.
     private static final String SAN_SANG = "Sẵn sàng";
     private static final String DANG_KHAM = "Đang khám";
@@ -72,13 +69,12 @@ public class XuLyChuanBiPhongKhamPanel extends JPanel {
             "Lau khử khuẩn bề mặt"
     };
 
-    // Mỗi phần tử: {mã phòng, tên phòng, trạng thái, lịch hẹn kế tiếp, cập nhật
-    // lúc}
+    // Mỗi phần tử: {mã phòng, tên phòng, trạng thái, lịch hẹn kế tiếp}
     private final List<Object[]> danhSachPhong = new ArrayList<>();
     private final PhongKhamDAO phongKhamDAO = new PhongKhamDAO();
 
     private final DefaultTableModel tableModel = new DefaultTableModel(
-            new String[] { "Mã phòng", "Tên phòng", "Trạng thái", "Lịch hẹn kế tiếp", "Cập nhật lúc" }, 0) {
+            new String[] { "Mã phòng", "Tên phòng", "Trạng thái", "Lịch hẹn kế tiếp" }, 0) {
         @Override
         public boolean isCellEditable(int row, int column) {
             return false;
@@ -131,8 +127,7 @@ public class XuLyChuanBiPhongKhamPanel extends JPanel {
                         phong.getMaPhong(),
                         phong.getTenPhong(),
                         trangThaiHienThi(phong.getTrangThai()),
-                        lichHenKeTiep.getOrDefault(phong.getMaPhong(), "Không có"),
-                        "-"
+                        lichHenKeTiep.getOrDefault(phong.getMaPhong(), "Không có")
                 });
             }
         } catch (SQLException ex) {
@@ -274,7 +269,7 @@ public class XuLyChuanBiPhongKhamPanel extends JPanel {
         content.add(createInfoRow("Mã phòng", lblMaPhong));
         content.add(createInfoRow("Tên phòng", lblTenPhong));
         content.add(createInfoRow("Trạng thái", lblTrangThai));
-        content.add(createInfoRow("Lịch hẹn kế tiếp", lblLichKeTiep));
+        content.add(createInfoRow("Lịch kế tiếp (ngày/giờ)", lblLichKeTiep));
         content.add(Box.createVerticalStrut(8));
 
         lblGoiY.setFont(new Font("Arial", Font.ITALIC, 11));
@@ -541,8 +536,7 @@ public class XuLyChuanBiPhongKhamPanel extends JPanel {
             showDatabaseError("Không thể cập nhật trạng thái phòng khám.", ex);
             return false;
         }
-        phong[2] = trangThaiMoi;
-        phong[4] = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm dd/MM"));
+        napDuLieu();
         loadTable();
         refreshSummary();
 

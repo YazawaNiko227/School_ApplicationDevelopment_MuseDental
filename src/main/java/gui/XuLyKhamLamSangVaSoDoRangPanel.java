@@ -15,13 +15,13 @@ import java.awt.Rectangle;
 import java.awt.RenderingHints;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.Period;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -47,6 +47,12 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 
+import dao.ChanDoanDAO;
+import dao.KhamLamSangDAO;
+import dao.SoDoRangDAO;
+import entity.ChanDoan;
+import entity.SoDoRang;
+
 /**
  * Panel "Khám lâm sàng và sơ đồ răng" (bước 5 và bước 8 trong luồng khám bệnh
  * chính).
@@ -63,7 +69,7 @@ import javax.swing.table.DefaultTableModel;
  * Phác đồ điều trị, kê đơn thuốc, ghi nhận vật tư làm ở các menu riêng
  * (chỉ cần MaChanDoan), nên nha sĩ nên làm xong các việc đó trước khi hoàn tất.
  *
- * Hiện tại dùng dữ liệu mẫu trong bộ nhớ. Chỗ cần nối DAO ghi "TODO DAO".
+ * Hàng chờ, chẩn đoán và sơ đồ răng được đọc/ghi trực tiếp qua DAO.
  */
 public class XuLyKhamLamSangVaSoDoRangPanel extends JPanel {
     private static final Color INK = new Color(32, 53, 68);
@@ -78,7 +84,6 @@ public class XuLyKhamLamSangVaSoDoRangPanel extends JPanel {
     private static final DateTimeFormatter NGAY = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
     // Trạng thái lịch hẹn (hiển thị có dấu, DB lưu không dấu).
-    private static final String DA_XAC_NHAN = "Đã xác nhận";
     private static final String DA_CHECK_IN = "Đã check-in";
     private static final String DANG_KHAM = "Đang khám";
     private static final String HOAN_THANH = "Hoàn thành";
@@ -86,7 +91,6 @@ public class XuLyKhamLamSangVaSoDoRangPanel extends JPanel {
     // Trạng thái phòng.
     private static final String SAN_SANG = "Sẵn sàng";
     private static final String CAN_VE_SINH = "Cần vệ sinh";
-    private static final String BAO_TRI = "Bảo trì";
 
     // Tình trạng bệnh lý của răng (cột SoDoRang.TinhTrangBenhLy).
     private static final String[] TINH_TRANG = {
@@ -108,10 +112,11 @@ public class XuLyKhamLamSangVaSoDoRangPanel extends JPanel {
         final String diUng;
         final String nguoiBaoHo;
         final String maHoSo;
+        final String maNhaSi;
         final String nhaSi;
         String maPhong;
+        String trangThaiPhong;
         String trangThai;
-        LocalDateTime checkIn;
         // Phần chẩn đoán (có sau khi bấm "Vào khám").
         String maChanDoan;
         String lyDo = "";
@@ -121,7 +126,8 @@ public class XuLyKhamLamSangVaSoDoRangPanel extends JPanel {
 
         CaKham(String maLich, LocalDateTime gioHen, String maBenhNhan, String hoTen, String gioiTinh,
                 LocalDate ngaySinh, String tienSu, String diUng, String nguoiBaoHo, String maHoSo,
-                String nhaSi, String maPhong, String trangThai, LocalDateTime checkIn) {
+                String maNhaSi, String nhaSi, String maPhong, String trangThaiPhong, String trangThai,
+                String maChanDoan, String lyDo, String trieuChung, String ketLuan, String trangThaiChanDoan) {
             this.maLich = maLich;
             this.gioHen = gioHen;
             this.maBenhNhan = maBenhNhan;
@@ -132,21 +138,25 @@ public class XuLyKhamLamSangVaSoDoRangPanel extends JPanel {
             this.diUng = diUng;
             this.nguoiBaoHo = nguoiBaoHo;
             this.maHoSo = maHoSo;
+            this.maNhaSi = maNhaSi;
             this.nhaSi = nhaSi;
             this.maPhong = maPhong;
+            this.trangThaiPhong = trangThaiPhong;
             this.trangThai = trangThai;
-            this.checkIn = checkIn;
+            this.maChanDoan = maChanDoan;
+            this.lyDo = lyDo == null ? "" : lyDo;
+            this.trieuChung = trieuChung == null ? "" : trieuChung;
+            this.ketLuan = ketLuan == null ? "" : ketLuan;
+            this.daChot = "Da chot".equals(trangThaiChanDoan);
         }
     }
 
-    // Dữ liệu mẫu. TODO DAO: LichHenDAO.layLichKhamHomNay(),
-    // PhongKhamDAO.layTatCa(),
-    // SoDoRangDAO.layTheoHoSo(maHoSo)
+    private final KhamLamSangDAO khamLamSangDAO = new KhamLamSangDAO();
+    private final ChanDoanDAO chanDoanDAO = new ChanDoanDAO();
+    private final SoDoRangDAO soDoRangDAO = new SoDoRangDAO();
     private final List<CaKham> dsCa = new ArrayList<>();
-    private final Map<String, String> trangThaiPhong = new LinkedHashMap<>();
     // maHoSo -> (maRang -> {tình trạng, ghi chú})
     private final Map<String, Map<Integer, String[]>> soDoRang = new HashMap<>();
-    private int nextChanDoan = 5;
 
     private CaKham caHienTai;
     private boolean dangNapBang;
@@ -194,8 +204,6 @@ public class XuLyKhamLamSangVaSoDoRangPanel extends JPanel {
         setLayout(new BorderLayout(0, 18));
         setOpaque(false);
 
-        taoDuLieuMau();
-
         add(createSummaryPanel(), BorderLayout.NORTH);
 
         JPanel center = new JPanel(new BorderLayout(18, 0));
@@ -206,45 +214,6 @@ public class XuLyKhamLamSangVaSoDoRangPanel extends JPanel {
 
         chart.setOnSelect(this::chonRang);
         lamMoi();
-    }
-
-    // =====================================================================
-    // DỮ LIỆU MẪU
-    // =====================================================================
-
-    private void taoDuLieuMau() {
-        LocalDate homNay = LocalDate.now();
-        LocalDateTime now = LocalDateTime.now();
-
-        dsCa.add(new CaKham("LH003", homNay.atTime(8, 30), "BN003", "Đặng Quốc Khánh", "Nam",
-                LocalDate.of(1978, 1, 15), "Tiểu đường type 2", null, null, "HS003",
-                "NV001 - Nguyễn Văn An", "P01", DA_CHECK_IN, now.minusMinutes(12)));
-        dsCa.add(new CaKham("LH004", homNay.atTime(9, 0), "BN002", "Nguyễn Thị Lan", "Nữ",
-                LocalDate.of(1985, 9, 21), "Cao huyết áp", null, null, "HS002",
-                "NV002 - Trần Thị Bình", "P02", DA_CHECK_IN, now.minusMinutes(8)));
-        dsCa.add(new CaKham("LH005", homNay.atTime(9, 30), "BN004", "Trần Bảo Ngọc", "Nữ",
-                LocalDate.of(2015, 6, 30), "Không", null, "Trần Văn Minh (cha)", "HS004",
-                "NV002 - Trần Thị Bình", "P02", DA_CHECK_IN, now.minusMinutes(3)));
-        dsCa.add(new CaKham("LH006", homNay.atTime(10, 0), "BN001", "Võ Thanh Hải", "Nam",
-                LocalDate.of(1990, 4, 10), "Không", "Dị ứng Penicillin", null, "HS001",
-                "NV001 - Nguyễn Văn An", "P01", DA_CHECK_IN, now.minusMinutes(1)));
-
-        // Khớp bảng PhongKham trong SQL (P01 - P03).
-        trangThaiPhong.put("P01", SAN_SANG);
-        trangThaiPhong.put("P02", SAN_SANG);
-        trangThaiPhong.put("P03", BAO_TRI);
-
-        // Khớp dữ liệu SoDoRang trong SQL.
-        datRangMau("HS001", 16, "Sâu răng", "Cần trám composite");
-        datRangMau("HS001", 26, "Bình thường", "");
-        datRangMau("HS001", 38, "Mọc lệch", "Chỉ định nhổ");
-        datRangMau("HS002", 11, "Mẻ răng", "Dự kiến bọc sứ");
-        datRangMau("HS003", 46, "Viêm tủy", "Cần điều trị tủy");
-        datRangMau("HS004", 55, "Sâu răng", "");
-    }
-
-    private void datRangMau(String maHoSo, int maRang, String tinhTrang, String ghiChu) {
-        soDoRang.computeIfAbsent(maHoSo, k -> new TreeMap<>()).put(maRang, new String[] { tinhTrang, ghiChu });
     }
 
     // =====================================================================
@@ -511,28 +480,22 @@ public class XuLyKhamLamSangVaSoDoRangPanel extends JPanel {
             showMessage("Chỉ vào khám được bệnh nhân đang ở trạng thái \"" + DA_CHECK_IN + "\".");
             return;
         }
-        String trangThaiPhongHienTai = trangThaiPhong.get(ca.maPhong);
-        if (!SAN_SANG.equals(trangThaiPhongHienTai)) {
-            showMessage("Phòng " + ca.maPhong + " đang \"" + trangThaiPhongHienTai + "\". "
-                    + "Hãy nhờ lễ tân điều phối sang phòng \"" + SAN_SANG + "\" "
-                    + "hoặc chờ y tá chuẩn bị xong phòng.");
+        if (ca.maHoSo == null) {
+            showWarning("Bệnh nhân chưa có hồ sơ bệnh án nên chưa thể vào khám.");
             return;
         }
-
-        // TODO DAO (một transaction):
-        // 1. ChanDoanDAO.taoNhap(maChanDoan, ngayKham, maLichHen, maHoSo, maNhaSi) ->
-        // TrangThai='Nhap'
-        // 2. LichHenDAO.capNhatTrangThai(maLichHen, 'Dang kham')
-        // 3. PhongKhamDAO.capNhatTrangThai(maPhong, 'Dang kham')
-        // Mã chẩn đoán sinh từ DB; một lịch hẹn chỉ sinh tối đa 1 lần khám
-        // (UQ_ChanDoan_LichHen).
-        ca.maChanDoan = String.format("CD%03d", nextChanDoan++);
-        ca.trangThai = DANG_KHAM;
-        trangThaiPhong.put(ca.maPhong, DANG_KHAM);
-
-        lamMoi(ca.maLich);
-        showMessage("Đã tạo chẩn đoán nháp " + ca.maChanDoan + ". Phòng " + ca.maPhong
-                + " chuyển sang \"" + DANG_KHAM + "\".");
+        try {
+            ChanDoan chanDoan = chanDoanDAO.taoNhap(chanDoanDAO.sinhMa(), LocalDate.now(),
+                    ca.maLich, ca.maHoSo, ca.maNhaSi, ca.maPhong);
+            if (chanDoan == null) {
+                throw new SQLException("Không tải lại được chẩn đoán vừa tạo.");
+            }
+            lamMoi(ca.maLich);
+            showMessage("Đã mở chẩn đoán nháp " + chanDoan.getMaChanDoan()
+                    + " cho bệnh nhân " + ca.hoTen + ".");
+        } catch (SQLException | IllegalStateException ex) {
+            showError("Không thể vào khám", ex);
+        }
     }
 
     /** Lưu giữa chừng, vẫn ở trạng thái nháp. */
@@ -547,7 +510,15 @@ public class XuLyKhamLamSangVaSoDoRangPanel extends JPanel {
             return;
         }
         ghiFormVaoCa(caHienTai);
-        // TODO DAO: ChanDoanDAO.capNhatNhap(maChanDoan, lyDo, trieuChung, ketLuan)
+        try {
+            if (!chanDoanDAO.capNhatNhap(taoChanDoan(caHienTai))) {
+                showWarning("Không tìm thấy chẩn đoán nháp để lưu. Hãy tải lại hàng chờ.");
+                return;
+            }
+        } catch (SQLException | IllegalStateException ex) {
+            showError("Không thể lưu nháp chẩn đoán", ex);
+            return;
+        }
         showMessage("Đã lưu nháp chẩn đoán " + caHienTai.maChanDoan + ".");
     }
 
@@ -578,16 +549,16 @@ public class XuLyKhamLamSangVaSoDoRangPanel extends JPanel {
         }
 
         ghiFormVaoCa(caHienTai);
-        // TODO DAO (một transaction):
-        // 1. ChanDoanDAO.chot(maChanDoan, lyDo, trieuChung, ketLuan) -> TrangThai='Da
-        // chot'
-        // 2. LichHenDAO.capNhatTrangThai(maLichHen, 'Hoan thanh')
-        // 3. PhongKhamDAO.capNhatTrangThai(maPhong, 'Can ve sinh')
-        // Các răng đã ghi nhận được lưu bằng SoDoRangDAO ở mỗi lần bấm "Lưu răng".
         CaKham ca = caHienTai;
-        ca.daChot = true;
-        ca.trangThai = HOAN_THANH;
-        trangThaiPhong.put(ca.maPhong, CAN_VE_SINH);
+        try {
+            if (!chanDoanDAO.chot(taoChanDoan(ca), ca.maLich, ca.maPhong)) {
+                showWarning("Không thể chốt chẩn đoán. Hãy tải lại hàng chờ.");
+                return;
+            }
+        } catch (SQLException | IllegalStateException ex) {
+            showError("Không thể hoàn tất khám", ex);
+            return;
+        }
 
         lamMoi(ca.maLich);
         showMessage("Đã chốt chẩn đoán " + ca.maChanDoan + ". Phòng " + ca.maPhong
@@ -613,8 +584,20 @@ public class XuLyKhamLamSangVaSoDoRangPanel extends JPanel {
             return;
         }
         String tinhTrang = (String) cboTinhTrang.getSelectedItem();
-        // TODO DAO: SoDoRangDAO.luuHoacCapNhat(maHoSo, maRang, loaiRang(maRang),
-        // tinhTrang, ghiChu)
+        if (caHienTai.maHoSo == null) {
+            showWarning("Bệnh nhân chưa có hồ sơ bệnh án.");
+            return;
+        }
+        try {
+            SoDoRang rang = new SoDoRang(caHienTai.maHoSo, maRang, loaiRang(maRang), tinhTrang, ghiChu);
+            if (!soDoRangDAO.luuHoacCapNhat(rang)) {
+                showWarning("Không lưu được ghi nhận răng. Vui lòng thử lại.");
+                return;
+            }
+        } catch (SQLException | IllegalStateException ex) {
+            showError("Không thể lưu sơ đồ răng", ex);
+            return;
+        }
         layDuLieuRang().put(maRang, new String[] { tinhTrang, ghiChu });
         chart.repaint();
         capNhatEditorRang();
@@ -631,7 +614,16 @@ public class XuLyKhamLamSangVaSoDoRangPanel extends JPanel {
                 "Xóa ghi nhận của răng " + maRang + " khỏi sơ đồ?",
                 "Xác nhận xóa", JOptionPane.YES_NO_OPTION);
         if (choice == JOptionPane.YES_OPTION) {
-            // TODO DAO: SoDoRangDAO.xoa(maHoSo, maRang)
+            try {
+                if (!soDoRangDAO.xoa(caHienTai.maHoSo, maRang)) {
+                    showWarning("Không tìm thấy ghi nhận răng cần xóa. Hãy tải lại hồ sơ.");
+                    napSoDoRang(caHienTai);
+                    return;
+                }
+            } catch (SQLException | IllegalStateException ex) {
+                showError("Không thể xóa ghi nhận răng", ex);
+                return;
+            }
             layDuLieuRang().remove(maRang);
             chart.repaint();
             capNhatEditorRang();
@@ -670,6 +662,9 @@ public class XuLyKhamLamSangVaSoDoRangPanel extends JPanel {
             ghiFormVaoCa(caHienTai);
         }
         caHienTai = caMoi;
+        if (caMoi != null) {
+            napSoDoRang(caMoi);
+        }
         hienThiCa();
     }
 
@@ -681,6 +676,40 @@ public class XuLyKhamLamSangVaSoDoRangPanel extends JPanel {
     private void lamMoi(String maLichCanChon) {
         dangNapBang = true;
         lichModel.setRowCount(0);
+        dsCa.clear();
+        try {
+            for (KhamLamSangDAO.CaKham ca : khamLamSangDAO.layHangCho()) {
+                dsCa.add(new CaKham(
+                        ca.getMaLichHen(),
+                        ca.getThoiGianHen(),
+                        ca.getMaBenhNhan(),
+                        ca.getHoTen(),
+                        ca.getGioiTinh(),
+                        ca.getNgaySinh(),
+                        ca.getTienSuBenhLy(),
+                        ca.getThongTinDiUng(),
+                        ca.getNguoiBaoHo(),
+                        ca.getMaHoSo(),
+                        ca.getMaNhaSi(),
+                        ca.getMaNhaSi() + " - " + ca.getTenNhaSi(),
+                        ca.getMaPhong(),
+                        hienThiTrangThaiPhong(ca.getTrangThaiPhong()),
+                        hienThiTrangThaiLich(ca.getTrangThaiLich()),
+                        ca.getMaChanDoan(),
+                        ca.getLyDoKham(),
+                        ca.getTrieuChung(),
+                        ca.getKetLuanChanDoan(),
+                        ca.getTrangThaiChanDoan()));
+            }
+        } catch (SQLException | IllegalStateException ex) {
+            dsCa.clear();
+            dangNapBang = false;
+            caHienTai = null;
+            hienThiCa();
+            showError("Không thể tải hàng chờ khám", ex);
+            return;
+        }
+
         int choKham = 0;
         int dangKhamDem = 0;
         int hoanThanh = 0;
@@ -695,7 +724,7 @@ public class XuLyKhamLamSangVaSoDoRangPanel extends JPanel {
                 continue; // Lịch chưa check-in chưa vào hàng chờ khám.
             }
             lichModel.addRow(new Object[] {
-                    ca.maLich, ca.gioHen.format(GIO), ca.hoTen, ca.maPhong, ca.trangThai });
+                    ca.maLich, dinhDangGioHen(ca.gioHen), ca.hoTen, ca.maPhong, ca.trangThai });
         }
         summaryValues[0].setText(String.valueOf(choKham));
         summaryValues[1].setText(String.valueOf(dangKhamDem));
@@ -711,7 +740,48 @@ public class XuLyKhamLamSangVaSoDoRangPanel extends JPanel {
         }
         dangNapBang = false;
         caHienTai = layCaDangChon();
+        if (caHienTai != null) {
+            napSoDoRang(caHienTai);
+        }
         hienThiCa();
+    }
+
+    private void napSoDoRang(CaKham ca) {
+        if (ca.maHoSo == null) {
+            return;
+        }
+        Map<Integer, String[]> rangs = new TreeMap<>();
+        try {
+            for (SoDoRang rang : soDoRangDAO.layTheoHoSo(ca.maHoSo)) {
+                rangs.put(rang.getMaRang(),
+                        new String[] { rang.getTinhTrangBenhLy(), rang.getGhiChu() == null ? "" : rang.getGhiChu() });
+            }
+            soDoRang.put(ca.maHoSo, rangs);
+        } catch (SQLException | IllegalStateException ex) {
+            soDoRang.put(ca.maHoSo, rangs);
+            showError("Không thể tải sơ đồ răng", ex);
+        }
+    }
+
+    private static String hienThiTrangThaiLich(String trangThai) {
+        if ("Da check-in".equals(trangThai)) return DA_CHECK_IN;
+        if ("Dang kham".equals(trangThai)) return DANG_KHAM;
+        if ("Hoan thanh".equals(trangThai)) return HOAN_THANH;
+        return trangThai;
+    }
+
+    private static String hienThiTrangThaiPhong(String trangThai) {
+        if ("San sang".equals(trangThai)) return SAN_SANG;
+        if ("Can ve sinh".equals(trangThai)) return CAN_VE_SINH;
+        if ("Bao tri".equals(trangThai)) return "Bảo trì";
+        if ("Dang kham".equals(trangThai)) return DANG_KHAM;
+        return trangThai;
+    }
+
+    private static String dinhDangGioHen(LocalDateTime gioHen) {
+        return gioHen.toLocalDate().equals(LocalDate.now())
+                ? gioHen.format(GIO)
+                : gioHen.format(DateTimeFormatter.ofPattern("dd/MM HH:mm"));
     }
 
     // Đổ dữ liệu của ca đang chọn lên form và bật/tắt các nút theo trạng thái.
@@ -735,9 +805,10 @@ public class XuLyKhamLamSangVaSoDoRangPanel extends JPanel {
         } else {
             int tuoi = ca.ngaySinh == null ? -1 : Period.between(ca.ngaySinh, LocalDate.now()).getYears();
             lblTenBn.setText(ca.hoTen + "  ·  " + ca.maBenhNhan);
-            lblThongTinBn.setText(ca.gioiTinh
+            lblThongTinBn.setText((ca.gioiTinh == null ? "" : ca.gioiTinh)
                     + (ca.ngaySinh == null ? "" : "  ·  " + ca.ngaySinh.format(NGAY) + " (" + tuoi + " tuổi)")
-                    + "  ·  Hồ sơ " + ca.maHoSo + "  ·  " + ca.nhaSi);
+                    + (ca.maHoSo == null ? "  ·  Chưa có hồ sơ bệnh án" : "  ·  Hồ sơ " + ca.maHoSo)
+                    + "  ·  " + ca.nhaSi);
             if (ca.diUng == null || ca.diUng.isEmpty()) {
                 lblDiUng.setText("Dị ứng: không ghi nhận");
                 lblDiUng.setForeground(MUTED);
@@ -747,7 +818,8 @@ public class XuLyKhamLamSangVaSoDoRangPanel extends JPanel {
                 lblDiUng.setForeground(RED);
                 lblDiUng.setFont(new Font("Arial", Font.BOLD, 12));
             }
-            lblTienSu.setText("Tiền sử bệnh lý: " + (ca.tienSu == null ? "Không" : ca.tienSu));
+            lblTienSu.setText("Tiền sử bệnh lý: "
+                    + (ca.tienSu == null || ca.tienSu.trim().isEmpty() ? "Không" : ca.tienSu));
             lblBaoHo.setText(ca.nguoiBaoHo == null ? " " : "Người bảo hộ: " + ca.nguoiBaoHo);
             lblTrangThaiKham.setText(moTaTrangThai(ca));
 
@@ -758,7 +830,7 @@ public class XuLyKhamLamSangVaSoDoRangPanel extends JPanel {
             txtTrieuChung.setCaretPosition(0);
             txtKetLuan.setCaretPosition(0);
 
-            chart.setData(soDoRang.computeIfAbsent(ca.maHoSo, k -> new TreeMap<>()));
+            chart.setData(layDuLieuRang(ca));
             boolean treEm = tuoi >= 0 && tuoi < TUOI_RANG_SUA;
             chkRangSua.setSelected(treEm);
             chart.setChild(treEm);
@@ -769,7 +841,7 @@ public class XuLyKhamLamSangVaSoDoRangPanel extends JPanel {
         txtKetLuan.setEditable(choPhepSua);
         btnLuuNhap.setEnabled(choPhepSua);
         btnHoanTat.setEnabled(choPhepSua);
-        btnVaoKham.setEnabled(ca != null && DA_CHECK_IN.equals(ca.trangThai));
+        btnVaoKham.setEnabled(ca != null && ca.maHoSo != null && DA_CHECK_IN.equals(ca.trangThai));
         capNhatEditorRang();
         capNhatTomTatRang();
     }
@@ -779,9 +851,14 @@ public class XuLyKhamLamSangVaSoDoRangPanel extends JPanel {
             return "Lần khám " + ca.maChanDoan + " đã được chốt (chỉ xem).";
         }
         if (DANG_KHAM.equals(ca.trangThai)) {
+            if (ca.maChanDoan == null) {
+                return "Lịch đang ở trạng thái Đang khám nhưng chưa có chẩn đoán nháp. "
+                        + "Hãy báo quản trị viên kiểm tra dữ liệu.";
+            }
             return "Đang khám tại phòng " + ca.maPhong + "  ·  Chẩn đoán nháp " + ca.maChanDoan;
         }
-        return "Đã check-in, chờ nha sĩ bấm \"Vào khám\" (phòng " + ca.maPhong + "). "
+        return "Đã check-in, chờ nha sĩ bấm \"Vào khám\" (phòng " + ca.maPhong
+                + (ca.trangThaiPhong == null ? "" : " · " + ca.trangThaiPhong) + "). "
                 + "Có thể xem sơ đồ răng từ các lần khám trước.";
     }
 
@@ -834,14 +911,18 @@ public class XuLyKhamLamSangVaSoDoRangPanel extends JPanel {
     // =====================================================================
 
     private boolean dangKham(CaKham ca) {
-        return ca != null && DANG_KHAM.equals(ca.trangThai) && !ca.daChot;
+        return ca != null && DANG_KHAM.equals(ca.trangThai) && ca.maChanDoan != null && !ca.daChot;
     }
 
     private Map<Integer, String[]> layDuLieuRang() {
-        if (caHienTai == null) {
+        return layDuLieuRang(caHienTai);
+    }
+
+    private Map<Integer, String[]> layDuLieuRang(CaKham ca) {
+        if (ca == null || ca.maHoSo == null) {
             return new TreeMap<>();
         }
-        return soDoRang.computeIfAbsent(caHienTai.maHoSo, k -> new TreeMap<>());
+        return soDoRang.computeIfAbsent(ca.maHoSo, k -> new TreeMap<>());
     }
 
     private CaKham layCaDangChon() {
@@ -862,6 +943,11 @@ public class XuLyKhamLamSangVaSoDoRangPanel extends JPanel {
         ca.lyDo = txtLyDo.getText().trim();
         ca.trieuChung = txtTrieuChung.getText().trim();
         ca.ketLuan = txtKetLuan.getText().trim();
+    }
+
+    private ChanDoan taoChanDoan(CaKham ca) {
+        return new ChanDoan(ca.maChanDoan, LocalDate.now(), ca.lyDo, ca.trieuChung, ca.ketLuan,
+                "Nhap", ca.maLich, ca.maHoSo, ca.maNhaSi);
     }
 
     // Kiểm tra độ dài theo các cột của bảng ChanDoan.
@@ -886,6 +972,15 @@ public class XuLyKhamLamSangVaSoDoRangPanel extends JPanel {
 
     private void showWarning(String message) {
         JOptionPane.showMessageDialog(this, message, "Dữ liệu không hợp lệ", JOptionPane.WARNING_MESSAGE);
+    }
+
+    private void showError(String action, Exception exception) {
+        String detail = exception.getMessage();
+        JOptionPane.showMessageDialog(this,
+                action + ":\n" + (detail == null || detail.trim().isEmpty()
+                        ? exception.getClass().getSimpleName()
+                        : detail),
+                "Lỗi cơ sở dữ liệu", JOptionPane.ERROR_MESSAGE);
     }
 
     // ----- Tạo thành phần giao diện -----
@@ -988,7 +1083,7 @@ public class XuLyKhamLamSangVaSoDoRangPanel extends JPanel {
             label.setHorizontalAlignment(SwingConstants.CENTER);
             label.setFont(new Font("Arial", Font.BOLD, 11));
             String text = String.valueOf(value);
-            if (HOAN_THANH.equals(text) || DA_XAC_NHAN.equals(text)) {
+            if (HOAN_THANH.equals(text)) {
                 label.setForeground(TEAL);
             } else if (DA_CHECK_IN.equals(text)) {
                 label.setForeground(ORANGE);

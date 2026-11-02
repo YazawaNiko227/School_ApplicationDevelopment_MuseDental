@@ -15,6 +15,7 @@ import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
 import java.sql.SQLException;
+import java.text.Normalizer;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -26,6 +27,7 @@ import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
@@ -35,25 +37,30 @@ import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 
 /**
- * Panel "Lịch làm việc cá nhân" (phục vụ mục TÌM KIẾM → "Lịch làm việc cá nhân").
+ * Panel "Lịch làm việc cá nhân" (phục vụ mục TÌM KIẾM → "Lịch làm việc cá
+ * nhân").
  * Kết nối CSDL trực tiếp qua CaTrucDAO, LichHenDAO và NhanVienDAO.
  *
  * Chức năng chính:
  * 1. Xem lịch trực cá nhân theo tuần (bảng CaTruc).
- * 2. Nha sĩ xem danh sách bệnh nhân hẹn khám với mình trong tuần (bảng LichHen).
- * 3. Hỗ trợ điều hướng chuyển đổi tuần làm việc (Tuần trước, Tuần này, Tuần sau).
+ * 2. Nha sĩ xem danh sách bệnh nhân hẹn khám với mình trong tuần (bảng
+ * LichHen).
+ * 3. Hỗ trợ điều hướng chuyển đổi tuần làm việc (Tuần trước, Tuần này, Tuần
+ * sau).
  */
 public class XuLyTimKiemLichLamViecCaNhanPanel extends JPanel {
 
     private static final DateTimeFormatter DINH_DANG_NGAY = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     private static final DateTimeFormatter DINH_DANG_GIO = DateTimeFormatter.ofPattern("HH:mm");
-    private static final String[] THU_TRONG_TUAN = { "Thứ hai", "Thứ ba", "Thứ tư", "Thứ năm", "Thứ sáu", "Thứ bảy", "Chủ nhật" };
+    private static final String[] THU_TRONG_TUAN = { "Thứ hai", "Thứ ba", "Thứ tư", "Thứ năm", "Thứ sáu", "Thứ bảy",
+            "Chủ nhật" };
 
     private final CaTrucDAO caTrucDAO = new CaTrucDAO();
     private final LichHenDAO lichHenDAO = new LichHenDAO();
     private final NhanVienDAO nhanVienDAO = new NhanVienDAO();
 
     private String maNhanVien;
+    private final String dinhDanhDangNhap;
     private String hoTen = "";
     private String chuyenMon = "";
     private boolean laNhaSi = false;
@@ -70,7 +77,9 @@ public class XuLyTimKiemLichLamViecCaNhanPanel extends JPanel {
     private final DefaultTableModel modelCa = new DefaultTableModel(
             new String[] { "Mã ca", "Ngày", "Thứ", "Bắt đầu", "Kết thúc", "Loại ca", "Phòng" }, 0) {
         @Override
-        public boolean isCellEditable(int row, int column) { return false; }
+        public boolean isCellEditable(int row, int column) {
+            return false;
+        }
     };
     private final JTable bangCa = new JTable(modelCa);
 
@@ -79,17 +88,20 @@ public class XuLyTimKiemLichLamViecCaNhanPanel extends JPanel {
     private final DefaultTableModel modelLich = new DefaultTableModel(
             new String[] { "Mã lịch", "Giờ hẹn", "Mã BN", "Bệnh nhân", "Phòng", "Trạng thái" }, 0) {
         @Override
-        public boolean isCellEditable(int row, int column) { return false; }
+        public boolean isCellEditable(int row, int column) {
+            return false;
+        }
     };
     private final JTable bangLich = new JTable(modelLich);
     private final List<LichHenInfo> danhSachLichTuan = new ArrayList<>();
 
     public XuLyTimKiemLichLamViecCaNhanPanel() {
-        this("NV001"); // Mặc định NV001 cho chạy thử
+        this(null);
     }
 
-    public XuLyTimKiemLichLamViecCaNhanPanel(String maNhanVien) {
-        this.maNhanVien = maNhanVien == null || maNhanVien.trim().isEmpty() ? "NV001" : maNhanVien.trim();
+    public XuLyTimKiemLichLamViecCaNhanPanel(String dinhDanhDangNhap) {
+        this.dinhDanhDangNhap = dinhDanhDangNhap == null ? "" : dinhDanhDangNhap.trim();
+        this.maNhanVien = "";
 
         setLayout(new BorderLayout(0, 18));
         setOpaque(false);
@@ -241,31 +253,50 @@ public class XuLyTimKiemLichLamViecCaNhanPanel extends JPanel {
     // 2. XỬ LÝ DỮ LIỆU TỪ DAO
     // =========================================================================
 
-    /** Nạp thông tin nhân viên theo mã hoặc tên đăng nhập từ NhanVienDAO. */
+    /**
+     * Nạp nhân viên theo mã hoặc tài khoản đăng nhập, không tự chọn tài khoản mẫu.
+     */
     private void napThongTinNhanVien() {
+        if (dinhDanhDangNhap.isEmpty()) {
+            baoLoiKhongTimThayNhanVien();
+            return;
+        }
         try {
-            NhanVien nv = nhanVienDAO.timTheoMa(maNhanVien);
+            NhanVien nv = nhanVienDAO.timTheoMa(dinhDanhDangNhap);
             if (nv == null) {
-                nv = nhanVienDAO.timTheoTenDangNhap(maNhanVien);
+                nv = nhanVienDAO.timTheoTenDangNhap(dinhDanhDangNhap);
             }
             if (nv != null) {
                 this.maNhanVien = nv.getMaNhanVien();
                 this.hoTen = nv.getHoTen();
                 this.chuyenMon = nv.getChuyenMon() == null ? "" : nv.getChuyenMon();
-                this.laNhaSi = chuyenMon.toLowerCase().contains("nha sĩ") || chuyenMon.toLowerCase().contains("bác sĩ");
+                String chuyenMonKhongDau = Normalizer.normalize(chuyenMon, Normalizer.Form.NFD)
+                        .replaceAll("\\p{M}", "")
+                        .toLowerCase(java.util.Locale.ROOT);
+                this.laNhaSi = chuyenMonKhongDau.contains("nha si")
+                        || chuyenMonKhongDau.contains("bac si");
             } else {
-                this.hoTen = maNhanVien;
-                this.chuyenMon = "Nhân viên";
-                this.laNhaSi = true;
+                baoLoiKhongTimThayNhanVien();
             }
         } catch (SQLException e) {
-            this.hoTen = maNhanVien;
-            this.chuyenMon = "Nhân viên";
+            this.maNhanVien = "";
+            this.hoTen = "Không tải được thông tin nhân viên";
+            this.chuyenMon = "";
+            GiaoDienUtil.baoLoi(this, e);
         }
     }
 
     /** Nạp lại bảng ca trực và bảng lịch hẹn theo khoảng ngày của tuần. */
     private void lamMoiTuan() {
+        if (maNhanVien.isEmpty()) {
+            modelCa.setRowCount(0);
+            modelLich.setRowCount(0);
+            danhSachLichTuan.clear();
+            lblSoCaTruc.setText("0");
+            lblSoLichHen.setText("0");
+            lblThongTinNhanVien.setText("Không xác định được nhân viên của tài khoản đăng nhập.");
+            return;
+        }
         LocalDate cuoiTuan = dauTuan.plusDays(6);
         lblThongTinNhanVien.setText(hoTen + "  ·  " + maNhanVien + " (" + chuyenMon + ")  ·  Tuần "
                 + dauTuan.format(DINH_DANG_NGAY) + " - " + cuoiTuan.format(DINH_DANG_NGAY));
@@ -288,6 +319,8 @@ public class XuLyTimKiemLichLamViecCaNhanPanel extends JPanel {
             }
             lblSoCaTruc.setText(String.valueOf(caList.size()));
         } catch (SQLException e) {
+            modelCa.setRowCount(0);
+            lblSoCaTruc.setText("0");
             GiaoDienUtil.baoLoi(this, e);
         }
 
@@ -300,8 +333,21 @@ public class XuLyTimKiemLichLamViecCaNhanPanel extends JPanel {
             lblSoLichHen.setText(String.valueOf(danhSachLichTuan.size()));
             locBangLichHen();
         } catch (SQLException e) {
+            danhSachLichTuan.clear();
+            modelLich.setRowCount(0);
+            lblSoLichHen.setText("0");
             GiaoDienUtil.baoLoi(this, e);
         }
+    }
+
+    private void baoLoiKhongTimThayNhanVien() {
+        this.maNhanVien = "";
+        this.hoTen = "Không tìm thấy nhân viên";
+        this.chuyenMon = "";
+        this.laNhaSi = false;
+        JOptionPane.showMessageDialog(this,
+                "Không tìm thấy nhân viên liên kết với tài khoản '" + dinhDanhDangNhap + "'.",
+                "Không tải được lịch cá nhân", JOptionPane.ERROR_MESSAGE);
     }
 
     /** Lọc bảng lịch hẹn theo từ khóa tìm kiếm (mã lịch, mã BN, tên BN). */
@@ -343,7 +389,8 @@ public class XuLyTimKiemLichLamViecCaNhanPanel extends JPanel {
             super.getTableCellRendererComponent(table, value, isSelected, false, row, column);
             setBorder(new EmptyBorder(0, 8, 0, 8));
             setFont(GiaoDienUtil.CHU_DAM);
-            if (!isSelected) setBackground(Color.WHITE);
+            if (!isSelected)
+                setBackground(Color.WHITE);
 
             String tt = value == null ? "" : value.toString();
             switch (tt) {

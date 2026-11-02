@@ -28,6 +28,8 @@ import javax.swing.SwingConstants;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
+import dao.CongNoTraGopDAO;
+import entity.DotThanhToan;
 
 /**
  * Panel "Công nợ và trả góp theo đợt" (bước 9 trong luồng khám bệnh chính,
@@ -42,10 +44,11 @@ import javax.swing.table.DefaultTableModel;
  * HoaDon chuyển sang 'Da thanh toan'.
  * 4. "Nhắc nợ": soạn nội dung nhắc bệnh nhân về đợt chưa thanh toán gần nhất.
  *
- * Đợt chưa thanh toán mà quá ngày đến hạn được hiển thị là "Quá hạn"
- * (khi nối DB nên cập nhật cột TrangThai = 'Qua han' khi mở màn hình).
+ * Đợt chưa thanh toán mà quá ngày đến hạn được hiển thị là "Quá hạn" mà không
+ * cần sửa dữ liệu trạng thái trong CSDL.
  *
- * Hiện tại dùng dữ liệu mẫu trong bộ nhớ. Chỗ cần nối DAO ghi "TODO DAO".
+ * Hồ sơ và kỳ hạn được nạp từ CSDL; thao tác thu tiền cập nhật transaction qua
+ * DAO.
  */
 public class CapNhatCongNoTraGopPanel extends JPanel {
     private static final Color INK = new Color(32, 53, 68);
@@ -166,8 +169,7 @@ public class CapNhatCongNoTraGopPanel extends JPanel {
         }
     }
 
-    // TODO DAO: CongNoTraGopDAO.layTatCa() +
-    // DotThanhToanDAO.timTheoCongNo(maCongNo)
+    private final CongNoTraGopDAO congNoDAO = new CongNoTraGopDAO();
     private final List<CongNo> dsCongNo = new ArrayList<>();
     private boolean dangNapBang = false;
 
@@ -211,8 +213,6 @@ public class CapNhatCongNoTraGopPanel extends JPanel {
         setLayout(new BorderLayout(0, 18));
         setOpaque(false);
 
-        taoDuLieuMau();
-
         add(createSummaryPanel(), BorderLayout.NORTH);
 
         JPanel center = new JPanel(new BorderLayout(18, 0));
@@ -222,34 +222,6 @@ public class CapNhatCongNoTraGopPanel extends JPanel {
         add(center, BorderLayout.CENTER);
 
         lamMoi(null);
-    }
-
-    // =====================================================================
-    // DỮ LIỆU MẪU
-    // =====================================================================
-
-    private void taoDuLieuMau() {
-        LocalDate homNay = LocalDate.now();
-
-        // CN001: khớp dữ liệu mẫu trong SQL (HD003, BN002, 3 đợt).
-        CongNo cn1 = new CongNo("CN001", "HD003", "BN002", "Nguyễn Thị Lan", "0912000002", 7000000);
-        cn1.dots.add(new Dot("DOT001", LocalDate.of(2026, 9, 10), 3000000, true, LocalDate.of(2026, 9, 10)));
-        cn1.dots.add(new Dot("DOT002", LocalDate.of(2026, 10, 10), 2000000, false, null));
-        cn1.dots.add(new Dot("DOT003", LocalDate.of(2026, 11, 10), 2000000, false, null));
-        dsCongNo.add(cn1);
-
-        // CN002: đợt 2 sắp đến hạn (tính theo ngày hiện tại để dễ thử).
-        CongNo cn2 = new CongNo("CN002", "HD005", "BN003", "Đặng Quốc Khánh", "0912000003", 6000000);
-        cn2.dots.add(new Dot("DOT004", homNay.minusMonths(1), 2000000, true, homNay.minusMonths(1)));
-        cn2.dots.add(new Dot("DOT005", homNay.plusDays(5), 2000000, false, null));
-        cn2.dots.add(new Dot("DOT006", homNay.plusDays(35), 2000000, false, null));
-        dsCongNo.add(cn2);
-
-        // CN003: đã trả xong, dùng để thử bộ lọc "Hoàn tất".
-        CongNo cn3 = new CongNo("CN003", "HD006", "BN001", "Võ Thanh Hải", "0912000001", 2000000);
-        cn3.dots.add(new Dot("DOT007", homNay.minusMonths(2), 1000000, true, homNay.minusMonths(2)));
-        cn3.dots.add(new Dot("DOT008", homNay.minusMonths(1), 1000000, true, homNay.minusMonths(1)));
-        dsCongNo.add(cn3);
     }
 
     // =====================================================================
@@ -446,20 +418,28 @@ public class CapNhatCongNoTraGopPanel extends JPanel {
             return;
         }
 
-        // TODO DAO (một transaction):
-        // 1. DotThanhToanDAO.thanhToan(maDot, ngayThanhToanThucTe = hôm nay)
-        // -> TrangThai='Da thanh toan'
-        // 2. CongNoTraGopDAO.capNhatSoDotConLai(maCongNo, soDotConLai - 1)
-        // 3. Nếu SoDotConLai = 0: HoaDonDAO.capNhatTrangThai(maHoaDon, 'Da thanh toan')
-        dot.daThanhToan = true;
-        dot.ngayThanhToan = LocalDate.now();
+        int soDotConLaiSauKhiThu = cn.soDotConLai() - 1;
+        double conLaiSauKhiThu = cn.conLai() - dot.soTien;
+        try {
+            if (!congNoDAO.thanhToanDot(dot.ma, LocalDate.now())) {
+                showWarning("Đợt này đã được thanh toán hoặc không còn tồn tại. Danh sách sẽ được tải lại.");
+                lamMoi(cn.ma);
+                return;
+            }
+        } catch (java.sql.SQLException exception) {
+            JOptionPane.showMessageDialog(this,
+                    "Không thể ghi nhận thanh toán:\n" + exception.getMessage(),
+                    "Lỗi cập nhật công nợ", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
 
         String thongBao = "Đã thu đợt " + (row + 1) + ": " + TIEN.format(dot.soTien) + " đ.";
-        if (cn.soDotConLai() == 0) {
+        if (soDotConLaiSauKhiThu == 0) {
             thongBao += "\nHồ sơ " + cn.ma + " đã trả hết, hóa đơn " + cn.maHoaDon
                     + " chuyển sang \"Đã thanh toán\".";
         } else {
-            thongBao += "\nCòn " + cn.soDotConLai() + " đợt, " + TIEN.format(cn.conLai()) + " đ.";
+            thongBao += "\nCòn " + soDotConLaiSauKhiThu + " đợt, "
+                    + TIEN.format(conLaiSauKhiThu) + " đ.";
         }
         lamMoi(cn.ma);
         showMessage(thongBao);
@@ -507,6 +487,23 @@ public class CapNhatCongNoTraGopPanel extends JPanel {
         String keyword = txtTim.getText().trim().toLowerCase();
         String loc = (String) cboLoc.getSelectedItem();
 
+        dsCongNo.clear();
+        try {
+            for (CongNoTraGopDAO.HoSoCongNo hoSo : congNoDAO.layTatCa()) {
+                CongNo congNo = new CongNo(hoSo.maCongNo(), hoSo.maHoaDon(), hoSo.maBenhNhan(),
+                        hoSo.hoTen(), hoSo.soDienThoai(), hoSo.tongSoTien());
+                for (DotThanhToan dot : hoSo.dsDot()) {
+                    congNo.dots.add(new Dot(dot.getMaDot(), dot.getNgayDenHan(), dot.getSoTienDot(),
+                            DotThanhToan.DA_THANH_TOAN.equals(dot.getTrangThai()),
+                            dot.getNgayThanhToanThucTe()));
+                }
+                dsCongNo.add(congNo);
+            }
+        } catch (java.sql.SQLException exception) {
+            JOptionPane.showMessageDialog(this,
+                    "Không thể tải dữ liệu công nợ từ CSDL:\n" + exception.getMessage(),
+                    "Lỗi tải công nợ", JOptionPane.ERROR_MESSAGE);
+        }
         congNoModel.setRowCount(0);
         for (CongNo cn : dsCongNo) {
             boolean khopTuKhoa = keyword.isEmpty()

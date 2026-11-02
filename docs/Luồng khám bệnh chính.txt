@@ -19,7 +19,7 @@ Lập hóa đơn: thu ngân lập hóa đơn. Nếu trả góp thì sang Công n
 6a	Phác đồ & dự toán	Nha sĩ	Dựa trên chẩn đoán, chọn dịch vụ + số lượng, ra dự toán, đặt lịch tái khám (tạo LichHen mới có MaKeHoach)	KeHoachDieuTri, ..._DichVu
 6b	Kê đơn thuốc	Nha sĩ	Kê thuốc theo chẩn đoán (1 đơn / 1 chẩn đoán)	DonThuoc, ChiTietDonThuoc
 7	Ghi nhận vật tư tiêu hao	Y tá / Thủ kho	Ghi vật tư dùng cho lượt khám này (gắn MaLichHen), trừ tồn kho	PhieuXuatKho, VatTu
-8	Điều phối + Chuẩn bị phòng	Y tá	Khám xong → Hoàn thành, phòng chuyển “Cần vệ sinh” → vệ sinh xong thì “Sẵn sàng”	LichHen, PhongKham
+8	Điều phối + Chuẩn bị phòng	Khám xong → Hoàn thành, phòng chuyển “Cần vệ sinh” → vệ sinh xong thì “Sẵn sàng”	LichHen, PhongKham
 9	Lập hóa đơn	Thu ngân	Lấy các dịch vụ đã thực hiện → hóa đơn, chọn thanh toán thẳng hoặc trả góp	HoaDon, ChiTietHoaDon
 10	Công nợ & trả góp	Thu ngân	Nếu trả góp: tạo công nợ, chia đợt, theo dõi và nhắc nợ	CongNoTraGop, DotThanhToan
 11	Tra cứu EMR / hóa đơn, Báo cáo doanh thu	Mọi vai trò	Chỉ đọc

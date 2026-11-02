@@ -19,6 +19,7 @@ import java.awt.Insets;
 import java.awt.RenderingHints;
 import java.awt.event.ActionEvent;
 import java.net.URL;
+import java.util.prefs.Preferences;
 import javax.swing.BorderFactory;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
@@ -54,11 +55,12 @@ import entity.TaiKhoan;
  * chính của hệ thống phòng khám.
  */
 public final class DangNhapFrame extends JFrame {
+    private static final String PREF_TEN_DANG_NHAP = "tenDangNhapDaGhiNho";
+
     // Bảng màu dùng chung để giữ giao diện nhất quán giữa các khu vực.
     private static final Color INK = new Color(32, 53, 68);
     private static final Color MUTED = new Color(119, 139, 151);
     private static final Color TEAL = new Color(26, 151, 151);
-    private static final Color PINK = new Color(239, 103, 151);
     private static final Color LINE = new Color(222, 232, 235);
 
     private final JTextField usernameField = new JTextField();
@@ -74,6 +76,7 @@ public final class DangNhapFrame extends JFrame {
         setSize(1120, 720);
         setLocationRelativeTo(null);
         setContentPane(createContent());
+        napTenDangNhapDaGhiNho();
         getRootPane().setDefaultButton(createLoginButtonReference);
     }
 
@@ -308,10 +311,8 @@ public final class DangNhapFrame extends JFrame {
 
     /**
      * Xử lý sự kiện đăng nhập khi người dùng bấm nút hoặc nhấn Enter.
-     * Hàm này kiểm tra tính hợp lệ của dữ liệu đầu vào trước khi cho phép chuyển
-     * sang màn hình chính.
-     * Ở phiên bản hiện tại, đây là bước xác thực sơ bộ trên UI; logic xác thực phía
-     * backend sẽ được bổ sung sau.
+     * Thông tin được xác thực qua DAO; quyền menu được tải từ CSDL trước khi mở
+     * màn hình chính.
      */
     private void submitLogin(ActionEvent event) {
         String username = usernameField.getText().trim();
@@ -339,6 +340,7 @@ public final class DangNhapFrame extends JFrame {
                 return;
             }
 
+            luuTenDangNhapDaGhiNho(username);
             phanQuyenDAO.khoiTaoQuyenMacDinhNeuChuaCo();
             java.util.Set<String> allowedMenus = phanQuyenDAO
                     .layChucNangDuocXem(account.getVaiTro().getMaVaiTro());
@@ -355,6 +357,40 @@ public final class DangNhapFrame extends JFrame {
                     JOptionPane.ERROR_MESSAGE);
         } finally {
             java.util.Arrays.fill(password, '\0');
+        }
+    }
+
+    private void napTenDangNhapDaGhiNho() {
+        try {
+            String rememberedUsername = Preferences.userNodeForPackage(DangNhapFrame.class)
+                    .get(PREF_TEN_DANG_NHAP, "");
+            if (!rememberedUsername.isEmpty()) {
+                usernameField.setText(rememberedUsername);
+                rememberCheckBox.setSelected(true);
+            }
+        } catch (IllegalStateException | SecurityException exception) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Không thể tải tùy chọn ghi nhớ tên đăng nhập:\n" + exception.getMessage(),
+                    "Không tải được tùy chọn",
+                    JOptionPane.WARNING_MESSAGE);
+        }
+    }
+
+    private void luuTenDangNhapDaGhiNho(String username) {
+        try {
+            Preferences preferences = Preferences.userNodeForPackage(DangNhapFrame.class);
+            if (rememberCheckBox.isSelected()) {
+                preferences.put(PREF_TEN_DANG_NHAP, username);
+            } else {
+                preferences.remove(PREF_TEN_DANG_NHAP);
+            }
+        } catch (IllegalStateException | SecurityException exception) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Không thể lưu tùy chọn ghi nhớ tên đăng nhập:\n" + exception.getMessage(),
+                    "Không lưu được tùy chọn",
+                    JOptionPane.WARNING_MESSAGE);
         }
     }
 

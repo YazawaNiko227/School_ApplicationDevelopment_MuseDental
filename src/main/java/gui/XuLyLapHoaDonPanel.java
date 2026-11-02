@@ -13,10 +13,8 @@ import java.text.DecimalFormat;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
@@ -34,6 +32,8 @@ import javax.swing.SpinnerNumberModel;
 import javax.swing.border.EmptyBorder;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.table.DefaultTableModel;
+import dao.HoaDonDAO;
+import entity.HoaDon;
 import util.HoaDonPdfExporter;
 
 /**
@@ -50,7 +50,7 @@ import util.HoaDonPdfExporter;
  * HoaDon = 'Dang tra gop'. Đợt 1 thu ngay khi lập hóa đơn.
  * 4. Bấm "Lập hóa đơn".
  *
- * Hiện tại dùng dữ liệu mẫu trong bộ nhớ. Chỗ cần nối DAO ghi "TODO DAO".
+ * Dữ liệu lần khám, dịch vụ, thuốc và hóa đơn được đọc/ghi trực tiếp qua DAO.
  */
 public class XuLyLapHoaDonPanel extends JPanel {
     private static final Color INK = new Color(32, 53, 68);
@@ -71,39 +71,15 @@ public class XuLyLapHoaDonPanel extends JPanel {
     private static final String DOT_DA_THANH_TOAN = "Đã thanh toán";
     private static final String DOT_CHUA_DEN_HAN = "Chưa đến hạn";
 
-    // ----- Dữ liệu mẫu -----
-    // TODO DAO: ChanDoanDAO.layLanKhamDaChotChuaCoHoaDon() thay cho dữ liệu này.
+    private final HoaDonDAO hoaDonDAO = new HoaDonDAO();
+    private final String tenDangNhap;
+    private String maNhanVien;
+
     // {MaChanDoan, MaBenhNhan, HoTen, KetLuanChanDoan}
     private final List<String[]> dsLanKham = new ArrayList<>();
-
-    // TODO DAO: DichVuDAO.layTatCa()
-    // {MaDichVu, TenDichVu, DonGia}
-    private static final Object[][] MOCK_DICH_VU = {
-            { "DV001", "Lấy cao răng", 200000.0 },
-            { "DV002", "Trám răng composite", 300000.0 },
-            { "DV003", "Nhổ răng khôn", 1500000.0 },
-            { "DV004", "Bọc răng sứ", 3500000.0 },
-            { "DV005", "Điều trị tủy răng", 1200000.0 },
-            { "DV006", "Tẩy trắng răng", 2000000.0 }
-    };
-
-    // TODO DAO: VatTuDAO.layTatCa()
-    // {MaVatTu, TenVatTu, DonViTinh, DonGiaBan}
-    private static final Object[][] MOCK_THUOC = {
-            { "VT001", "Amoxicillin 500mg", "Viên", 5000.0 },
-            { "VT002", "Paracetamol 500mg", "Viên", 1500.0 }
-    };
-
-    // maChanDoan -> các dòng dịch vụ trong phác đồ {maDichVu, soLuong}.
-    // TODO DAO: KeHoachDieuTri_DichVuDAO.timTheoChanDoan(maChanDoan)
-    private final Map<String, Object[][]> dichVuTheoChanDoan = new HashMap<>();
-    // maChanDoan -> các dòng thuốc trong đơn {maVatTu, soLuong}.
-    // TODO DAO: ChiTietDonThuocDAO.timTheoChanDoan(maChanDoan)
-    private final Map<String, Object[][]> thuocTheoChanDoan = new HashMap<>();
-
-    private int nextHoaDon = 5;
-    private int nextCongNo = 2;
-    private int nextDot = 4;
+    private List<HoaDonDAO.DongTinhTien> dsDichVuDangChon = new ArrayList<>();
+    private List<HoaDonDAO.DongTinhTien> dsThuocDangChon = new ArrayList<>();
+    private boolean loiTaiDuLieu;
 
     // Tổng tiền của lần khám đang chọn.
     private double tienDichVu = 0;
@@ -153,10 +129,13 @@ public class XuLyLapHoaDonPanel extends JPanel {
     private final JButton btnLap = createButton("Lập hóa đơn", true);
 
     public XuLyLapHoaDonPanel() {
+        this("");
+    }
+
+    public XuLyLapHoaDonPanel(String tenDangNhap) {
+        this.tenDangNhap = tenDangNhap == null ? "" : tenDangNhap.trim();
         setLayout(new BorderLayout(0, 16));
         setOpaque(false);
-
-        taoDuLieuMau();
 
         add(createLanKhamCard(), BorderLayout.NORTH);
 
@@ -176,25 +155,6 @@ public class XuLyLapHoaDonPanel extends JPanel {
         cboPhuongThuc.addActionListener(event -> capNhatPhuongThuc());
         spnSoDot.addChangeListener(event -> loadBangDot());
         chonLanKham();
-    }
-
-    // =====================================================================
-    // DỮ LIỆU MẪU
-    // =====================================================================
-
-    private void taoDuLieuMau() {
-        // Khớp với các lần khám mẫu ở panel Kê đơn / Phác đồ.
-        dsLanKham.add(new String[] { "CD005", "BN003", "Đặng Quốc Khánh", "Viêm tủy răng số 46" });
-        dsLanKham.add(new String[] { "CD006", "BN001", "Võ Thanh Hải", "Sâu răng số 16, cao răng nhiều" });
-        dsLanKham.add(new String[] { "CD007", "BN004", "Trần Bảo Ngọc", "Sâu răng sữa số 55 mức độ nhẹ" });
-
-        dichVuTheoChanDoan.put("CD005", new Object[][] { { "DV005", 1 }, { "DV002", 1 } });
-        dichVuTheoChanDoan.put("CD006", new Object[][] { { "DV001", 1 }, { "DV002", 1 } });
-        dichVuTheoChanDoan.put("CD007", new Object[][] { { "DV002", 1 } });
-
-        thuocTheoChanDoan.put("CD005", new Object[][] { { "VT001", 14 }, { "VT002", 10 } });
-        thuocTheoChanDoan.put("CD007", new Object[][] { { "VT002", 6 } });
-        // CD006 không có đơn thuốc nên không có dòng thuốc.
     }
 
     // =====================================================================
@@ -225,7 +185,8 @@ public class XuLyLapHoaDonPanel extends JPanel {
         lblThongTin.setForeground(MUTED);
         lblThongTin.setAlignmentX(Component.LEFT_ALIGNMENT);
         lblThongTin.setText("Ngày lập: " + LocalDate.now().format(NGAY)
-                + "  ·  Thu ngân: nhân viên đang đăng nhập");
+                + (tenDangNhap.isEmpty() ? "  ·  Chưa xác định tài khoản thu ngân"
+                        : "  ·  Thu ngân: " + tenDangNhap));
         card.add(lblThongTin);
         return card;
     }
@@ -314,7 +275,7 @@ public class XuLyLapHoaDonPanel extends JPanel {
         JPanel actions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         actions.setOpaque(false);
         JButton btnLamMoi = createButton("Làm mới", false);
-        btnLamMoi.addActionListener(event -> chonLanKham());
+        btnLamMoi.addActionListener(event -> napComboLanKham());
         btnLap.addActionListener(event -> lapHoaDon());
         actions.add(btnLamMoi);
         actions.add(btnLap);
@@ -331,45 +292,49 @@ public class XuLyLapHoaDonPanel extends JPanel {
         int index = cboLanKham.getSelectedIndex();
         dichVuModel.setRowCount(0);
         thuocModel.setRowCount(0);
+        dsDichVuDangChon = new ArrayList<>();
+        dsThuocDangChon = new ArrayList<>();
         tienDichVu = 0;
         tienThuoc = 0;
 
         if (index < 0) {
-            lblBenhNhan.setText("Không còn lần khám nào chờ lập hóa đơn.");
-            lblKetLuan.setText(" ");
+            lblBenhNhan.setText(loiTaiDuLieu
+                    ? "Không thể tải danh sách lần khám từ CSDL."
+                    : "Chưa có lần khám đã chốt chưa lập hóa đơn.");
+            lblKetLuan.setText(loiTaiDuLieu ? "Vui lòng kiểm tra kết nối CSDL và thử làm mới."
+                    : "Chỉ lần khám đã chốt và chưa có hóa đơn mới được hiển thị.");
             btnLap.setEnabled(false);
             capNhatTongTien();
             return;
         }
-        btnLap.setEnabled(true);
         String[] lanKham = dsLanKham.get(index);
         lblBenhNhan.setText("Bệnh nhân: " + lanKham[2] + "  ·  " + lanKham[1]);
         lblKetLuan.setText("Kết luận chẩn đoán: " + lanKham[3]);
-
-        // TODO DAO: lấy dịch vụ từ KeHoachDieuTri_DichVu, thuốc từ ChiTietDonThuoc.
-        Object[][] dichVu = dichVuTheoChanDoan.get(lanKham[0]);
-        if (dichVu != null) {
-            for (Object[] dong : dichVu) {
-                Object[] dv = timDichVu((String) dong[0]);
-                int soLuong = (Integer) dong[1];
-                double donGia = (Double) dv[2];
-                tienDichVu += donGia * soLuong;
-                dichVuModel.addRow(new Object[] { dv[0], dv[1], TIEN.format(donGia), soLuong,
-                        TIEN.format(donGia * soLuong) });
+        try {
+            dsDichVuDangChon = hoaDonDAO.layDichVuTheoChanDoan(lanKham[0]);
+            dsThuocDangChon = hoaDonDAO.layThuocTheoChanDoan(lanKham[0]);
+            for (HoaDonDAO.DongTinhTien dong : dsDichVuDangChon) {
+                double thanhTien = dong.donGia() * dong.soLuong();
+                tienDichVu += thanhTien;
+                dichVuModel.addRow(new Object[] { dong.ma(), dong.ten(), TIEN.format(dong.donGia()),
+                        dong.soLuong(), TIEN.format(thanhTien) });
             }
-        }
-        Object[][] thuoc = thuocTheoChanDoan.get(lanKham[0]);
-        if (thuoc != null) {
-            for (Object[] dong : thuoc) {
-                Object[] t = timThuoc((String) dong[0]);
-                int soLuong = (Integer) dong[1];
-                double donGia = (Double) t[3];
-                tienThuoc += donGia * soLuong;
-                thuocModel.addRow(new Object[] { t[0], t[1], TIEN.format(donGia), soLuong,
-                        TIEN.format(donGia * soLuong) });
+            for (HoaDonDAO.DongTinhTien dong : dsThuocDangChon) {
+                double thanhTien = dong.donGia() * dong.soLuong();
+                tienThuoc += thanhTien;
+                thuocModel.addRow(new Object[] { dong.ma(), dong.ten(), TIEN.format(dong.donGia()),
+                        dong.soLuong(), TIEN.format(thanhTien) });
             }
+        } catch (java.sql.SQLException exception) {
+            btnLap.setEnabled(false);
+            JOptionPane.showMessageDialog(this,
+                    "Không thể tải chi tiết dịch vụ và thuốc từ CSDL:\n" + exception.getMessage(),
+                    "Lỗi tải hóa đơn", JOptionPane.ERROR_MESSAGE);
+            capNhatTongTien();
+            return;
         }
         capNhatTongTien();
+        btnLap.setEnabled(maNhanVien != null && tienDichVu + tienThuoc > 0);
     }
 
     /** Bật/tắt phần trả góp theo phương thức thanh toán. */
@@ -391,6 +356,10 @@ public class XuLyLapHoaDonPanel extends JPanel {
             showMessage("Vui lòng chọn lần khám cần lập hóa đơn.");
             return;
         }
+        if (maNhanVien == null) {
+            showWarning("Không xác định được nhân viên đang đăng nhập để ghi nhận người lập hóa đơn.");
+            return;
+        }
         double tong = tienDichVu + tienThuoc;
         if (tong <= 0) {
             showWarning("Lần khám này không có khoản nào để tính tiền.");
@@ -408,33 +377,25 @@ public class XuLyLapHoaDonPanel extends JPanel {
         }
 
         String[] lanKham = dsLanKham.get(index);
-        // TODO DAO: sinh mã từ DB.
-        String maHoaDon = String.format("HD%03d", nextHoaDon++);
-        String trangThai = traGop ? "Dang tra gop" : "Da thanh toan";
-
-        // TODO DAO (một transaction):
-        // 1. HoaDonDAO.them(maHoaDon, ngayLap, trangThai, phuongThuc,
-        // maNhanVien (thu ngân đăng nhập), maBenhNhan, maChanDoan)
-        // 2. ChiTietHoaDonDAO.them(maHoaDon, maDichVu, soLuong, donGiaTaiThoiDiem)
-        // cho từng dòng dịch vụ (đơn giá lấy từ DichVu.DonGia tại thời điểm lập)
-        // 3. ChiTietHoaDonThuocDAO.them(maHoaDon, maVatTu, soLuong, donGiaTaiThoiDiem)
-        // cho từng dòng thuốc (đơn giá lấy từ VatTu.DonGiaBan)
-        // 4. Nếu trả góp:
-        // CongNoTraGopDAO.them(maCongNo, tong, soDotConLai = soDot - 1, maHoaDon)
-        // DotThanhToanDAO.them(...) cho từng đợt (đợt 1 đã thanh toán)
+        String trangThai = traGop ? HoaDon.DANG_TRA_GOP : HoaDon.DA_THANH_TOAN;
+        int soDot = traGop ? (Integer) spnSoDot.getValue() : 0;
+        String phuongThucDb = traGop ? "Tra gop"
+                : TIEN_MAT.equals(phuongThuc) ? "Tien mat" : "Chuyen khoan";
+        String maHoaDon;
+        try {
+            maHoaDon = hoaDonDAO.lapHoaDon(LocalDate.now(), trangThai, phuongThucDb,
+                    maNhanVien, lanKham[1], lanKham[0], soDot);
+        } catch (java.sql.SQLException | IllegalArgumentException exception) {
+            JOptionPane.showMessageDialog(this,
+                    "Không thể lập hóa đơn:\n" + exception.getMessage(),
+                    "Lỗi lập hóa đơn", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
         String thongBao = "Đã lập hóa đơn " + maHoaDon + ". Tổng tiền: " + TIEN.format(tong) + " đ.";
         if (traGop) {
-            int soDot = (Integer) spnSoDot.getValue();
-            String maCongNo = String.format("CN%03d", nextCongNo++);
-            nextDot += soDot;
-            thongBao += "\nĐã tạo công nợ " + maCongNo + " gồm " + soDot
-                    + " đợt. Còn lại " + (soDot - 1) + " đợt cần thu.";
+            thongBao += "\nĐã tạo công nợ gồm " + soDot
+                    + " đợt. Đợt đầu đã thu, còn lại " + (soDot - 1) + " đợt cần thu.";
         }
-
-        // Lần khám này đã có hóa đơn nên bỏ khỏi danh sách chờ.
-        dsLanKham.remove(index);
-        napComboLanKham();
-        chonLanKham();
         showMessage(thongBao);
 
         int exportChoice = JOptionPane.showConfirmDialog(this,
@@ -443,6 +404,7 @@ public class XuLyLapHoaDonPanel extends JPanel {
         if (exportChoice == JOptionPane.YES_OPTION) {
             xuatHoaDonPdf(maHoaDon, lanKham, phuongThuc, trangThai, tong);
         }
+        napComboLanKham();
     }
 
     // =====================================================================
@@ -501,11 +463,39 @@ public class XuLyLapHoaDonPanel extends JPanel {
     // Nạp lại combo các lần khám chờ lập hóa đơn.
     private void napComboLanKham() {
         dangNapCombo = true;
+        String maDangChon = null;
+        int selectedIndex = cboLanKham.getSelectedIndex();
+        if (selectedIndex >= 0 && selectedIndex < dsLanKham.size()) {
+            maDangChon = dsLanKham.get(selectedIndex)[0];
+        }
         cboLanKham.removeAllItems();
-        for (String[] lk : dsLanKham) {
-            cboLanKham.addItem(lk[0] + " - " + lk[2] + " (" + lk[1] + ")");
+        dsLanKham.clear();
+        try {
+            maNhanVien = hoaDonDAO.layMaNhanVienTheoTenDangNhap(tenDangNhap);
+            loiTaiDuLieu = false;
+            for (HoaDonDAO.LanKhamHoaDon lanKham : hoaDonDAO.layLanKhamChuaLapHoaDon()) {
+                String[] row = { lanKham.maChanDoan(), lanKham.maBenhNhan(),
+                        lanKham.hoTen(), lanKham.ketLuan() };
+                dsLanKham.add(row);
+                cboLanKham.addItem(row[0] + " - " + row[2] + " (" + row[1] + ")");
+            }
+        } catch (java.sql.SQLException exception) {
+            maNhanVien = null;
+            loiTaiDuLieu = true;
+            JOptionPane.showMessageDialog(this,
+                    "Không thể tải dữ liệu lập hóa đơn từ CSDL:\n" + exception.getMessage(),
+                    "Lỗi tải hóa đơn", JOptionPane.ERROR_MESSAGE);
+        }
+        if (maDangChon != null) {
+            for (int i = 0; i < dsLanKham.size(); i++) {
+                if (maDangChon.equals(dsLanKham.get(i)[0])) {
+                    cboLanKham.setSelectedIndex(i);
+                    break;
+                }
+            }
         }
         dangNapCombo = false;
+        chonLanKham();
     }
 
     private void capNhatTongTien() {
@@ -535,24 +525,6 @@ public class XuLyLapHoaDonPanel extends JPanel {
                     TIEN.format(soTien),
                     i == 0 ? DOT_DA_THANH_TOAN : DOT_CHUA_DEN_HAN });
         }
-    }
-
-    private Object[] timDichVu(String maDichVu) {
-        for (Object[] dv : MOCK_DICH_VU) {
-            if (dv[0].equals(maDichVu)) {
-                return dv;
-            }
-        }
-        return null;
-    }
-
-    private Object[] timThuoc(String maVatTu) {
-        for (Object[] t : MOCK_THUOC) {
-            if (t[0].equals(maVatTu)) {
-                return t;
-            }
-        }
-        return null;
     }
 
     private void showMessage(String message) {

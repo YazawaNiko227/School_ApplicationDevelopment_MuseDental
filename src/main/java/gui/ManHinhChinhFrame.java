@@ -676,7 +676,7 @@ public final class ManHinhChinhFrame extends JFrame {
         showContentPanel(
                 "Lịch làm việc cá nhân",
                 "Theo dõi lịch trực hàng tuần và bệnh nhân hẹn khám",
-                new XuLyTimKiemLichLamViecCaNhanPanel(username));
+                new XuLyTimKiemLichLamViecCaNhanPanel(tenDangNhap));
     }
 
     // Mở bảng ca trực và lịch làm việc nhân viên y tế.
@@ -698,7 +698,7 @@ public final class ManHinhChinhFrame extends JFrame {
         showContentPanel(
                 "Lập hóa đơn",
                 "Lập hóa đơn điều trị, tính tiền dịch vụ & đơn thuốc, ghi nhận thanh toán",
-                new XuLyLapHoaDonPanel());
+                new XuLyLapHoaDonPanel(tenDangNhap));
     }
 
     private void showKhamLamSangVaSoDoRang() {
@@ -713,7 +713,7 @@ public final class ManHinhChinhFrame extends JFrame {
         showContentPanel(
                 "Đặt lịch hẹn khám và nhắc lịch",
                 "Quản lý lịch hẹn, trạng thái xác nhận và nhắc lịch bệnh nhân",
-                new XuLyDatLichHenPanel(username));
+                new XuLyDatLichHenPanel(tenDangNhap));
     }
 
     // THỐNG KÊ

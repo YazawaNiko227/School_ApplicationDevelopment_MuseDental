@@ -1,6 +1,7 @@
 package gui; /*Võ Thành Tài */
 
 import entity.BanGhiBenhAn;
+import dao.BanGhiBenhAnDAO;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Cursor;
@@ -48,7 +49,8 @@ public class TimKiemTraCuuBenhAnPanel extends JPanel {
             "Mã chẩn đoán", "Mã hồ sơ", "Bệnh nhân", "Ngày khám", "Nha sĩ", "Lý do khám"
     };
 
-    private final List<BanGhiBenhAn> allRecords = createSampleData();
+    private final BanGhiBenhAnDAO benhAnDAO = new BanGhiBenhAnDAO();
+    private final List<BanGhiBenhAn> allRecords = new ArrayList<>();
     private final List<BanGhiBenhAn> shownRecords = new ArrayList<>();
 
     private final JTextField keywordField = new JTextField();
@@ -74,11 +76,11 @@ public class TimKiemTraCuuBenhAnPanel extends JPanel {
         super(new BorderLayout(0, 16));
         setOpaque(false);
 
-        loadDentists();
         add(createFilterPanel(), BorderLayout.NORTH);
         add(createResultPanel(), BorderLayout.CENTER);
         add(createDetailPanel(), BorderLayout.SOUTH);
 
+        loadDentists();
         applyFilter();
     }
 
@@ -323,12 +325,20 @@ public class TimKiemTraCuuBenhAnPanel extends JPanel {
 
     private void loadDentists() {
         dentistCombo.addItem(ALL_DENTISTS);
-        List<String> seen = new ArrayList<>();
-        for (BanGhiBenhAn record : allRecords) {
-            if (!seen.contains(record.getTenNhaSi())) {
-                seen.add(record.getTenNhaSi());
-                dentistCombo.addItem(record.getTenNhaSi());
+        try {
+            allRecords.clear();
+            allRecords.addAll(benhAnDAO.layTatCa());
+            List<String> seen = new ArrayList<>();
+            for (BanGhiBenhAn record : allRecords) {
+                if (record.getTenNhaSi() != null && !seen.contains(record.getTenNhaSi())) {
+                    seen.add(record.getTenNhaSi());
+                    dentistCombo.addItem(record.getTenNhaSi());
+                }
             }
+        } catch (java.sql.SQLException exception) {
+            JOptionPane.showMessageDialog(this,
+                    "Không thể tải dữ liệu bệnh án từ CSDL:\n" + exception.getMessage(),
+                    "Lỗi tải bệnh án", JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -353,49 +363,32 @@ public class TimKiemTraCuuBenhAnPanel extends JPanel {
             return;
         }
 
-        String keyword = keywordField.getText().trim().toLowerCase();
+        String keyword = keywordField.getText().trim();
         String dentist = (String) dentistCombo.getSelectedItem();
 
         shownRecords.clear();
         tableModel.setRowCount(0);
-        for (BanGhiBenhAn record : allRecords) {
-            if (!matchesKeyword(record, keyword)) {
-                continue;
+        try {
+            List<BanGhiBenhAn> results = benhAnDAO.timKiem(
+                    keyword, dentist == null || ALL_DENTISTS.equals(dentist) ? null : dentist, from, to);
+            for (BanGhiBenhAn record : results) {
+                shownRecords.add(record);
+                tableModel.addRow(new Object[] {
+                        record.getMaChanDoan(),
+                        record.getMaHoSo(),
+                        record.getTenBenhNhan(),
+                        record.getNgayKham().format(DATE_FORMAT),
+                        record.getTenNhaSi(),
+                        record.getLyDoKham()
+                });
             }
-            if (dentist != null && !ALL_DENTISTS.equals(dentist) && !dentist.equals(record.getTenNhaSi())) {
-                continue;
-            }
-            if (from != null && record.getNgayKham().isBefore(from)) {
-                continue;
-            }
-            if (to != null && record.getNgayKham().isAfter(to)) {
-                continue;
-            }
-            shownRecords.add(record);
-            tableModel.addRow(new Object[] {
-                    record.getMaChanDoan(),
-                    record.getMaHoSo(),
-                    record.getTenBenhNhan(),
-                    record.getNgayKham().format(DATE_FORMAT),
-                    record.getTenNhaSi(),
-                    record.getLyDoKham()
-            });
+        } catch (java.sql.SQLException exception) {
+            JOptionPane.showMessageDialog(this,
+                    "Không thể tra cứu bệnh án từ CSDL:\n" + exception.getMessage(),
+                    "Lỗi tra cứu bệnh án", JOptionPane.ERROR_MESSAGE);
         }
         resultCount.setText("Tìm thấy " + shownRecords.size() + " lần khám");
         showDetail(-1);
-    }
-
-    private boolean matchesKeyword(BanGhiBenhAn record, String keyword) {
-        if (keyword.isEmpty()) {
-            return true;
-        }
-        String haystack = (nullToEmpty(record.getMaChanDoan()) + " "
-                + nullToEmpty(record.getMaHoSo()) + " "
-                + nullToEmpty(record.getMaBenhNhan()) + " "
-                + nullToEmpty(record.getTenBenhNhan()) + " "
-                + nullToEmpty(record.getLyDoKham()) + " "
-                + nullToEmpty(record.getKetLuanChanDoan())).toLowerCase();
-        return haystack.contains(keyword);
     }
 
     private void resetFilter() {
@@ -410,34 +403,4 @@ public class TimKiemTraCuuBenhAnPanel extends JPanel {
         return value == null ? "" : value;
     }
 
-    // ===================== DỮ LIỆU MINH HỌA =====================
-
-    private static List<BanGhiBenhAn> createSampleData() {
-        List<BanGhiBenhAn> list = new ArrayList<>();
-        list.add(new BanGhiBenhAn("HS001", "CD001", "BN001", "Nguyễn Minh Anh", LocalDate.of(2026, 9, 20),
-                "NV002", "BS. Tuấn", "Đau răng hàm dưới bên phải",
-                "Ê buốt khi ăn nóng lạnh, đau âm ỉ về đêm",
-                "Sâu răng 46 độ 3, chỉ định điều trị tủy"));
-        list.add(new BanGhiBenhAn("HS002", "CD002", "BN002", "Trần Hoàng Nam", LocalDate.of(2026, 9, 25),
-                "NV003", "BS. Linh", "Lấy cao răng định kỳ",
-                "Chảy máu chân răng khi chải",
-                "Viêm nướu nhẹ do cao răng, hướng dẫn vệ sinh răng miệng"));
-        list.add(new BanGhiBenhAn("HS003", "CD003", "BN003", "Lê Ngọc Hà", LocalDate.of(2026, 10, 1),
-                "NV002", "BS. Tuấn", "Tái khám sau điều trị tủy",
-                "Không đau, răng ăn nhai bình thường",
-                "Răng 46 ổn định, hẹn làm mão sứ"));
-        list.add(new BanGhiBenhAn("HS004", "CD004", "BN004", "Phạm Gia Bảo", LocalDate.of(2026, 10, 5),
-                "NV004", "BS. Minh", "Tư vấn niềng răng",
-                "Răng mọc chen chúc hàm trên, khớp cắn hở nhẹ",
-                "Lệch lạc khớp cắn loại I, đề xuất niềng mắc cài kim loại"));
-        list.add(new BanGhiBenhAn("HS005", "CD005", "BN001", "Nguyễn Minh Anh", LocalDate.of(2026, 10, 9),
-                "NV002", "BS. Tuấn", "Tái khám",
-                "Răng 46 còn hơi ê khi nhai mạnh",
-                "Theo dõi thêm, hẹn kiểm tra lại sau 2 tuần"));
-        list.add(new BanGhiBenhAn("HS006", "CD006", "BN005", "Võ Thanh Tâm", LocalDate.of(2026, 10, 12),
-                "NV003", "BS. Linh", "Nhổ răng khôn",
-                "Sưng đau vùng răng 38, há miệng hạn chế",
-                "Răng khôn 38 mọc lệch, viêm quanh thân răng, chỉ định nhổ"));
-        return list;
-    }
 }

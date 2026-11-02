@@ -38,10 +38,10 @@ public class BanGhiBenhAnDAO {
         List<Object> params = new ArrayList<>();
 
         if (keyword != null && !keyword.trim().isEmpty()) {
-            sql.append("AND (cd.MaChanDoan LIKE ? OR hs.MaHoSo LIKE ? OR bn.HoTen LIKE ? "
+            sql.append("AND (cd.MaChanDoan LIKE ? OR hs.MaHoSo LIKE ? OR bn.MaBenhNhan LIKE ? OR bn.HoTen LIKE ? "
                     + "OR cd.LyDoKham LIKE ? OR cd.KetLuanChanDoan LIKE ?) ");
             String p = "%" + keyword.trim() + "%";
-            for (int i = 0; i < 5; i++)
+            for (int i = 0; i < 6; i++)
                 params.add(p);
         }
         if (tenNhaSi != null && !tenNhaSi.trim().isEmpty()) {

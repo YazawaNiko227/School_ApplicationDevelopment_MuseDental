@@ -347,7 +347,8 @@ public final class DangNhapFrame extends JFrame {
             String displayName = account.getNhanVien() == null
                     ? account.getTenDangNhap()
                     : account.getNhanVien().getHoTen();
-            new ManHinhChinhFrame(account.getTenDangNhap(), displayName, allowedMenus).setVisible(true);
+            new ManHinhChinhFrame(account.getTenDangNhap(), displayName,
+                    account.getVaiTro().getMaVaiTro(), allowedMenus).setVisible(true);
             dispose();
         } catch (java.sql.SQLException exception) {
             JOptionPane.showMessageDialog(

@@ -1,6 +1,7 @@
 package gui;
 
 import com.toedter.calendar.JDateChooser;
+import dao.HoaDonDAO;
 import util.GiaoDienUtil;
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -13,6 +14,7 @@ import java.awt.Font;
 import java.awt.Window;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.sql.SQLException;
 import java.text.DecimalFormat;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -50,8 +52,6 @@ import javax.swing.table.DefaultTableModel;
  * dịch vụ (ChiTietHoaDon), thuốc (ChiTietHoaDonThuoc) và các đợt thanh toán
  * (DotThanhToan, chỉ có với hóa đơn trả góp).
  *
- * Hiện tại dùng dữ liệu mẫu trong bộ nhớ (khớp dữ liệu mẫu trong SQL).
- * Chỗ cần nối DAO ghi "TODO DAO".
  */
 public class TimKiemTraCuuHoaDonPanel extends JPanel {
     private static final Color INK = new Color(32, 53, 68);
@@ -89,6 +89,7 @@ public class TimKiemTraCuuHoaDonPanel extends JPanel {
         final String tenNhanVien;
         final String phuongThuc; // null nếu chưa thanh toán
         final String trangThai;
+        final double tongTienDb;
         // {maDichVu, tenDichVu, donGia (Double), soLuong (Integer)}
         final Object[][] dichVu;
         // {maVatTu, tenVatTu, donGia (Double), soLuong (Integer)}
@@ -98,7 +99,7 @@ public class TimKiemTraCuuHoaDonPanel extends JPanel {
 
         HoaDon(String ma, LocalDate ngayLap, String maBenhNhan, String tenBenhNhan, String maNhanVien,
                 String tenNhanVien, String phuongThuc, String trangThai, Object[][] dichVu, Object[][] thuoc,
-                Object[][] dots) {
+                Object[][] dots, double tongTienDb) {
             this.ma = ma;
             this.ngayLap = ngayLap;
             this.maBenhNhan = maBenhNhan;
@@ -110,6 +111,7 @@ public class TimKiemTraCuuHoaDonPanel extends JPanel {
             this.dichVu = dichVu;
             this.thuoc = thuoc;
             this.dots = dots;
+            this.tongTienDb = tongTienDb;
         }
 
         double tienDichVu() {
@@ -121,7 +123,7 @@ public class TimKiemTraCuuHoaDonPanel extends JPanel {
         }
 
         double tongTien() {
-            return tienDichVu() + tienThuoc();
+            return tongTienDb;
         }
 
         private static double tong(Object[][] dong) {
@@ -133,9 +135,7 @@ public class TimKiemTraCuuHoaDonPanel extends JPanel {
         }
     }
 
-    // TODO DAO: HoaDonDAO.layTatCa() / HoaDonDAO.timKiem(...) thay cho dữ liệu mẫu
-    // này.
-    private final List<HoaDon> dsHoaDon = new ArrayList<>();
+    private final HoaDonDAO hoaDonDAO = new HoaDonDAO();
     // Các hóa đơn đang hiển thị trong bảng (cùng thứ tự với dòng bảng).
     private final List<HoaDon> dangHienThi = new ArrayList<>();
 
@@ -165,49 +165,10 @@ public class TimKiemTraCuuHoaDonPanel extends JPanel {
         setLayout(new BorderLayout(0, 16));
         setOpaque(false);
 
-        taoDuLieuMau();
-
         add(createFilterCard(), BorderLayout.NORTH);
         add(createResultCard(), BorderLayout.CENTER);
 
         timKiem();
-    }
-
-    // =====================================================================
-    // DỮ LIỆU MẪU (khớp dữ liệu mẫu trong SQL)
-    // =====================================================================
-
-    private void taoDuLieuMau() {
-        dsHoaDon.add(new HoaDon("HD001", LocalDate.of(2026, 9, 1), "BN001", "Võ Thanh Hải",
-                "NV004", "Phạm Quốc Dũng", TIEN_MAT, DA_THANH_TOAN,
-                new Object[][] {
-                        { "DV001", "Lấy cao răng", 200000.0, 1 },
-                        { "DV002", "Trám răng composite", 300000.0, 1 } },
-                new Object[][] {
-                        { "VT001", "Amoxicillin 500mg", 5000.0, 15 },
-                        { "VT002", "Paracetamol 500mg", 1500.0, 10 } },
-                new Object[][] {}));
-
-        dsHoaDon.add(new HoaDon("HD002", LocalDate.of(2026, 9, 5), "BN002", "Nguyễn Thị Lan",
-                "NV004", "Phạm Quốc Dũng", CHUYEN_KHOAN, DA_THANH_TOAN,
-                new Object[][] { { "DV006", "Tẩy trắng răng", 2000000.0, 1 } },
-                new Object[][] {},
-                new Object[][] {}));
-
-        dsHoaDon.add(new HoaDon("HD003", LocalDate.of(2026, 9, 10), "BN002", "Nguyễn Thị Lan",
-                "NV004", "Phạm Quốc Dũng", TRA_GOP, DANG_TRA_GOP,
-                new Object[][] { { "DV004", "Bọc răng sứ", 3500000.0, 2 } },
-                new Object[][] {},
-                new Object[][] {
-                        { "DOT001", "10/09/2026", 3000000.0, "Đã thanh toán", "10/09/2026" },
-                        { "DOT002", "10/10/2026", 2000000.0, "Quá hạn", "-" },
-                        { "DOT003", "10/11/2026", 2000000.0, "Chưa đến hạn", "-" } }));
-
-        dsHoaDon.add(new HoaDon("HD004", LocalDate.of(2026, 10, 1), "BN004", "Trần Bảo Ngọc",
-                "NV004", "Phạm Quốc Dũng", null, CHUA_THANH_TOAN,
-                new Object[][] { { "DV002", "Trám răng composite", 300000.0, 1 } },
-                new Object[][] {},
-                new Object[][] {}));
     }
 
     // =====================================================================
@@ -323,38 +284,30 @@ public class TimKiemTraCuuHoaDonPanel extends JPanel {
             return;
         }
 
-        String tuKhoa = txtTuKhoa.getText().trim().toLowerCase();
-        String phuongThuc = (String) cboPhuongThuc.getSelectedItem();
-        String trangThai = (String) cboTrangThai.getSelectedItem();
-
-        // TODO DAO: HoaDonDAO.timKiem(tuKhoa, phuongThuc, trangThai, tuNgay, denNgay)
+        String tuKhoa = txtTuKhoa.getText().trim();
+        String phuongThuc = giaTriDB((String) cboPhuongThuc.getSelectedItem());
+        String trangThai = giaTriDB((String) cboTrangThai.getSelectedItem());
         dangHienThi.clear();
         tableModel.setRowCount(0);
-        for (HoaDon hd : dsHoaDon) {
-            if (!tuKhoa.isEmpty()
-                    && !hd.ma.toLowerCase().contains(tuKhoa)
-                    && !hd.maBenhNhan.toLowerCase().contains(tuKhoa)
-                    && !hd.tenBenhNhan.toLowerCase().contains(tuKhoa)) {
-                continue;
+        try {
+            for (HoaDonDAO.HoaDonTimKiem row : hoaDonDAO.traCuuHoaDon(
+                    tuKhoa, phuongThuc, trangThai, tuNgay, denNgay)) {
+                HoaDon hd = new HoaDon(row.ma, row.ngayLap, row.maBenhNhan, row.tenBenhNhan,
+                        row.maNhanVien, row.tenNhanVien, hienThiPhuongThuc(row.phuongThuc),
+                        hienThiTrangThai(row.trangThai), new Object[0][0], new Object[0][0],
+                        new Object[0][0], row.tongTien);
+                dangHienThi.add(hd);
+                tableModel.addRow(new Object[] {
+                        hd.ma, hd.ngayLap.format(NGAY), hd.maBenhNhan, hd.tenBenhNhan,
+                        hd.maNhanVien + " - " + hd.tenNhanVien,
+                        hd.phuongThuc == null ? "-" : hd.phuongThuc,
+                        hd.trangThai, TIEN.format(row.tongTien) });
             }
-            if (!TAT_CA.equals(phuongThuc) && !phuongThuc.equals(hd.phuongThuc)) {
-                continue;
-            }
-            if (!TAT_CA.equals(trangThai) && !trangThai.equals(hd.trangThai)) {
-                continue;
-            }
-            if (tuNgay != null && hd.ngayLap.isBefore(tuNgay)) {
-                continue;
-            }
-            if (denNgay != null && hd.ngayLap.isAfter(denNgay)) {
-                continue;
-            }
-            dangHienThi.add(hd);
-            tableModel.addRow(new Object[] {
-                    hd.ma, hd.ngayLap.format(NGAY), hd.maBenhNhan, hd.tenBenhNhan,
-                    hd.maNhanVien + " - " + hd.tenNhanVien,
-                    hd.phuongThuc == null ? "-" : hd.phuongThuc,
-                    hd.trangThai, TIEN.format(hd.tongTien()) });
+        } catch (SQLException exception) {
+            lblKetQua.setText("Không thể tải dữ liệu hóa đơn.");
+            JOptionPane.showMessageDialog(this, "Không thể tra cứu hóa đơn:\n" + exception.getMessage(),
+                    "Lỗi cơ sở dữ liệu", JOptionPane.ERROR_MESSAGE);
+            return;
         }
         lblKetQua.setText(dangHienThi.isEmpty()
                 ? "Không tìm thấy hóa đơn phù hợp"
@@ -378,9 +331,26 @@ public class TimKiemTraCuuHoaDonPanel extends JPanel {
                     "Thông báo", JOptionPane.INFORMATION_MESSAGE);
             return;
         }
-        // TODO DAO: ChiTietHoaDonDAO / ChiTietHoaDonThuocDAO / DotThanhToanDAO theo
-        // maHoaDon.
-        HoaDon hd = dangHienThi.get(row);
+        HoaDon summary = dangHienThi.get(table.convertRowIndexToModel(row));
+        HoaDonDAO.ChiTietHoaDon persisted;
+        try {
+            persisted = hoaDonDAO.layChiTietHoaDon(summary.ma);
+        } catch (SQLException exception) {
+            JOptionPane.showMessageDialog(this, "Không thể tải chi tiết hóa đơn:\n" + exception.getMessage(),
+                    "Lỗi cơ sở dữ liệu", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        if (persisted == null) {
+            JOptionPane.showMessageDialog(this, "Hóa đơn không còn tồn tại. Hãy tìm kiếm lại.",
+                    "Không tìm thấy hóa đơn", JOptionPane.WARNING_MESSAGE);
+            timKiem();
+            return;
+        }
+        HoaDonDAO.HoaDonTimKiem h = persisted.hoaDon;
+        HoaDon hd = new HoaDon(h.ma, h.ngayLap, h.maBenhNhan, h.tenBenhNhan,
+                h.maNhanVien, h.tenNhanVien, hienThiPhuongThuc(h.phuongThuc),
+                hienThiTrangThai(h.trangThai), dongThanhObject(persisted.dichVu),
+                dongThanhObject(persisted.thuoc), dotsThanhObject(persisted.dots), h.tongTien);
 
         Window owner = SwingUtilities.getWindowAncestor(this);
         JDialog dialog = new JDialog(owner, "Chi tiết hóa đơn " + hd.ma, Dialog.ModalityType.APPLICATION_MODAL);
@@ -465,6 +435,75 @@ public class TimKiemTraCuuHoaDonPanel extends JPanel {
             kq.add(new Object[] { d[0], d[1], TIEN.format(donGia), soLuong, TIEN.format(donGia * soLuong) });
         }
         return kq;
+    }
+
+    private Object[][] dongThanhObject(List<HoaDonDAO.DongHoaDon> dong) {
+        Object[][] result = new Object[dong.size()][4];
+        for (int i = 0; i < dong.size(); i++) {
+            HoaDonDAO.DongHoaDon row = dong.get(i);
+            result[i] = new Object[] { row.ma, row.ten, row.donGia, row.soLuong };
+        }
+        return result;
+    }
+
+    private Object[][] dotsThanhObject(List<HoaDonDAO.DotHoaDon> dots) {
+        Object[][] result = new Object[dots.size()][5];
+        for (int i = 0; i < dots.size(); i++) {
+            HoaDonDAO.DotHoaDon dot = dots.get(i);
+            String trangThai;
+            if ("Da thanh toan".equals(dot.trangThai)) {
+                trangThai = DA_THANH_TOAN;
+            } else if (dot.ngayDenHan.isBefore(LocalDate.now())) {
+                trangThai = "Quá hạn";
+            } else {
+                trangThai = "Chưa đến hạn";
+            }
+            result[i] = new Object[] { dot.ma, dot.ngayDenHan.format(NGAY), dot.soTien,
+                    trangThai, dot.ngayThanhToan == null ? "-" : dot.ngayThanhToan.format(NGAY) };
+        }
+        return result;
+    }
+
+    private String giaTriDB(String giaTri) {
+        if (giaTri == null || TAT_CA.equals(giaTri)) {
+            return null;
+        }
+        if (TIEN_MAT.equals(giaTri)) {
+            return "Tien mat";
+        }
+        if (CHUYEN_KHOAN.equals(giaTri)) {
+            return "Chuyen khoan";
+        }
+        if (TRA_GOP.equals(giaTri)) {
+            return "Tra gop";
+        }
+        if (CHUA_THANH_TOAN.equals(giaTri)) {
+            return "Chua thanh toan";
+        }
+        if (DA_THANH_TOAN.equals(giaTri)) {
+            return "Da thanh toan";
+        }
+        return "Dang tra gop";
+    }
+
+    private String hienThiPhuongThuc(String phuongThuc) {
+        if ("Tien mat".equals(phuongThuc)) {
+            return TIEN_MAT;
+        }
+        if ("Chuyen khoan".equals(phuongThuc)) {
+            return CHUYEN_KHOAN;
+        }
+        return phuongThuc == null ? null : TRA_GOP;
+    }
+
+    private String hienThiTrangThai(String trangThai) {
+        if ("Da thanh toan".equals(trangThai)) {
+            return DA_THANH_TOAN;
+        }
+        if ("Dang tra gop".equals(trangThai)) {
+            return DANG_TRA_GOP;
+        }
+        return CHUA_THANH_TOAN;
     }
 
     private LocalDate toLocalDate(Date date) {

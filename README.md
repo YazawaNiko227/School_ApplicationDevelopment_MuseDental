@@ -5,9 +5,9 @@ bệnh nhân, quản lý lịch và ca trực, hỗ trợ quy trình khám, qu�
 và theo dõi thanh toán. Ứng dụng được xây dựng bằng Java Swing, kết nối SQL
 Server qua JDBC.
 
-> **Tình trạng dự án:** Đây là đồ án đang phát triển. Một số màn hình đã đọc/ghi
-> SQL Server; một số màn hình vẫn dùng dữ liệu mẫu và chưa hoàn tất tích hợp.
-> Xem [Tình trạng chức năng](#tình-trạng-chức-năng) trước khi dùng dữ liệu thật.
+> **Tình trạng dự án:** Các luồng nghiệp vụ chính đã được nối với SQL Server.
+> Đây vẫn là đồ án đang phát triển; hãy xem [Tình trạng chức năng](#tình-trạng-chức-năng)
+> và chỉ thử các thao tác ghi trên database kiểm thử riêng.
 
 ## Công nghệ
 
@@ -161,52 +161,53 @@ PBKDF2-HMAC-SHA256; công cụ chỉ cập nhật tài khoản còn hash placeho
 
 ## Tình trạng chức năng
 
-### Đã có luồng đọc/ghi SQL qua DAO
+### Các luồng đã nối với SQL Server
 
 - Đăng nhập, tổng quan và đổi mật khẩu.
 - Phân quyền menu theo vai trò.
 - Quản lý nhân viên.
+- Quản lý bệnh nhân; thêm bệnh nhân sẽ tạo hồ sơ bệnh án tương ứng.
+- Quản lý dịch vụ và bảng giá.
 - Quản lý thuốc/vật tư.
 - Đặt lịch hẹn, phân ca và xem lịch cá nhân.
+- Khám lâm sàng, chẩn đoán, sơ đồ răng.
+- Phác đồ điều trị và dự toán chi phí.
 - Kê đơn thuốc, ghi nhận xuất vật tư.
 - Chuẩn bị phòng và điều phối lịch khám.
+- Lập/tra cứu hóa đơn, theo dõi các đợt trả góp.
+- Tra cứu hồ sơ bệnh án và báo cáo doanh thu.
 
-Một số DAO ghi đã được kiểm thử trên database tạm với dữ liệu tổng hợp, bao
-gồm cả lịch hẹn, chẩn đoán, sơ đồ răng, phác đồ, đơn thuốc, xuất kho, hóa đơn
-và thanh toán trả góp. Điều này xác nhận các thao tác DAO được thử có thể chạy
-với schema hiện tại; không đồng nghĩa mọi màn hình giao diện đã được nối tới
-các DAO đó.
+Các thao tác lập hóa đơn và thu từng đợt được xử lý trong transaction. Lập hóa
+đơn lưu giá dịch vụ/thuốc tại thời điểm lập; với trả góp, đợt đầu được ghi nhận
+đã thu ngay khi lập hóa đơn.
 
-### Còn dùng dữ liệu mẫu hoặc chưa nối SQL end-to-end trên giao diện
+### Giới hạn chức năng
 
-- Quản lý bệnh nhân và quản lý dịch vụ.
-- Công nợ/trả góp, phác đồ điều trị và báo cáo doanh thu.
-- Tra cứu hóa đơn, tra cứu hồ sơ bệnh án/EMR.
-- Khám lâm sàng/sơ đồ răng và lập hóa đơn.
+- Chức năng nhắc nợ chỉ soạn nội dung tham khảo; chưa gửi SMS/Zalo.
+- Báo cáo doanh thu tính toàn bộ giá trị hóa đơn theo ngày lập, bao gồm cả hóa
+  đơn đang trả góp; đây không phải báo cáo dòng tiền thực thu theo kỳ.
+- Phân quyền RBAC hiện ẩn/hiện menu theo vai trò, chưa thay thế kiểm tra quyền
+  ở tầng dữ liệu hoặc quyền SQL.
+- Một số màn hình nghiệp vụ khác chưa có kiểm thử end-to-end tự động.
 
-Một số DAO cho các nghiệp vụ trên đã tồn tại, nhưng giao diện chưa sử dụng
-chúng đầy đủ; DAO dịch vụ hiện mới hỗ trợ đọc/thêm. Vì vậy, dữ liệu nhập trên
-các màn hình này có thể chỉ nằm trong bộ nhớ và không được lưu vào SQL.
-
-### Giới hạn phân quyền
-
-RBAC hiện điều khiển các mục menu được hiển thị theo vai trò. Đây chưa phải cơ
-chế phân quyền bảo mật ở tầng database hoặc kiểm tra quyền cho từng thao tác
-ghi. Không dùng phân quyền giao diện thay cho bảo vệ dữ liệu thật; hãy giới
-hạn quyền SQL login và chỉ dùng dữ liệu phù hợp trong môi trường phát triển.
+Không dùng ứng dụng để ghi dữ liệu thử vào database đang vận hành. Hãy tạo
+database kiểm thử riêng và dùng SQL login có quyền tạo database để chạy script
+schema trước khi thử các thao tác thêm/sửa/xóa hoặc thanh toán.
 
 ## Kiểm thử
 
-Các kiểm tra đã thực hiện trong quá trình phát triển:
+Các kiểm tra gần nhất:
 
-- `build.bat` biên dịch thành công.
-- 21/21 panel được kiểm tra khởi tạo thành công ở lượt smoke test.
-- 28 luồng đọc DAO được chạy thành công ở lượt kiểm tra SQL trước đó.
-- Một số luồng ghi DAO được thử trên database kiểm thử riêng; database tạm đã
-  được xóa sau kiểm tra.
+- `build.bat` biên dịch toàn bộ mã nguồn thành công.
+- Các truy vấn đọc cho bệnh nhân, dịch vụ, chẩn đoán, phác đồ, bệnh án, hóa đơn,
+  công nợ và báo cáo đã chạy được trên SQL Server đang cấu hình.
+- Không chạy thao tác ghi trên database đang cấu hình. Trong lần kiểm tra này,
+  SQL login không có quyền `CREATE DATABASE`, nên không thể dựng database tạm
+  để xác minh các thao tác ghi.
 
 Các kiểm tra trên không mô phỏng thao tác người dùng trên toàn bộ nút và màn
-hình. Dự án hiện chưa có bộ kiểm thử tự động end-to-end đầy đủ.
+hình. Dự án hiện chưa có bộ kiểm thử tự động end-to-end đầy đủ; cần kiểm thử
+các luồng ghi trên database riêng trước khi triển khai sử dụng thật.
 
 ## Cấu trúc thư mục
 

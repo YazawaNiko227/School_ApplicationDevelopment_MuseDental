@@ -31,6 +31,20 @@ public class BanGhiBenhAnDAO {
         return ds;
     }
 
+    public List<String> layDanhSachNhaSi() throws SQLException {
+        String sql = "SELECT DISTINCT nv.HoTen "
+                + "FROM ChanDoan cd JOIN NhanVien nv ON cd.MaNhaSi = nv.MaNhanVien "
+                + "ORDER BY nv.HoTen";
+        List<String> ds = new ArrayList<>();
+        try (PreparedStatement ps = ConnectDB.getConnection().prepareStatement(sql);
+                ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                ds.add(rs.getString("HoTen"));
+            }
+        }
+        return ds;
+    }
+
     /** Tìm kiếm theo từ khóa, nha sĩ, khoảng ngày (null = bỏ qua điều kiện đó). */
     public List<BanGhiBenhAn> timKiem(String keyword, String tenNhaSi,
             LocalDate tuNgay, LocalDate denNgay) throws SQLException {
@@ -38,10 +52,11 @@ public class BanGhiBenhAnDAO {
         List<Object> params = new ArrayList<>();
 
         if (keyword != null && !keyword.trim().isEmpty()) {
-            sql.append("AND (cd.MaChanDoan LIKE ? OR hs.MaHoSo LIKE ? OR bn.HoTen LIKE ? "
-                    + "OR cd.LyDoKham LIKE ? OR cd.KetLuanChanDoan LIKE ?) ");
+            sql.append("AND (cd.MaChanDoan LIKE ? OR hs.MaHoSo LIKE ? OR bn.MaBenhNhan LIKE ? "
+                    + "OR bn.HoTen LIKE ? OR cd.LyDoKham LIKE ? OR cd.TrieuChung LIKE ? "
+                    + "OR cd.KetLuanChanDoan LIKE ?) ");
             String p = "%" + keyword.trim() + "%";
-            for (int i = 0; i < 5; i++)
+            for (int i = 0; i < 7; i++)
                 params.add(p);
         }
         if (tenNhaSi != null && !tenNhaSi.trim().isEmpty()) {
@@ -53,7 +68,7 @@ public class BanGhiBenhAnDAO {
             params.add(Date.valueOf(tuNgay));
         }
         if (denNgay != null) {
-            sql.append("AND cd.NgayKham <= ? ");
+            sql.append("AND cd.NgayKham < DATEADD(day, 1, ?) ");
             params.add(Date.valueOf(denNgay));
         }
         sql.append("ORDER BY cd.NgayKham DESC");

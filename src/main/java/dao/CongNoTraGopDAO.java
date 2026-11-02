@@ -25,8 +25,11 @@ public class CongNoTraGopDAO {
             con.setAutoCommit(false);
             String maCongNo;
             try (PreparedStatement stmt = con.prepareStatement(
-                    "SELECT MaCongNo FROM DotThanhToan WITH (UPDLOCK, HOLDLOCK) "
-                            + "WHERE MaDot = ? AND TrangThai <> N'Da thanh toan'")) {
+                    "SELECT selectedDot.MaCongNo FROM DotThanhToan selectedDot WITH (UPDLOCK, HOLDLOCK) "
+                            + "WHERE selectedDot.MaDot = ? AND selectedDot.TrangThai <> N'Da thanh toan' "
+                            + "AND selectedDot.MaDot = (SELECT TOP (1) d.MaDot FROM DotThanhToan d "
+                            + "WITH (UPDLOCK, HOLDLOCK) WHERE d.MaCongNo = selectedDot.MaCongNo "
+                            + "AND d.TrangThai <> N'Da thanh toan' ORDER BY d.NgayDenHan, d.MaDot)")) {
                 stmt.setString(1, maDot);
                 try (ResultSet rs = stmt.executeQuery()) {
                     if (!rs.next()) {
@@ -51,8 +54,11 @@ public class CongNoTraGopDAO {
 
             try (PreparedStatement stmt = con.prepareStatement(
                     "UPDATE CongNoTraGop SET SoDotConLai = SoDotConLai - 1 "
-                            + "WHERE MaCongNo = ? AND SoDotConLai > 0")) {
+                            + "WHERE MaCongNo = ? AND SoDotConLai > 0 "
+                            + "AND SoDotConLai = (SELECT COUNT(*) FROM DotThanhToan "
+                            + "WHERE MaCongNo = ? AND TrangThai <> N'Da thanh toan') + 1")) {
                 stmt.setString(1, maCongNo);
+                stmt.setString(2, maCongNo);
                 if (stmt.executeUpdate() != 1) {
                     throw new SQLException("Không còn đợt thanh toán chưa thu cho công nợ " + maCongNo + ".");
                 }

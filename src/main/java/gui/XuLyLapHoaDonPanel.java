@@ -1,5 +1,6 @@
 package gui;
 
+import dao.HoaDonDAO;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
@@ -9,14 +10,13 @@ import java.awt.FlowLayout;
 import java.awt.Font;
 import java.io.File;
 import java.io.IOException;
+import java.sql.SQLException;
 import java.text.DecimalFormat;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
@@ -50,7 +50,6 @@ import util.HoaDonPdfExporter;
  * HoaDon = 'Dang tra gop'. Đợt 1 thu ngay khi lập hóa đơn.
  * 4. Bấm "Lập hóa đơn".
  *
- * Hiện tại dùng dữ liệu mẫu trong bộ nhớ. Chỗ cần nối DAO ghi "TODO DAO".
  */
 public class XuLyLapHoaDonPanel extends JPanel {
     private static final Color INK = new Color(32, 53, 68);
@@ -71,39 +70,11 @@ public class XuLyLapHoaDonPanel extends JPanel {
     private static final String DOT_DA_THANH_TOAN = "Đã thanh toán";
     private static final String DOT_CHUA_DEN_HAN = "Chưa đến hạn";
 
-    // ----- Dữ liệu mẫu -----
-    // TODO DAO: ChanDoanDAO.layLanKhamDaChotChuaCoHoaDon() thay cho dữ liệu này.
-    // {MaChanDoan, MaBenhNhan, HoTen, KetLuanChanDoan}
-    private final List<String[]> dsLanKham = new ArrayList<>();
-
-    // TODO DAO: DichVuDAO.layTatCa()
-    // {MaDichVu, TenDichVu, DonGia}
-    private static final Object[][] MOCK_DICH_VU = {
-            { "DV001", "Lấy cao răng", 200000.0 },
-            { "DV002", "Trám răng composite", 300000.0 },
-            { "DV003", "Nhổ răng khôn", 1500000.0 },
-            { "DV004", "Bọc răng sứ", 3500000.0 },
-            { "DV005", "Điều trị tủy răng", 1200000.0 },
-            { "DV006", "Tẩy trắng răng", 2000000.0 }
-    };
-
-    // TODO DAO: VatTuDAO.layTatCa()
-    // {MaVatTu, TenVatTu, DonViTinh, DonGiaBan}
-    private static final Object[][] MOCK_THUOC = {
-            { "VT001", "Amoxicillin 500mg", "Viên", 5000.0 },
-            { "VT002", "Paracetamol 500mg", "Viên", 1500.0 }
-    };
-
-    // maChanDoan -> các dòng dịch vụ trong phác đồ {maDichVu, soLuong}.
-    // TODO DAO: KeHoachDieuTri_DichVuDAO.timTheoChanDoan(maChanDoan)
-    private final Map<String, Object[][]> dichVuTheoChanDoan = new HashMap<>();
-    // maChanDoan -> các dòng thuốc trong đơn {maVatTu, soLuong}.
-    // TODO DAO: ChiTietDonThuocDAO.timTheoChanDoan(maChanDoan)
-    private final Map<String, Object[][]> thuocTheoChanDoan = new HashMap<>();
-
-    private int nextHoaDon = 5;
-    private int nextCongNo = 2;
-    private int nextDot = 4;
+    private final HoaDonDAO hoaDonDAO = new HoaDonDAO();
+    private final List<HoaDonDAO.LanKhamHoaDon> dsLanKham = new ArrayList<>();
+    private final List<HoaDonDAO.DongHoaDon> dsDichVu = new ArrayList<>();
+    private final List<HoaDonDAO.DongHoaDon> dsThuoc = new ArrayList<>();
+    private final JComboBox<HoaDonDAO.NhanVienHoaDon> cboNhanVien = new JComboBox<>();
 
     // Tổng tiền của lần khám đang chọn.
     private double tienDichVu = 0;
@@ -156,8 +127,6 @@ public class XuLyLapHoaDonPanel extends JPanel {
         setLayout(new BorderLayout(0, 16));
         setOpaque(false);
 
-        taoDuLieuMau();
-
         add(createLanKhamCard(), BorderLayout.NORTH);
 
         JPanel center = new JPanel(new BorderLayout(16, 0));
@@ -166,6 +135,7 @@ public class XuLyLapHoaDonPanel extends JPanel {
         center.add(createThanhToanCard(), BorderLayout.EAST);
         add(center, BorderLayout.CENTER);
 
+        napNhanVien();
         napComboLanKham();
         // Gắn listener sau khi đã nạp item để không bị kích hoạt sớm.
         cboLanKham.addActionListener(event -> {
@@ -179,25 +149,6 @@ public class XuLyLapHoaDonPanel extends JPanel {
     }
 
     // =====================================================================
-    // DỮ LIỆU MẪU
-    // =====================================================================
-
-    private void taoDuLieuMau() {
-        // Khớp với các lần khám mẫu ở panel Kê đơn / Phác đồ.
-        dsLanKham.add(new String[] { "CD005", "BN003", "Đặng Quốc Khánh", "Viêm tủy răng số 46" });
-        dsLanKham.add(new String[] { "CD006", "BN001", "Võ Thanh Hải", "Sâu răng số 16, cao răng nhiều" });
-        dsLanKham.add(new String[] { "CD007", "BN004", "Trần Bảo Ngọc", "Sâu răng sữa số 55 mức độ nhẹ" });
-
-        dichVuTheoChanDoan.put("CD005", new Object[][] { { "DV005", 1 }, { "DV002", 1 } });
-        dichVuTheoChanDoan.put("CD006", new Object[][] { { "DV001", 1 }, { "DV002", 1 } });
-        dichVuTheoChanDoan.put("CD007", new Object[][] { { "DV002", 1 } });
-
-        thuocTheoChanDoan.put("CD005", new Object[][] { { "VT001", 14 }, { "VT002", 10 } });
-        thuocTheoChanDoan.put("CD007", new Object[][] { { "VT002", 6 } });
-        // CD006 không có đơn thuốc nên không có dòng thuốc.
-    }
-
-    // =====================================================================
     // GIAO DIỆN
     // =====================================================================
 
@@ -208,6 +159,8 @@ public class XuLyLapHoaDonPanel extends JPanel {
 
         cboLanKham.setFont(new Font("Arial", Font.PLAIN, 12));
         card.add(createRow("Lần khám (đã chốt)", cboLanKham));
+        cboNhanVien.setFont(new Font("Arial", Font.PLAIN, 12));
+        card.add(createRow("Nhân viên lập", cboNhanVien));
 
         lblBenhNhan.setFont(new Font("Arial", Font.BOLD, 12));
         lblBenhNhan.setForeground(INK);
@@ -225,7 +178,7 @@ public class XuLyLapHoaDonPanel extends JPanel {
         lblThongTin.setForeground(MUTED);
         lblThongTin.setAlignmentX(Component.LEFT_ALIGNMENT);
         lblThongTin.setText("Ngày lập: " + LocalDate.now().format(NGAY)
-                + "  ·  Thu ngân: nhân viên đang đăng nhập");
+                + "  ·  Xác nhận đã nhận tiền trước khi lập hóa đơn đã thanh toán.");
         card.add(lblThongTin);
         return card;
     }
@@ -314,7 +267,11 @@ public class XuLyLapHoaDonPanel extends JPanel {
         JPanel actions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         actions.setOpaque(false);
         JButton btnLamMoi = createButton("Làm mới", false);
-        btnLamMoi.addActionListener(event -> chonLanKham());
+        btnLamMoi.addActionListener(event -> {
+            napNhanVien();
+            napComboLanKham();
+            chonLanKham();
+        });
         btnLap.addActionListener(event -> lapHoaDon());
         actions.add(btnLamMoi);
         actions.add(btnLap);
@@ -331,43 +288,43 @@ public class XuLyLapHoaDonPanel extends JPanel {
         int index = cboLanKham.getSelectedIndex();
         dichVuModel.setRowCount(0);
         thuocModel.setRowCount(0);
+        dsDichVu.clear();
+        dsThuoc.clear();
         tienDichVu = 0;
         tienThuoc = 0;
 
         if (index < 0) {
-            lblBenhNhan.setText("Không còn lần khám nào chờ lập hóa đơn.");
+            lblBenhNhan.setText(dsLanKham.isEmpty()
+                    ? "Không còn lần khám nào chờ lập hóa đơn."
+                    : "Vui lòng chọn lần khám cần lập hóa đơn.");
             lblKetLuan.setText(" ");
             btnLap.setEnabled(false);
             capNhatTongTien();
             return;
         }
-        btnLap.setEnabled(true);
-        String[] lanKham = dsLanKham.get(index);
-        lblBenhNhan.setText("Bệnh nhân: " + lanKham[2] + "  ·  " + lanKham[1]);
-        lblKetLuan.setText("Kết luận chẩn đoán: " + lanKham[3]);
-
-        // TODO DAO: lấy dịch vụ từ KeHoachDieuTri_DichVu, thuốc từ ChiTietDonThuoc.
-        Object[][] dichVu = dichVuTheoChanDoan.get(lanKham[0]);
-        if (dichVu != null) {
-            for (Object[] dong : dichVu) {
-                Object[] dv = timDichVu((String) dong[0]);
-                int soLuong = (Integer) dong[1];
-                double donGia = (Double) dv[2];
-                tienDichVu += donGia * soLuong;
-                dichVuModel.addRow(new Object[] { dv[0], dv[1], TIEN.format(donGia), soLuong,
-                        TIEN.format(donGia * soLuong) });
+        HoaDonDAO.LanKhamHoaDon lanKham = dsLanKham.get(index);
+        lblBenhNhan.setText("Bệnh nhân: " + lanKham.tenBenhNhan + "  ·  " + lanKham.maBenhNhan);
+        lblKetLuan.setText("Kết luận chẩn đoán: " + lanKham.ketLuan);
+        try {
+            dsDichVu.addAll(hoaDonDAO.layDichVuTheoChanDoan(lanKham.maChanDoan));
+            dsThuoc.addAll(hoaDonDAO.layThuocTheoChanDoan(lanKham.maChanDoan));
+            for (HoaDonDAO.DongHoaDon dong : dsDichVu) {
+                tienDichVu += dong.thanhTien();
+                dichVuModel.addRow(new Object[] { dong.ma, dong.ten, TIEN.format(dong.donGia),
+                        dong.soLuong, TIEN.format(dong.thanhTien()) });
             }
-        }
-        Object[][] thuoc = thuocTheoChanDoan.get(lanKham[0]);
-        if (thuoc != null) {
-            for (Object[] dong : thuoc) {
-                Object[] t = timThuoc((String) dong[0]);
-                int soLuong = (Integer) dong[1];
-                double donGia = (Double) t[3];
-                tienThuoc += donGia * soLuong;
-                thuocModel.addRow(new Object[] { t[0], t[1], TIEN.format(donGia), soLuong,
-                        TIEN.format(donGia * soLuong) });
+            for (HoaDonDAO.DongHoaDon dong : dsThuoc) {
+                tienThuoc += dong.thanhTien();
+                thuocModel.addRow(new Object[] { dong.ma, dong.ten, TIEN.format(dong.donGia),
+                        dong.soLuong, TIEN.format(dong.thanhTien()) });
             }
+            btnLap.setEnabled(!dsDichVu.isEmpty() || !dsThuoc.isEmpty());
+            if (!btnLap.isEnabled()) {
+                lblKetLuan.setText("Chưa có dịch vụ hoặc thuốc để tính tiền.");
+            }
+        } catch (SQLException exception) {
+            btnLap.setEnabled(false);
+            showDatabaseError("Không thể tải chi tiết lần khám", exception);
         }
         capNhatTongTien();
     }
@@ -396,43 +353,48 @@ public class XuLyLapHoaDonPanel extends JPanel {
             showWarning("Lần khám này không có khoản nào để tính tiền.");
             return;
         }
+        HoaDonDAO.LanKhamHoaDon lanKham = dsLanKham.get(index);
+        HoaDonDAO.NhanVienHoaDon nhanVien = (HoaDonDAO.NhanVienHoaDon) cboNhanVien.getSelectedItem();
+        if (nhanVien == null) {
+            showWarning("Không có nhân viên đang làm việc để ghi nhận hóa đơn.");
+            return;
+        }
         boolean traGop = TRA_GOP.equals(cboPhuongThuc.getSelectedItem());
-        String phuongThuc = (String) cboPhuongThuc.getSelectedItem();
-
+        int soDot = traGop ? (Integer) spnSoDot.getValue() : 1;
+        String phuongThuc = traGop ? "Tra gop"
+                : CHUYEN_KHOAN.equals(cboPhuongThuc.getSelectedItem()) ? "Chuyen khoan" : "Tien mat";
+        String xacNhanThu = traGop
+                ? "Xác nhận đã thu đợt đầu " + TIEN.format(Math.floor(tong / soDot)) + " đ."
+                : CHUYEN_KHOAN.equals(cboPhuongThuc.getSelectedItem())
+                        ? "Chỉ tiếp tục sau khi đã đối soát giao dịch chuyển khoản."
+                        : "Chỉ tiếp tục sau khi đã nhận đủ tiền mặt.";
         int choice = JOptionPane.showConfirmDialog(this,
-                "Lập hóa đơn " + TIEN.format(tong) + " đ cho " + dsLanKham.get(index)[2] + "\n"
-                        + "Phương thức: " + phuongThuc + "?",
+                "Lập hóa đơn " + TIEN.format(tong) + " đ cho " + lanKham.tenBenhNhan + "\n"
+                        + "Nhân viên lập: " + nhanVien + "\nPhương thức: "
+                        + cboPhuongThuc.getSelectedItem() + "\n" + xacNhanThu,
                 "Xác nhận lập hóa đơn", JOptionPane.YES_NO_OPTION);
         if (choice != JOptionPane.YES_OPTION) {
             return;
         }
 
-        String[] lanKham = dsLanKham.get(index);
-        // TODO DAO: sinh mã từ DB.
-        String maHoaDon = String.format("HD%03d", nextHoaDon++);
-        String trangThai = traGop ? "Dang tra gop" : "Da thanh toan";
-
-        // TODO DAO (một transaction):
-        // 1. HoaDonDAO.them(maHoaDon, ngayLap, trangThai, phuongThuc,
-        // maNhanVien (thu ngân đăng nhập), maBenhNhan, maChanDoan)
-        // 2. ChiTietHoaDonDAO.them(maHoaDon, maDichVu, soLuong, donGiaTaiThoiDiem)
-        // cho từng dòng dịch vụ (đơn giá lấy từ DichVu.DonGia tại thời điểm lập)
-        // 3. ChiTietHoaDonThuocDAO.them(maHoaDon, maVatTu, soLuong, donGiaTaiThoiDiem)
-        // cho từng dòng thuốc (đơn giá lấy từ VatTu.DonGiaBan)
-        // 4. Nếu trả góp:
-        // CongNoTraGopDAO.them(maCongNo, tong, soDotConLai = soDot - 1, maHoaDon)
-        // DotThanhToanDAO.them(...) cho từng đợt (đợt 1 đã thanh toán)
-        String thongBao = "Đã lập hóa đơn " + maHoaDon + ". Tổng tiền: " + TIEN.format(tong) + " đ.";
-        if (traGop) {
-            int soDot = (Integer) spnSoDot.getValue();
-            String maCongNo = String.format("CN%03d", nextCongNo++);
-            nextDot += soDot;
-            thongBao += "\nĐã tạo công nợ " + maCongNo + " gồm " + soDot
-                    + " đợt. Còn lại " + (soDot - 1) + " đợt cần thu.";
+        HoaDonDAO.ChiTietHoaDon detail;
+        try {
+            detail = hoaDonDAO.taoHoaDon(lanKham.maChanDoan, nhanVien.ma, phuongThuc,
+                    soDot, LocalDate.now(), tong);
+        } catch (SQLException | IllegalArgumentException exception) {
+            showDatabaseError("Không thể lập hóa đơn", exception);
+            napComboLanKham();
+            return;
         }
 
-        // Lần khám này đã có hóa đơn nên bỏ khỏi danh sách chờ.
-        dsLanKham.remove(index);
+        String maHoaDon = detail.hoaDon.ma;
+        String trangThai = detail.hoaDon.trangThai;
+        tong = detail.hoaDon.tongTien;
+        String thongBao = "Đã lập hóa đơn " + maHoaDon + ". Tổng tiền: " + TIEN.format(tong) + " đ.";
+        if (traGop) {
+            thongBao += "\nĐã tạo lịch " + soDot + " đợt; đợt đầu đã ghi nhận thanh toán.";
+        }
+
         napComboLanKham();
         chonLanKham();
         showMessage(thongBao);
@@ -441,7 +403,7 @@ public class XuLyLapHoaDonPanel extends JPanel {
                 "Bạn có muốn xuất hóa đơn " + maHoaDon + " ra file PDF không?",
                 "Xuất hóa đơn PDF", JOptionPane.YES_NO_OPTION);
         if (exportChoice == JOptionPane.YES_OPTION) {
-            xuatHoaDonPdf(maHoaDon, lanKham, phuongThuc, trangThai, tong);
+            xuatHoaDonPdf(detail);
         }
     }
 
@@ -449,8 +411,8 @@ public class XuLyLapHoaDonPanel extends JPanel {
     // HÀM HỖ TRỢ
     // =====================================================================
 
-    private void xuatHoaDonPdf(String maHoaDon, String[] lanKham, String phuongThuc,
-            String trangThai, double tong) {
+    private void xuatHoaDonPdf(HoaDonDAO.ChiTietHoaDon detail) {
+        String maHoaDon = detail.hoaDon.ma;
         JFileChooser fileChooser = new JFileChooser();
         fileChooser.setDialogTitle("Lưu hóa đơn PDF");
         fileChooser.setFileFilter(new FileNameExtensionFilter("Tệp PDF (*.pdf)", "pdf"));
@@ -474,10 +436,12 @@ public class XuLyLapHoaDonPanel extends JPanel {
         }
 
         try {
-            HoaDonPdfExporter.export(selectedFile.toPath(), maHoaDon, LocalDate.now(),
-                    lanKham[1], lanKham[2], lanKham[0], lanKham[3], phuongThuc, trangThai,
-                    layDongBang(dichVuModel), layDongBang(thuocModel),
-                    tienDichVu, tienThuoc, tong);
+            HoaDonPdfExporter.export(selectedFile.toPath(), maHoaDon, detail.hoaDon.ngayLap,
+                    detail.hoaDon.maBenhNhan, detail.hoaDon.tenBenhNhan, detail.maChanDoan,
+                    detail.ketLuan, hienThiPhuongThuc(detail.hoaDon.phuongThuc),
+                    hienThiTrangThai(detail.hoaDon.trangThai),
+                    layDongHoaDon(detail.dichVu), layDongHoaDon(detail.thuoc),
+                    tong(detail.dichVu), tong(detail.thuoc), detail.hoaDon.tongTien);
             showMessage("Đã xuất hóa đơn PDF:\n" + selectedFile.getAbsolutePath());
         } catch (IOException | SecurityException exception) {
             JOptionPane.showMessageDialog(this,
@@ -486,14 +450,11 @@ public class XuLyLapHoaDonPanel extends JPanel {
         }
     }
 
-    private List<String[]> layDongBang(DefaultTableModel model) {
+    private List<String[]> layDongHoaDon(List<HoaDonDAO.DongHoaDon> dongHoaDon) {
         List<String[]> rows = new ArrayList<>();
-        for (int row = 0; row < model.getRowCount(); row++) {
-            String[] values = new String[model.getColumnCount()];
-            for (int column = 0; column < model.getColumnCount(); column++) {
-                values[column] = String.valueOf(model.getValueAt(row, column));
-            }
-            rows.add(values);
+        for (HoaDonDAO.DongHoaDon dong : dongHoaDon) {
+            rows.add(new String[] { dong.ma, dong.ten, TIEN.format(dong.donGia),
+                    String.valueOf(dong.soLuong), TIEN.format(dong.thanhTien()) });
         }
         return rows;
     }
@@ -502,10 +463,36 @@ public class XuLyLapHoaDonPanel extends JPanel {
     private void napComboLanKham() {
         dangNapCombo = true;
         cboLanKham.removeAllItems();
-        for (String[] lk : dsLanKham) {
-            cboLanKham.addItem(lk[0] + " - " + lk[2] + " (" + lk[1] + ")");
+        dsLanKham.clear();
+        try {
+            dsLanKham.addAll(hoaDonDAO.layLanKhamChoLapHoaDon());
+            for (HoaDonDAO.LanKhamHoaDon lk : dsLanKham) {
+                cboLanKham.addItem(lk.maChanDoan + " - " + lk.tenBenhNhan + " (" + lk.maBenhNhan + ")");
+            }
+        } catch (SQLException exception) {
+            showDatabaseError("Không thể tải danh sách lần khám", exception);
         }
         dangNapCombo = false;
+    }
+
+    private void napNhanVien() {
+        HoaDonDAO.NhanVienHoaDon chon = (HoaDonDAO.NhanVienHoaDon) cboNhanVien.getSelectedItem();
+        cboNhanVien.removeAllItems();
+        try {
+            for (HoaDonDAO.NhanVienHoaDon nv : hoaDonDAO.layNhanVienDangLamViec()) {
+                cboNhanVien.addItem(nv);
+                if (chon != null && chon.ma.equals(nv.ma)) {
+                    cboNhanVien.setSelectedItem(nv);
+                }
+            }
+        } catch (SQLException exception) {
+            showDatabaseError("Không thể tải danh sách nhân viên", exception);
+        }
+    }
+
+    private void showDatabaseError(String action, Exception exception) {
+        JOptionPane.showMessageDialog(this, action + ":\n" + exception.getMessage(),
+                "Lỗi cơ sở dữ liệu", JOptionPane.ERROR_MESSAGE);
     }
 
     private void capNhatTongTien() {
@@ -537,22 +524,32 @@ public class XuLyLapHoaDonPanel extends JPanel {
         }
     }
 
-    private Object[] timDichVu(String maDichVu) {
-        for (Object[] dv : MOCK_DICH_VU) {
-            if (dv[0].equals(maDichVu)) {
-                return dv;
-            }
+    private double tong(List<HoaDonDAO.DongHoaDon> dong) {
+        double sum = 0;
+        for (HoaDonDAO.DongHoaDon row : dong) {
+            sum += row.thanhTien();
         }
-        return null;
+        return sum;
     }
 
-    private Object[] timThuoc(String maVatTu) {
-        for (Object[] t : MOCK_THUOC) {
-            if (t[0].equals(maVatTu)) {
-                return t;
-            }
+    private String hienThiPhuongThuc(String phuongThuc) {
+        if ("Tien mat".equals(phuongThuc)) {
+            return TIEN_MAT;
         }
-        return null;
+        if ("Chuyen khoan".equals(phuongThuc)) {
+            return CHUYEN_KHOAN;
+        }
+        return TRA_GOP;
+    }
+
+    private String hienThiTrangThai(String trangThai) {
+        if ("Da thanh toan".equals(trangThai)) {
+            return "Đã thanh toán";
+        }
+        if ("Dang tra gop".equals(trangThai)) {
+            return "Đang trả góp";
+        }
+        return "Chưa thanh toán";
     }
 
     private void showMessage(String message) {

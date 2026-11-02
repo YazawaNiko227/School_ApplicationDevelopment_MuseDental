@@ -1,6 +1,7 @@
 package gui;
 
 import com.toedter.calendar.JDateChooser;
+import dao.BaoCaoDoanhThuDAO;
 import util.GiaoDienUtil;
 
 import java.awt.BorderLayout;
@@ -10,14 +11,16 @@ import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
+import java.awt.GraphicsEnvironment;
 import java.text.DecimalFormat;
 import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.concurrent.ExecutionException;
+import javax.swing.SwingWorker;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
@@ -47,8 +50,6 @@ import javax.swing.table.DefaultTableModel;
  * Chỉ tính hóa đơn "Đã thanh toán" và "Đang trả góp"
  * (hóa đơn "Chưa thanh toán" chưa phải doanh thu).
  *
- * Hiện tại dùng dữ liệu mẫu trong bộ nhớ (khớp file SQL). Chỗ cần nối DAO ghi
- * "TODO DAO".
  */
 public class ThongKeRevenueReportPanel extends JPanel {
     private static final Color INK = new Color(32, 53, 68);
@@ -61,11 +62,6 @@ public class ThongKeRevenueReportPanel extends JPanel {
     private static final DecimalFormat TIEN = new DecimalFormat("#,##0");
     private static final DecimalFormat PHAN_TRAM = new DecimalFormat("0.0");
 
-    // Trạng thái thanh toán (DB lưu không dấu).
-    private static final String DA_THANH_TOAN = "Đã thanh toán";
-    private static final String DANG_TRA_GOP = "Đang trả góp";
-    private static final String CHUA_THANH_TOAN = "Chưa thanh toán";
-
     // Loại dòng chi tiết.
     private static final String LOAI_DICH_VU = "Dịch vụ";
     private static final String LOAI_THUOC = "Thuốc";
@@ -75,24 +71,6 @@ public class ThongKeRevenueReportPanel extends JPanel {
     private static final String THEO_THANG = "Theo tháng";
     private static final String THEO_MUC = "Theo dịch vụ / thuốc";
     private static final String THEO_PHUONG_THUC = "Theo phương thức thanh toán";
-
-    // Chỉ số cột của hóa đơn (Object[]).
-    private static final int H_MA = 0;
-    private static final int H_NGAY = 1; // LocalDate
-    private static final int H_TRANG_THAI = 2;
-    private static final int H_PHUONG_THUC = 3;
-
-    // Chỉ số cột của dòng chi tiết (Object[]).
-    private static final int C_MA_HD = 0;
-    private static final int C_LOAI = 1;
-    private static final int C_TEN = 2;
-    private static final int C_THANH_TIEN = 3; // Double
-
-    // Dữ liệu mẫu. TODO DAO: HoaDonDAO.layHoaDonTrongKhoang(tuNgay, denNgay)
-    // {MaHoaDon, NgayLap, TrangThaiThanhToan, PhuongThucThanhToan}
-    private final List<Object[]> dsHoaDon = new ArrayList<>();
-    // {MaHoaDon, loại, tên dịch vụ/thuốc, thành tiền = SoLuong * DonGiaTaiThoiDiem}
-    private final List<Object[]> dsChiTiet = new ArrayList<>();
 
     // ----- Bộ lọc -----
     private final JDateChooser chonTuNgay = new JDateChooser();
@@ -105,6 +83,10 @@ public class ThongKeRevenueReportPanel extends JPanel {
     private final JLabel lblSoHoaDon = new JLabel("0");
     private final JLabel lblTienDichVu = new JLabel("0 đ");
     private final JLabel lblTienThuoc = new JLabel("0 đ");
+    private final JLabel lblTrangThai = new JLabel(" ");
+    private JButton btnThongKe;
+    private JButton btnLamMoi;
+    private int reportRequestId;
 
     // ----- Kết quả -----
     private final DefaultTableModel tableModel = new DefaultTableModel(
@@ -122,8 +104,6 @@ public class ThongKeRevenueReportPanel extends JPanel {
         setLayout(new BorderLayout(0, 18));
         setOpaque(false);
 
-        taoDuLieuMau();
-
         add(createSummaryPanel(), BorderLayout.NORTH);
         add(createResultCard(), BorderLayout.CENTER);
 
@@ -131,27 +111,6 @@ public class ThongKeRevenueReportPanel extends JPanel {
         GiaoDienUtil.datNgayDuocChon(chonTuNgay, LocalDate.now().withDayOfYear(1));
         GiaoDienUtil.datNgayDuocChon(chonDenNgay, LocalDate.now());
         thongKe();
-    }
-
-    // =====================================================================
-    // DỮ LIỆU MẪU (khớp file SQL)
-    // =====================================================================
-
-    private void taoDuLieuMau() {
-        dsHoaDon.add(new Object[] { "HD001", LocalDate.of(2026, 9, 1), DA_THANH_TOAN, "Tiền mặt" });
-        dsHoaDon.add(new Object[] { "HD002", LocalDate.of(2026, 9, 5), DA_THANH_TOAN, "Chuyển khoản" });
-        dsHoaDon.add(new Object[] { "HD003", LocalDate.of(2026, 9, 10), DANG_TRA_GOP, "Trả góp" });
-        dsHoaDon.add(new Object[] { "HD004", LocalDate.of(2026, 10, 1), CHUA_THANH_TOAN, "Chưa chọn" });
-
-        // ChiTietHoaDon (dịch vụ)
-        dsChiTiet.add(new Object[] { "HD001", LOAI_DICH_VU, "Lấy cao răng", 200000.0 });
-        dsChiTiet.add(new Object[] { "HD001", LOAI_DICH_VU, "Trám răng composite", 300000.0 });
-        dsChiTiet.add(new Object[] { "HD002", LOAI_DICH_VU, "Tẩy trắng răng", 2000000.0 });
-        dsChiTiet.add(new Object[] { "HD003", LOAI_DICH_VU, "Bọc răng sứ", 7000000.0 });
-        dsChiTiet.add(new Object[] { "HD004", LOAI_DICH_VU, "Trám răng composite", 300000.0 });
-        // ChiTietHoaDonThuoc (thuốc)
-        dsChiTiet.add(new Object[] { "HD001", LOAI_THUOC, "Amoxicillin 500mg", 75000.0 });
-        dsChiTiet.add(new Object[] { "HD001", LOAI_THUOC, "Paracetamol 500mg", 15000.0 });
     }
 
     // =====================================================================
@@ -208,7 +167,13 @@ public class ThongKeRevenueReportPanel extends JPanel {
                 + "Doanh thu = tiền dịch vụ + tiền thuốc trên hóa đơn, tính theo ngày lập.");
         note.setFont(new Font("Arial", Font.ITALIC, 11));
         note.setForeground(MUTED);
-        card.add(note, BorderLayout.SOUTH);
+        JPanel footer = new JPanel(new BorderLayout(8, 0));
+        footer.setOpaque(false);
+        lblTrangThai.setFont(new Font("Arial", Font.PLAIN, 11));
+        lblTrangThai.setForeground(MUTED);
+        footer.add(note, BorderLayout.CENTER);
+        footer.add(lblTrangThai, BorderLayout.EAST);
+        card.add(footer, BorderLayout.SOUTH);
         return card;
     }
 
@@ -224,8 +189,8 @@ public class ThongKeRevenueReportPanel extends JPanel {
         chonDenNgay.setToolTipText("Chọn ngày kết thúc từ lịch");
         cboNhom.setFont(new Font("Arial", Font.PLAIN, 12));
 
-        JButton btnThongKe = createButton("Thống kê", true);
-        JButton btnLamMoi = createButton("Làm mới", false);
+        btnThongKe = createButton("Thống kê", true);
+        btnLamMoi = createButton("Làm mới", false);
         btnThongKe.addActionListener(event -> thongKe());
         btnLamMoi.addActionListener(event -> lamMoi());
 
@@ -285,51 +250,74 @@ public class ThongKeRevenueReportPanel extends JPanel {
     private void thongKe() {
         LocalDate tuNgay = GiaoDienUtil.layNgayDaChon(chonTuNgay);
         LocalDate denNgay = GiaoDienUtil.layNgayDaChon(chonDenNgay);
+        int requestId = ++reportRequestId;
         if (tuNgay == null || denNgay == null) {
+            setLoading(false);
+            clearResults("Khoảng ngày không hợp lệ.");
             showWarning("Vui lòng chọn đầy đủ Từ ngày và Đến ngày.");
             return;
         }
         if (tuNgay.isAfter(denNgay)) {
+            setLoading(false);
+            clearResults("Khoảng ngày không hợp lệ.");
             showWarning("Từ ngày không được sau Đến ngày.");
             return;
         }
 
         String nhom = (String) cboNhom.getSelectedItem();
-        // nhóm -> tiền, nhóm -> các mã hóa đơn thuộc nhóm (để đếm số hóa đơn)
+        setLoading(true);
+        clearResults("Đang tải báo cáo...");
+        SwingWorker<List<BaoCaoDoanhThuDAO.ChiTietDoanhThu>, Void> worker =
+                new SwingWorker<List<BaoCaoDoanhThuDAO.ChiTietDoanhThu>, Void>() {
+            @Override
+            protected List<BaoCaoDoanhThuDAO.ChiTietDoanhThu> doInBackground() throws Exception {
+                return new BaoCaoDoanhThuDAO().layChiTietDoanhThu(tuNgay, denNgay);
+            }
+
+            @Override
+            protected void done() {
+                if (requestId != reportRequestId) {
+                    return;
+                }
+                setLoading(false);
+                try {
+                    hienThiKetQua(get(), nhom);
+                } catch (InterruptedException ex) {
+                    Thread.currentThread().interrupt();
+                    baoLoiTaiBaoCao(ex);
+                } catch (ExecutionException ex) {
+                    baoLoiTaiBaoCao(ex.getCause());
+                }
+            }
+        };
+        worker.execute();
+    }
+
+    private void hienThiKetQua(List<BaoCaoDoanhThuDAO.ChiTietDoanhThu> chiTiet, String nhom) {
         Map<String, Double> tienTheoNhom = new TreeMap<>();
         Map<String, Set<String>> hoaDonTheoNhom = new TreeMap<>();
         Set<String> tatCaHoaDon = new HashSet<>();
         double tongDichVu = 0;
         double tongThuoc = 0;
 
-        // TODO DAO: thay vòng lặp bằng query GROUP BY trong HoaDonDAO.
-        for (Object[] ct : dsChiTiet) {
-            Object[] hd = timHoaDon((String) ct[C_MA_HD]);
-            if (hd == null || !tinhDoanhThu(hd, tuNgay, denNgay)) {
-                continue;
-            }
-            double tien = (Double) ct[C_THANH_TIEN];
-            String khoa = taoKhoaNhom(nhom, hd, ct);
-
+        for (BaoCaoDoanhThuDAO.ChiTietDoanhThu dong : chiTiet) {
+            double tien = dong.getThanhTien();
+            String khoa = taoKhoaNhom(nhom, dong);
             tienTheoNhom.merge(khoa, tien, Double::sum);
-            hoaDonTheoNhom.computeIfAbsent(khoa, k -> new HashSet<>()).add((String) hd[H_MA]);
-            tatCaHoaDon.add((String) hd[H_MA]);
-
-            if (LOAI_DICH_VU.equals(ct[C_LOAI])) {
+            hoaDonTheoNhom.computeIfAbsent(khoa, k -> new HashSet<>()).add(dong.getMaHoaDon());
+            tatCaHoaDon.add(dong.getMaHoaDon());
+            if (LOAI_DICH_VU.equals(dong.getLoai())) {
                 tongDichVu += tien;
-            } else {
+            } else if (LOAI_THUOC.equals(dong.getLoai())) {
                 tongThuoc += tien;
             }
         }
-        double tong = tongDichVu + tongThuoc;
 
-        // Cập nhật thẻ tổng hợp.
+        double tong = tongDichVu + tongThuoc;
         lblTongDoanhThu.setText(TIEN.format(tong) + " đ");
         lblSoHoaDon.setText(String.valueOf(tatCaHoaDon.size()));
         lblTienDichVu.setText(TIEN.format(tongDichVu) + " đ");
         lblTienThuoc.setText(TIEN.format(tongThuoc) + " đ");
-
-        // Cập nhật bảng kết quả.
         tableModel.setRowCount(0);
         for (Map.Entry<String, Double> entry : tienTheoNhom.entrySet()) {
             double tyLe = tong == 0 ? 0 : entry.getValue() * 100 / tong;
@@ -340,10 +328,41 @@ public class ThongKeRevenueReportPanel extends JPanel {
                     PHAN_TRAM.format(tyLe) + "%" });
         }
         veBieuDo(tienTheoNhom, tong);
+        lblTrangThai.setText(tienTheoNhom.isEmpty()
+                ? "Không có doanh thu trong khoảng ngày đã chọn."
+                : "Đã tải " + tatCaHoaDon.size() + " hóa đơn.");
+        lblTrangThai.setForeground(MUTED);
+    }
 
-        if (tienTheoNhom.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Không có doanh thu trong khoảng ngày đã chọn.",
-                    "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+    private void setLoading(boolean loading) {
+        chonTuNgay.setEnabled(!loading);
+        chonDenNgay.setEnabled(!loading);
+        cboNhom.setEnabled(!loading);
+        if (btnThongKe != null) {
+            btnThongKe.setEnabled(!loading);
+            btnLamMoi.setEnabled(!loading);
+        }
+    }
+
+    private void clearResults(String status) {
+        lblTongDoanhThu.setText("—");
+        lblSoHoaDon.setText("—");
+        lblTienDichVu.setText("—");
+        lblTienThuoc.setText("—");
+        tableModel.setRowCount(0);
+        veBieuDo(new TreeMap<>(), 0);
+        lblTrangThai.setText(status);
+        lblTrangThai.setForeground(MUTED);
+    }
+
+    private void baoLoiTaiBaoCao(Throwable error) {
+        String message = error == null || error.getMessage() == null
+                ? "Không thể tải dữ liệu báo cáo."
+                : "Không thể tải dữ liệu báo cáo: " + error.getMessage();
+        clearResults("Lỗi tải dữ liệu.");
+        lblTrangThai.setForeground(Color.RED.darker());
+        if (!GraphicsEnvironment.isHeadless()) {
+            JOptionPane.showMessageDialog(this, message, "Lỗi cơ sở dữ liệu", JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -391,38 +410,16 @@ public class ThongKeRevenueReportPanel extends JPanel {
     // HÀM HỖ TRỢ
     // =====================================================================
 
-    // Hóa đơn có được tính vào doanh thu không (đúng trạng thái và trong khoảng
-    // ngày).
-    private boolean tinhDoanhThu(Object[] hd, LocalDate tuNgay, LocalDate denNgay) {
-        String trangThai = (String) hd[H_TRANG_THAI];
-        if (!DA_THANH_TOAN.equals(trangThai) && !DANG_TRA_GOP.equals(trangThai)) {
-            return false;
-        }
-        LocalDate ngay = (LocalDate) hd[H_NGAY];
-        return !ngay.isBefore(tuNgay) && !ngay.isAfter(denNgay);
-    }
-
-    // Khóa nhóm: tháng "2026-09", ngày "2026-09-01", tên dịch vụ/thuốc, phương
-    // thức.
-    private String taoKhoaNhom(String nhom, Object[] hd, Object[] ct) {
-        LocalDate ngay = (LocalDate) hd[H_NGAY];
+    private String taoKhoaNhom(String nhom, BaoCaoDoanhThuDAO.ChiTietDoanhThu dong) {
+        LocalDate ngay = dong.getNgayLap();
         if (THEO_NGAY.equals(nhom)) {
             return ngay.toString();
         } else if (THEO_MUC.equals(nhom)) {
-            return ct[C_LOAI] + ": " + ct[C_TEN];
+            return dong.getLoai() + ": " + dong.getTenMuc();
         } else if (THEO_PHUONG_THUC.equals(nhom)) {
-            return (String) hd[H_PHUONG_THUC];
+            return dong.getPhuongThucThanhToan();
         }
         return ngay.toString().substring(0, 7);
-    }
-
-    private Object[] timHoaDon(String maHoaDon) {
-        for (Object[] hd : dsHoaDon) {
-            if (hd[H_MA].equals(maHoaDon)) {
-                return hd;
-            }
-        }
-        return null;
     }
 
     private void showWarning(String message) {

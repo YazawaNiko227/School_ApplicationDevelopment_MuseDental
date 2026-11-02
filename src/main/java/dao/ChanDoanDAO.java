@@ -84,25 +84,37 @@ public class ChanDoanDAO {
                 ps.setString(3, maLichHen);
                 ps.setString(4, maHoSo);
                 ps.setString(5, maNhaSi);
-                ps.executeUpdate();
+                if (ps.executeUpdate() != 1) {
+                    throw new SQLException("Không tạo được bản ghi chẩn đoán nháp.");
+                }
             }
             if (maLichHen != null) {
                 try (PreparedStatement ps = con.prepareStatement(
-                        "UPDATE LichHen SET TrangThai = N'Dang kham' WHERE MaLichHen = ?")) {
+                        "UPDATE LichHen SET TrangThai = N'Dang kham' "
+                                + "WHERE MaLichHen = ? AND TrangThai = N'Da check-in'")) {
                     ps.setString(1, maLichHen);
-                    ps.executeUpdate();
+                    if (ps.executeUpdate() != 1) {
+                        throw new SQLException("Không cập nhật được trạng thái lịch hẹn.");
+                    }
                 }
             }
             if (maPhong != null) {
                 try (PreparedStatement ps = con.prepareStatement(
-                        "UPDATE PhongKham SET TrangThai = N'Dang kham' WHERE MaPhong = ?")) {
+                        "UPDATE PhongKham SET TrangThai = N'Dang kham' "
+                                + "WHERE MaPhong = ? AND TrangThai = N'San sang'")) {
                     ps.setString(1, maPhong);
-                    ps.executeUpdate();
+                    if (ps.executeUpdate() != 1) {
+                        throw new SQLException("Không cập nhật được trạng thái phòng khám.");
+                    }
                 }
             }
+            ChanDoan taoMoi = timTheoMa(maChanDoan);
+            if (taoMoi == null) {
+                throw new SQLException("Không đọc lại được chẩn đoán nháp vừa tạo.");
+            }
             con.commit();
-            return timTheoMa(maChanDoan);
-        } catch (SQLException e) {
+            return taoMoi;
+        } catch (SQLException | RuntimeException e) {
             con.rollback();
             throw e;
         } finally {
@@ -112,7 +124,8 @@ public class ChanDoanDAO {
 
     /** Lưu nháp (TrangThai vẫn là 'Nhap'). */
     public boolean capNhatNhap(ChanDoan cd) throws SQLException {
-        String sql = "UPDATE ChanDoan SET LyDoKham=?, TrieuChung=?, KetLuanChanDoan=? WHERE MaChanDoan=?";
+        String sql = "UPDATE ChanDoan SET LyDoKham=?, TrieuChung=?, KetLuanChanDoan=? "
+                + "WHERE MaChanDoan=? AND TrangThai=N'Nhap'";
         try (PreparedStatement ps = ConnectDB.getConnection().prepareStatement(sql)) {
             ps.setString(1, cd.getLyDoKham());
             ps.setString(2, cd.getTrieuChung());
@@ -133,30 +146,38 @@ public class ChanDoanDAO {
             con.setAutoCommit(false);
             try (PreparedStatement ps = con.prepareStatement(
                     "UPDATE ChanDoan SET LyDoKham=?, TrieuChung=?, KetLuanChanDoan=?, TrangThai=N'Da chot' "
-                            + "WHERE MaChanDoan=?")) {
+                            + "WHERE MaChanDoan=? AND TrangThai=N'Nhap'")) {
                 ps.setString(1, cd.getLyDoKham());
                 ps.setString(2, cd.getTrieuChung());
                 ps.setString(3, cd.getKetLuanChanDoan());
                 ps.setString(4, cd.getMaChanDoan());
-                ps.executeUpdate();
+                if (ps.executeUpdate() != 1) {
+                    throw new SQLException("Không tìm thấy chẩn đoán nháp để chốt.");
+                }
             }
             if (maLichHen != null) {
                 try (PreparedStatement ps = con.prepareStatement(
-                        "UPDATE LichHen SET TrangThai = N'Hoan thanh' WHERE MaLichHen = ?")) {
+                        "UPDATE LichHen SET TrangThai = N'Hoan thanh' "
+                                + "WHERE MaLichHen = ? AND TrangThai = N'Dang kham'")) {
                     ps.setString(1, maLichHen);
-                    ps.executeUpdate();
+                    if (ps.executeUpdate() != 1) {
+                        throw new SQLException("Không cập nhật được trạng thái lịch hẹn.");
+                    }
                 }
             }
             if (maPhong != null) {
                 try (PreparedStatement ps = con.prepareStatement(
-                        "UPDATE PhongKham SET TrangThai = N'Can ve sinh' WHERE MaPhong = ?")) {
+                        "UPDATE PhongKham SET TrangThai = N'Can ve sinh' "
+                                + "WHERE MaPhong = ? AND TrangThai = N'Dang kham'")) {
                     ps.setString(1, maPhong);
-                    ps.executeUpdate();
+                    if (ps.executeUpdate() != 1) {
+                        throw new SQLException("Không cập nhật được trạng thái phòng khám.");
+                    }
                 }
             }
             con.commit();
             return true;
-        } catch (SQLException e) {
+        } catch (SQLException | RuntimeException e) {
             con.rollback();
             throw e;
         } finally {

@@ -1,5 +1,7 @@
 package gui;
 
+import dao.CongNoTraGopDAO;
+import dao.HoaDonDAO;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
@@ -12,6 +14,7 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.sql.SQLException;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
@@ -45,7 +48,6 @@ import javax.swing.table.DefaultTableModel;
  * Đợt chưa thanh toán mà quá ngày đến hạn được hiển thị là "Quá hạn"
  * (khi nối DB nên cập nhật cột TrangThai = 'Qua han' khi mở màn hình).
  *
- * Hiện tại dùng dữ liệu mẫu trong bộ nhớ. Chỗ cần nối DAO ghi "TODO DAO".
  */
 public class CapNhatCongNoTraGopPanel extends JPanel {
     private static final Color INK = new Color(32, 53, 68);
@@ -166,9 +168,9 @@ public class CapNhatCongNoTraGopPanel extends JPanel {
         }
     }
 
-    // TODO DAO: CongNoTraGopDAO.layTatCa() +
-    // DotThanhToanDAO.timTheoCongNo(maCongNo)
     private final List<CongNo> dsCongNo = new ArrayList<>();
+    private final HoaDonDAO hoaDonDAO = new HoaDonDAO();
+    private final CongNoTraGopDAO congNoDAO = new CongNoTraGopDAO();
     private boolean dangNapBang = false;
 
     // ----- Thẻ thống kê -----
@@ -211,8 +213,6 @@ public class CapNhatCongNoTraGopPanel extends JPanel {
         setLayout(new BorderLayout(0, 18));
         setOpaque(false);
 
-        taoDuLieuMau();
-
         add(createSummaryPanel(), BorderLayout.NORTH);
 
         JPanel center = new JPanel(new BorderLayout(18, 0));
@@ -222,34 +222,6 @@ public class CapNhatCongNoTraGopPanel extends JPanel {
         add(center, BorderLayout.CENTER);
 
         lamMoi(null);
-    }
-
-    // =====================================================================
-    // DỮ LIỆU MẪU
-    // =====================================================================
-
-    private void taoDuLieuMau() {
-        LocalDate homNay = LocalDate.now();
-
-        // CN001: khớp dữ liệu mẫu trong SQL (HD003, BN002, 3 đợt).
-        CongNo cn1 = new CongNo("CN001", "HD003", "BN002", "Nguyễn Thị Lan", "0912000002", 7000000);
-        cn1.dots.add(new Dot("DOT001", LocalDate.of(2026, 9, 10), 3000000, true, LocalDate.of(2026, 9, 10)));
-        cn1.dots.add(new Dot("DOT002", LocalDate.of(2026, 10, 10), 2000000, false, null));
-        cn1.dots.add(new Dot("DOT003", LocalDate.of(2026, 11, 10), 2000000, false, null));
-        dsCongNo.add(cn1);
-
-        // CN002: đợt 2 sắp đến hạn (tính theo ngày hiện tại để dễ thử).
-        CongNo cn2 = new CongNo("CN002", "HD005", "BN003", "Đặng Quốc Khánh", "0912000003", 6000000);
-        cn2.dots.add(new Dot("DOT004", homNay.minusMonths(1), 2000000, true, homNay.minusMonths(1)));
-        cn2.dots.add(new Dot("DOT005", homNay.plusDays(5), 2000000, false, null));
-        cn2.dots.add(new Dot("DOT006", homNay.plusDays(35), 2000000, false, null));
-        dsCongNo.add(cn2);
-
-        // CN003: đã trả xong, dùng để thử bộ lọc "Hoàn tất".
-        CongNo cn3 = new CongNo("CN003", "HD006", "BN001", "Võ Thanh Hải", "0912000001", 2000000);
-        cn3.dots.add(new Dot("DOT007", homNay.minusMonths(2), 1000000, true, homNay.minusMonths(2)));
-        cn3.dots.add(new Dot("DOT008", homNay.minusMonths(1), 1000000, true, homNay.minusMonths(1)));
-        dsCongNo.add(cn3);
     }
 
     // =====================================================================
@@ -446,22 +418,27 @@ public class CapNhatCongNoTraGopPanel extends JPanel {
             return;
         }
 
-        // TODO DAO (một transaction):
-        // 1. DotThanhToanDAO.thanhToan(maDot, ngayThanhToanThucTe = hôm nay)
-        // -> TrangThai='Da thanh toan'
-        // 2. CongNoTraGopDAO.capNhatSoDotConLai(maCongNo, soDotConLai - 1)
-        // 3. Nếu SoDotConLai = 0: HoaDonDAO.capNhatTrangThai(maHoaDon, 'Da thanh toan')
-        dot.daThanhToan = true;
-        dot.ngayThanhToan = LocalDate.now();
+        try {
+            if (!congNoDAO.thanhToanDot(dot.ma, LocalDate.now())) {
+                showWarning("Đợt đã được thanh toán hoặc không còn là đợt tiếp theo. Hãy tải lại dữ liệu.");
+                lamMoi(cn.ma);
+                return;
+            }
+        } catch (SQLException exception) {
+            showDatabaseError("Không thể ghi nhận thanh toán", exception);
+            return;
+        }
 
+        lamMoi(cn.ma);
+        CongNo capNhat = layCongNoDangChon();
         String thongBao = "Đã thu đợt " + (row + 1) + ": " + TIEN.format(dot.soTien) + " đ.";
-        if (cn.soDotConLai() == 0) {
+        if (capNhat != null && capNhat.soDotConLai() == 0) {
             thongBao += "\nHồ sơ " + cn.ma + " đã trả hết, hóa đơn " + cn.maHoaDon
                     + " chuyển sang \"Đã thanh toán\".";
         } else {
-            thongBao += "\nCòn " + cn.soDotConLai() + " đợt, " + TIEN.format(cn.conLai()) + " đ.";
+            thongBao += "\nCòn " + (capNhat == null ? 0 : capNhat.soDotConLai())
+                    + " đợt, " + TIEN.format(capNhat == null ? 0 : capNhat.conLai()) + " đ.";
         }
-        lamMoi(cn.ma);
         showMessage(thongBao);
     }
 
@@ -488,13 +465,10 @@ public class CapNhatCongNoTraGopPanel extends JPanel {
                     + " đ của hóa đơn " + cn.maHoaDon + " sẽ đến hạn vào ngày " + dot.denHan.format(NGAY)
                     + ". Xin cảm ơn.";
         }
-        int choice = JOptionPane.showConfirmDialog(this,
-                "Gửi tin nhắn tới " + cn.hoTen + " (" + cn.soDienThoai + "):\n\n" + noiDung,
-                "Xác nhận nhắc nợ", JOptionPane.YES_NO_OPTION);
-        if (choice == JOptionPane.YES_OPTION) {
-            // TODO: gửi SMS / Zalo thật khi có tích hợp (hiện chỉ giả lập).
-            showMessage("Đã gửi nhắc nợ tới " + cn.soDienThoai + ".");
-        }
+        JOptionPane.showMessageDialog(this,
+                "Chưa tích hợp gửi SMS/Zalo; nội dung dưới đây chỉ để tham khảo, chưa được gửi.\n"
+                        + "Liên hệ: " + cn.soDienThoai + "\n\n" + noiDung,
+                "Nội dung nhắc nợ", JOptionPane.INFORMATION_MESSAGE);
     }
 
     // =====================================================================
@@ -506,6 +480,31 @@ public class CapNhatCongNoTraGopPanel extends JPanel {
         dangNapBang = true;
         String keyword = txtTim.getText().trim().toLowerCase();
         String loc = (String) cboLoc.getSelectedItem();
+
+        try {
+            dsCongNo.clear();
+            for (HoaDonDAO.CongNoHoaDon row : hoaDonDAO.layCongNoTraGop()) {
+                CongNo cn = new CongNo(row.maCongNo, row.maHoaDon, row.maBenhNhan,
+                        row.tenBenhNhan, row.soDienThoai, row.tongTien);
+                for (HoaDonDAO.DotHoaDon dot : row.dots) {
+                    cn.dots.add(new Dot(dot.ma, dot.ngayDenHan, dot.soTien,
+                            "Da thanh toan".equals(dot.trangThai), dot.ngayThanhToan));
+                }
+                dsCongNo.add(cn);
+            }
+        } catch (SQLException exception) {
+            dsCongNo.clear();
+            congNoModel.setRowCount(0);
+            dotModel.setRowCount(0);
+            dangNapBang = false;
+            lblBenhNhan.setText("Không thể tải dữ liệu công nợ.");
+            lblHoaDon.setText(" ");
+            lblTienDo.setText(" ");
+            capNhatThongKe();
+            hienThiChiTiet();
+            showDatabaseError("Không thể tải danh sách công nợ", exception);
+            return;
+        }
 
         congNoModel.setRowCount(0);
         for (CongNo cn : dsCongNo) {
@@ -533,6 +532,12 @@ public class CapNhatCongNoTraGopPanel extends JPanel {
         }
         dangNapBang = false;
         hienThiChiTiet();
+    }
+
+    private void showDatabaseError(String action, SQLException exception) {
+        JOptionPane.showMessageDialog(this,
+                action + ":\n" + exception.getMessage(),
+                "Lỗi cơ sở dữ liệu", JOptionPane.ERROR_MESSAGE);
     }
 
     // Thống kê tính trên toàn bộ hồ sơ (không phụ thuộc bộ lọc).

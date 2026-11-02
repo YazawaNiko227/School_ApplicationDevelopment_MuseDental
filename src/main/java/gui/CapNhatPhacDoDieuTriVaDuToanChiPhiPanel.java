@@ -7,18 +7,28 @@ import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
+import java.sql.SQLException;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import dao.ChanDoanDAO;
+import dao.DichVuDAO;
+import dao.KeHoachDieuTriDAO;
+import dao.KeHoachDieuTri_DichVuDAO;
+import entity.ChanDoan;
+import entity.ChiTietKeHoachDieuTriDichVu;
+import entity.DichVu;
+import entity.KeHoachDieuTri;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
+import javax.swing.DefaultListCellRenderer;
 import javax.swing.JLabel;
+import javax.swing.JList;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
@@ -42,7 +52,6 @@ import javax.swing.table.DefaultTableModel;
  * 4. Bấm "Lưu phác đồ". Mỗi lần khám chỉ có tối đa 1 phác đồ
  * (UQ_KeHoachDieuTri_ChanDoan), lưu lại lần nữa là cập nhật.
  *
- * Hiện tại dùng dữ liệu mẫu trong bộ nhớ. Chỗ cần nối DAO ghi "TODO DAO".
  */
 public class CapNhatPhacDoDieuTriVaDuToanChiPhiPanel extends JPanel {
     private static final Color INK = new Color(32, 53, 68);
@@ -53,49 +62,26 @@ public class CapNhatPhacDoDieuTriVaDuToanChiPhiPanel extends JPanel {
 
     private static final DecimalFormat TIEN = new DecimalFormat("#,##0");
 
-    // Trạng thái phác đồ (DB lưu không dấu: 'Dang thuc hien', 'Hoan thanh').
+    // Trạng thái hiển thị và trạng thái lưu trong CSDL.
     private static final String DANG_THUC_HIEN = "Đang thực hiện";
     private static final String HOAN_THANH = "Hoàn thành";
+    private static final String DA_HUY = "Đã hủy";
 
-    // ----- Dữ liệu mẫu -----
-    // TODO DAO: ChanDoanDAO.layDanhSachDangKham() thay cho dữ liệu này.
-    // {MaChanDoan, MaBenhNhan, HoTen, KetLuanChanDoan}
-    private static final String[][] MOCK_LAN_KHAM = {
-            { "CD005", "BN003", "Đặng Quốc Khánh", "Viêm tủy răng số 46" },
-            { "CD006", "BN002", "Nguyễn Thị Lan", "Mẻ răng cửa số 11, cần bọc sứ" },
-            { "CD007", "BN004", "Trần Bảo Ngọc", "Sâu răng sữa số 55 mức độ nhẹ" }
-    };
-
-    // TODO DAO: DichVuDAO.layTatCa() thay cho dữ liệu này.
-    // {MaDichVu, TenDichVu, DonGia, ThoiGianBaoHanh (tháng)}
-    private static final Object[][] MOCK_DICH_VU = {
-            { "DV001", "Lấy cao răng", 200000.0, 0 },
-            { "DV002", "Trám răng composite", 300000.0, 6 },
-            { "DV003", "Nhổ răng khôn", 1500000.0, 0 },
-            { "DV004", "Bọc răng sứ", 3500000.0, 60 },
-            { "DV005", "Điều trị tủy răng", 1200000.0, 12 },
-            { "DV006", "Tẩy trắng răng", 2000000.0, 12 }
-    };
-
-    /**
-     * Một phác đồ (KeHoachDieuTri) kèm danh sách dịch vụ (maDichVu -> số lượng).
-     */
-    private static final class KeHoach {
-        String ma;
-        String ten;
-        int thoiGianDuKien;
-        String trangThai;
-        final Map<String, Integer> dichVu = new LinkedHashMap<>();
-    }
-
-    // maChanDoan -> phác đồ đã lưu (mỗi lần khám tối đa 1 phác đồ).
-    private final Map<String, KeHoach> keHoachTheoChanDoan = new HashMap<>();
+    private final ChanDoanDAO chanDoanDAO = new ChanDoanDAO();
+    private final DichVuDAO dichVuDAO = new DichVuDAO();
+    private final KeHoachDieuTriDAO keHoachDAO = new KeHoachDieuTriDAO();
+    private final KeHoachDieuTri_DichVuDAO chiTietKeHoachDAO = new KeHoachDieuTri_DichVuDAO();
+    private final Map<String, DichVu> dichVuTheoMa = new LinkedHashMap<>();
+    private final Map<String, KeHoachDieuTriDAO.ThongTinBenhNhan> benhNhanTheoChanDoan = new LinkedHashMap<>();
+    private KeHoachDieuTriDAO.ThongTinBenhNhan benhNhanDangChon;
+    private KeHoachDieuTri phacDoDangChon;
+    private boolean dangNapDuLieu;
+    private boolean lanKhamDaNap;
     // Danh sách dịch vụ đang chọn trên màn hình (chưa lưu): maDichVu -> số lượng.
     private final Map<String, Integer> dichVuDangChon = new LinkedHashMap<>();
-    private int nextKeHoach = 5;
 
     // ----- Chọn lần khám -----
-    private final JComboBox<String> cboLanKham = new JComboBox<>();
+    private final JComboBox<ChanDoan> cboLanKham = new JComboBox<>();
     private final JLabel lblBenhNhan = new JLabel(" ");
     private final JLabel lblKetLuan = new JLabel(" ");
     private final JLabel lblCoPhacDo = new JLabel(" ");
@@ -115,7 +101,7 @@ public class CapNhatPhacDoDieuTriVaDuToanChiPhiPanel extends JPanel {
     // ----- Phác đồ -----
     private final JTextField txtTenPhacDo = new JTextField();
     private final JSpinner spnThoiGian = new JSpinner(new SpinnerNumberModel(7, 1, 365, 1));
-    private final JComboBox<String> cboTrangThai = new JComboBox<>(new String[] { DANG_THUC_HIEN, HOAN_THANH });
+    private final JComboBox<String> cboTrangThai = new JComboBox<>(new String[] { DANG_THUC_HIEN, HOAN_THANH, DA_HUY });
     private final DefaultTableModel chonModel = new DefaultTableModel(
             new String[] { "Mã", "Tên dịch vụ", "Đơn giá (đ)", "SL", "Thành tiền (đ)" }, 0) {
         @Override
@@ -130,8 +116,6 @@ public class CapNhatPhacDoDieuTriVaDuToanChiPhiPanel extends JPanel {
         setLayout(new BorderLayout(0, 16));
         setOpaque(false);
 
-        taoDuLieuMau();
-
         add(createLanKhamCard(), BorderLayout.NORTH);
 
         JPanel center = new JPanel(new BorderLayout(16, 0));
@@ -140,28 +124,28 @@ public class CapNhatPhacDoDieuTriVaDuToanChiPhiPanel extends JPanel {
         center.add(createPhacDoCard(), BorderLayout.CENTER);
         add(center, BorderLayout.CENTER);
 
-        loadDichVu();
-        for (String[] lk : MOCK_LAN_KHAM) {
-            cboLanKham.addItem(lk[0] + " - " + lk[2] + " (" + lk[1] + ")");
-        }
-        // Gắn listener sau khi đã thêm item để không bị kích hoạt sớm.
         cboLanKham.addActionListener(event -> chonLanKham());
-        chonLanKham();
-    }
-
-    // =====================================================================
-    // DỮ LIỆU MẪU
-    // =====================================================================
-
-    private void taoDuLieuMau() {
-        // Lần khám CD007 đã có sẵn phác đồ để thử chức năng sửa.
-        KeHoach kh = new KeHoach();
-        kh.ma = "KH004";
-        kh.ten = "Trám răng sữa 55";
-        kh.thoiGianDuKien = 7;
-        kh.trangThai = DANG_THUC_HIEN;
-        kh.dichVu.put("DV002", 1);
-        keHoachTheoChanDoan.put("CD007", kh);
+        cboLanKham.setRenderer(new DefaultListCellRenderer() {
+            @Override
+            public Component getListCellRendererComponent(JList<?> list, Object value, int index,
+                    boolean isSelected, boolean cellHasFocus) {
+                super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+                if (value instanceof ChanDoan) {
+                    ChanDoan chanDoan = (ChanDoan) value;
+                    KeHoachDieuTriDAO.ThongTinBenhNhan benhNhan =
+                            benhNhanTheoChanDoan.get(chanDoan.getMaChanDoan());
+                    setText(chanDoan.getMaChanDoan() + " - "
+                            + (benhNhan == null ? chanDoan.getMaHoSo()
+                                    : benhNhan.getHoTen() + " (" + benhNhan.getMaBenhNhan() + ")"));
+                }
+                return this;
+            }
+        });
+        try {
+            napDuLieu();
+        } catch (SQLException e) {
+            hienLoiSql("tải dữ liệu phác đồ", e);
+        }
     }
 
     // =====================================================================
@@ -294,12 +278,15 @@ public class CapNhatPhacDoDieuTriVaDuToanChiPhiPanel extends JPanel {
         JPanel actions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         actions.setOpaque(false);
         JButton btnXoa = createButton("Xóa dịch vụ", false);
+        JButton btnXoaPhacDo = createButton("Xóa phác đồ", false);
         JButton btnLamMoi = createButton("Làm mới", false);
         JButton btnLuu = createButton("Lưu phác đồ", true);
         btnXoa.addActionListener(event -> xoaDichVu());
-        btnLamMoi.addActionListener(event -> chonLanKham());
+        btnXoaPhacDo.addActionListener(event -> xoaPhacDo());
+        btnLamMoi.addActionListener(event -> lamMoi());
         btnLuu.addActionListener(event -> luuPhacDo());
         actions.add(btnXoa);
+        actions.add(btnXoaPhacDo);
         actions.add(btnLamMoi);
         actions.add(btnLuu);
         bottom.add(actions, BorderLayout.SOUTH);
@@ -313,29 +300,66 @@ public class CapNhatPhacDoDieuTriVaDuToanChiPhiPanel extends JPanel {
 
     /** Chọn lần khám: nạp phác đồ đã lưu (nếu có) hoặc xóa trắng form. */
     private void chonLanKham() {
-        int index = cboLanKham.getSelectedIndex();
-        if (index < 0) {
+        if (dangNapDuLieu) {
             return;
         }
-        String[] lanKham = MOCK_LAN_KHAM[index];
-        lblBenhNhan.setText("Bệnh nhân: " + lanKham[2] + "  ·  " + lanKham[1]);
-        lblKetLuan.setText("Kết luận chẩn đoán: " + lanKham[3]);
-
+        lanKhamDaNap = false;
+        ChanDoan chanDoan = (ChanDoan) cboLanKham.getSelectedItem();
+        benhNhanDangChon = chanDoan == null ? null : benhNhanTheoChanDoan.get(chanDoan.getMaChanDoan());
         dichVuDangChon.clear();
-        // TODO DAO: KeHoachDieuTriDAO.timTheoChanDoan(maChanDoan) + lấy
-        // KeHoachDieuTri_DichVu
-        KeHoach kh = keHoachTheoChanDoan.get(lanKham[0]);
-        if (kh == null) {
-            lblCoPhacDo.setText("Lần khám này chưa có phác đồ. Lưu sẽ tạo phác đồ mới.");
+        phacDoDangChon = null;
+        if (chanDoan == null) {
+            lblBenhNhan.setText("Không có lần khám nháp.");
+            lblKetLuan.setText(" ");
+            lblCoPhacDo.setText(" ");
             txtTenPhacDo.setText("");
-            spnThoiGian.setValue(7);
+            datThoiGian(7);
             cboTrangThai.setSelectedItem(DANG_THUC_HIEN);
-        } else {
-            lblCoPhacDo.setText("Đã có phác đồ " + kh.ma + ". Lưu sẽ cập nhật phác đồ này.");
-            txtTenPhacDo.setText(kh.ten);
-            spnThoiGian.setValue(kh.thoiGianDuKien);
-            cboTrangThai.setSelectedItem(kh.trangThai);
-            dichVuDangChon.putAll(kh.dichVu);
+            loadDichVuDaChon();
+            return;
+        }
+
+        lblBenhNhan.setText("Bệnh nhân: " + (benhNhanDangChon == null
+                ? chanDoan.getMaHoSo()
+                : benhNhanDangChon.getHoTen() + "  ·  " + benhNhanDangChon.getMaBenhNhan()));
+        lblKetLuan.setText("Kết luận chẩn đoán: " + nullToEmpty(chanDoan.getKetLuanChanDoan()));
+        try {
+            if (benhNhanDangChon == null) {
+                benhNhanDangChon = keHoachDAO.layThongTinBenhNhanTheoChanDoan(chanDoan.getMaChanDoan());
+            }
+            if (benhNhanDangChon == null) {
+                throw new SQLException("Không tìm thấy bệnh nhân liên kết với lần khám.");
+            }
+            lblBenhNhan.setText("Bệnh nhân: " + benhNhanDangChon.getHoTen()
+                    + "  ·  " + benhNhanDangChon.getMaBenhNhan());
+            phacDoDangChon = keHoachDAO.timTheoChanDoan(chanDoan.getMaChanDoan());
+            if (phacDoDangChon == null) {
+                lblCoPhacDo.setText("Lần khám này chưa có phác đồ. Lưu sẽ tạo phác đồ mới.");
+                txtTenPhacDo.setText("");
+                datThoiGian(7);
+                cboTrangThai.setSelectedItem(DANG_THUC_HIEN);
+            } else {
+                lblCoPhacDo.setText("Đã có phác đồ " + phacDoDangChon.getMaKeHoach()
+                        + ". Lưu sẽ cập nhật phác đồ này.");
+                txtTenPhacDo.setText(phacDoDangChon.getTenPhacDo());
+                datThoiGian(phacDoDangChon.getThoiGianDuKien() == null
+                        ? 7 : phacDoDangChon.getThoiGianDuKien());
+                cboTrangThai.setSelectedItem(trangThaiHienThi(phacDoDangChon.getTrangThai()));
+                for (ChiTietKeHoachDieuTriDichVu dong : chiTietKeHoachDAO
+                        .layTheoKeHoach(phacDoDangChon.getMaKeHoach())) {
+                    dichVuDangChon.put(dong.getMaDichVu(), dong.getSoLuong());
+                }
+            }
+            lanKhamDaNap = true;
+        } catch (SQLException e) {
+            phacDoDangChon = null;
+            benhNhanDangChon = null;
+            dichVuDangChon.clear();
+            txtTenPhacDo.setText("");
+            datThoiGian(7);
+            cboTrangThai.setSelectedItem(DANG_THUC_HIEN);
+            lblCoPhacDo.setText("Không tải được dữ liệu phác đồ.");
+            hienLoiSql("tải phác đồ của lần khám " + chanDoan.getMaChanDoan(), e);
         }
         loadDichVuDaChon();
     }
@@ -349,7 +373,12 @@ public class CapNhatPhacDoDieuTriVaDuToanChiPhiPanel extends JPanel {
         }
         String maDichVu = (String) dichVuModel.getValueAt(row, 0);
         int soLuong = (Integer) spnSoLuong.getValue();
-        dichVuDangChon.merge(maDichVu, soLuong, Integer::sum);
+        try {
+            dichVuDangChon.merge(maDichVu, soLuong, Math::addExact);
+        } catch (ArithmeticException e) {
+            showWarning("Tổng số lượng dịch vụ vượt giới hạn cho phép.");
+            return;
+        }
         spnSoLuong.setValue(1);
         loadDichVuDaChon();
     }
@@ -367,9 +396,13 @@ public class CapNhatPhacDoDieuTriVaDuToanChiPhiPanel extends JPanel {
 
     /** Kiểm tra dữ liệu rồi lưu phác đồ cho lần khám đang chọn. */
     private void luuPhacDo() {
-        int index = cboLanKham.getSelectedIndex();
-        if (index < 0) {
+        ChanDoan chanDoan = (ChanDoan) cboLanKham.getSelectedItem();
+        if (chanDoan == null) {
             showMessage("Vui lòng chọn lần khám.");
+            return;
+        }
+        if (!lanKhamDaNap) {
+            showWarning("Không thể lưu khi dữ liệu lần khám chưa được tải thành công.");
             return;
         }
         String ten = txtTenPhacDo.getText().trim();
@@ -387,48 +420,125 @@ public class CapNhatPhacDoDieuTriVaDuToanChiPhiPanel extends JPanel {
             showWarning("Phác đồ cần có ít nhất một dịch vụ.");
             return;
         }
-
-        String maChanDoan = MOCK_LAN_KHAM[index][0];
-        KeHoach kh = keHoachTheoChanDoan.get(maChanDoan);
-        boolean taoMoi = kh == null;
-        if (taoMoi) {
-            kh = new KeHoach();
-            // TODO DAO: sinh mã từ DB.
-            kh.ma = String.format("KH%03d", nextKeHoach++);
+        if ((Integer) spnThoiGian.getValue() < 1) {
+            showWarning("Thời gian dự kiến phải lớn hơn 0 ngày.");
+            return;
         }
-        kh.ten = ten;
-        kh.thoiGianDuKien = (Integer) spnThoiGian.getValue();
-        kh.trangThai = (String) cboTrangThai.getSelectedItem();
-        kh.dichVu.clear();
-        kh.dichVu.putAll(dichVuDangChon);
 
-        // TODO DAO (một transaction):
-        // 1. Tạo mới: KeHoachDieuTriDAO.them(maKeHoach, ten, thoiGian, trangThai,
-        // maChanDoan, maBenhNhan)
-        // Cập nhật: KeHoachDieuTriDAO.capNhat(...)
-        // 2. KeHoachDieuTri_DichVuDAO.xoaTheoKeHoach(maKeHoach) rồi them lại từng dòng
-        // (maKeHoach, maDichVu, soLuong)
-        keHoachTheoChanDoan.put(maChanDoan, kh);
+        if (benhNhanDangChon == null || benhNhanDangChon.getMaBenhNhan() == null
+                || benhNhanDangChon.getMaBenhNhan().trim().isEmpty()) {
+            showWarning("Không xác định được bệnh nhân của lần khám này.");
+            return;
+        }
+        String trangThai = trangThaiDatabase((String) cboTrangThai.getSelectedItem());
+        if (trangThai == null) {
+            showWarning("Vui lòng chọn trạng thái phác đồ hợp lệ.");
+            return;
+        }
 
-        lblCoPhacDo.setText("Đã có phác đồ " + kh.ma + ". Lưu sẽ cập nhật phác đồ này.");
-        showMessage((taoMoi ? "Đã tạo phác đồ " : "Đã cập nhật phác đồ ") + kh.ma
-                + ". Tổng dự toán: " + lblTongTien.getText() + ".");
+        KeHoachDieuTri kh = new KeHoachDieuTri();
+        if (phacDoDangChon != null) {
+            kh.setMaKeHoach(phacDoDangChon.getMaKeHoach());
+        }
+        kh.setTenPhacDo(ten);
+        kh.setThoiGianDuKien((Integer) spnThoiGian.getValue());
+        kh.setTrangThai(trangThai);
+        kh.setMaChanDoan(chanDoan.getMaChanDoan());
+        kh.setMaBenhNhan(benhNhanDangChon.getMaBenhNhan());
+
+        List<String[]> cacDichVu = new ArrayList<>();
+        for (Map.Entry<String, Integer> entry : dichVuDangChon.entrySet()) {
+            if (!dichVuTheoMa.containsKey(entry.getKey()) || entry.getValue() <= 0) {
+                showWarning("Danh sách dịch vụ có dữ liệu không hợp lệ. Vui lòng tải lại màn hình.");
+                return;
+            }
+            cacDichVu.add(new String[] { entry.getKey(), Integer.toString(entry.getValue()) });
+        }
+
+        boolean taoMoi = phacDoDangChon == null;
+        String maPhacDo;
+        try {
+            maPhacDo = keHoachDAO.luuPhacDo(kh, cacDichVu);
+        } catch (SQLException e) {
+            hienLoiSql("lưu phác đồ", e);
+            return;
+        } catch (IllegalArgumentException e) {
+            showWarning("Dữ liệu phác đồ không hợp lệ: " + e.getMessage());
+            return;
+        }
+        try {
+            String maChanDoan = chanDoan.getMaChanDoan();
+            napDuLieu(maChanDoan);
+            showMessage((taoMoi ? "Đã tạo phác đồ " : "Đã cập nhật phác đồ ") + maPhacDo
+                    + ". Tổng dự toán: " + lblTongTien.getText() + ".");
+        } catch (SQLException e) {
+            hienLoiSql("làm mới dữ liệu sau khi lưu phác đồ " + maPhacDo, e);
+        }
     }
 
     // =====================================================================
     // HÀM HỖ TRỢ
     // =====================================================================
 
-    // Nạp danh mục dịch vụ, lọc theo từ khóa (mã hoặc tên).
+    private void napDuLieu() throws SQLException {
+        napDuLieu(null);
+    }
+
+    private void napDuLieu(String maChanDoanCanChon) throws SQLException {
+        lanKhamDaNap = false;
+        List<ChanDoan> cacLanKham = chanDoanDAO.layDangKham();
+        List<DichVu> cacDichVu = dichVuDAO.getAllDichVu();
+        Map<String, KeHoachDieuTriDAO.ThongTinBenhNhan> benhNhanMoi = new LinkedHashMap<>();
+        for (ChanDoan chanDoan : cacLanKham) {
+            KeHoachDieuTriDAO.ThongTinBenhNhan benhNhan =
+                    keHoachDAO.layThongTinBenhNhanTheoChanDoan(chanDoan.getMaChanDoan());
+            if (benhNhan == null) {
+                throw new SQLException("Không tìm thấy bệnh nhân liên kết với lần khám "
+                        + chanDoan.getMaChanDoan() + ".");
+            }
+            benhNhanMoi.put(chanDoan.getMaChanDoan(), benhNhan);
+        }
+
+        dangNapDuLieu = true;
+        try {
+            cboLanKham.removeAllItems();
+            for (ChanDoan chanDoan : cacLanKham) {
+                cboLanKham.addItem(chanDoan);
+            }
+            if (maChanDoanCanChon != null) {
+                for (int i = 0; i < cboLanKham.getItemCount(); i++) {
+                    if (maChanDoanCanChon.equals(cboLanKham.getItemAt(i).getMaChanDoan())) {
+                        cboLanKham.setSelectedIndex(i);
+                        break;
+                    }
+                }
+            }
+            benhNhanTheoChanDoan.clear();
+            benhNhanTheoChanDoan.putAll(benhNhanMoi);
+            cboLanKham.repaint();
+            dichVuTheoMa.clear();
+            for (DichVu dichVu : cacDichVu) {
+                dichVuTheoMa.put(dichVu.getMaDichVu(), dichVu);
+            }
+        } finally {
+            dangNapDuLieu = false;
+        }
+        loadDichVu();
+        chonLanKham();
+    }
+
+    // Lọc danh mục đã tải từ CSDL theo từ khóa (mã hoặc tên).
     private void loadDichVu() {
         String keyword = txtTimDichVu.getText().trim().toLowerCase();
         dichVuModel.setRowCount(0);
-        // TODO DAO: DichVuDAO.timKiem(keyword)
-        for (Object[] dv : MOCK_DICH_VU) {
-            String ma = ((String) dv[0]).toLowerCase();
-            String ten = ((String) dv[1]).toLowerCase();
+        for (DichVu dv : dichVuTheoMa.values()) {
+            String ma = dv.getMaDichVu().toLowerCase();
+            String ten = dv.getTenDichVu().toLowerCase();
             if (keyword.isEmpty() || ma.contains(keyword) || ten.contains(keyword)) {
-                dichVuModel.addRow(new Object[] { dv[0], dv[1], TIEN.format((Double) dv[2]), dv[3] });
+                dichVuModel.addRow(new Object[] {
+                        dv.getMaDichVu(), dv.getTenDichVu(), TIEN.format(dv.getDonGia()),
+                        dv.getThoiGianBaoHanh() == null ? "" : dv.getThoiGianBaoHanh()
+                });
             }
         }
     }
@@ -438,27 +548,99 @@ public class CapNhatPhacDoDieuTriVaDuToanChiPhiPanel extends JPanel {
         chonModel.setRowCount(0);
         double tong = 0;
         for (Map.Entry<String, Integer> entry : dichVuDangChon.entrySet()) {
-            Object[] dv = timDichVu(entry.getKey());
+            DichVu dv = dichVuTheoMa.get(entry.getKey());
             if (dv == null) {
                 continue;
             }
-            double donGia = (Double) dv[2];
+            double donGia = dv.getDonGia();
             int soLuong = entry.getValue();
             double thanhTien = donGia * soLuong;
             tong += thanhTien;
             chonModel.addRow(new Object[] {
-                    dv[0], dv[1], TIEN.format(donGia), soLuong, TIEN.format(thanhTien) });
+                    dv.getMaDichVu(), dv.getTenDichVu(), TIEN.format(donGia), soLuong,
+                    TIEN.format(thanhTien) });
         }
         lblTongTien.setText(TIEN.format(tong) + " đ");
     }
 
-    private Object[] timDichVu(String maDichVu) {
-        for (Object[] dv : MOCK_DICH_VU) {
-            if (dv[0].equals(maDichVu)) {
-                return dv;
-            }
+    private void xoaPhacDo() {
+        if (!lanKhamDaNap) {
+            showWarning("Không thể xóa khi dữ liệu lần khám chưa được tải thành công.");
+            return;
+        }
+        if (phacDoDangChon == null) {
+            showMessage("Lần khám này chưa có phác đồ để xóa.");
+            return;
+        }
+        int answer = JOptionPane.showConfirmDialog(this,
+                "Xóa phác đồ " + phacDoDangChon.getMaKeHoach() + " và các dịch vụ trong phác đồ?",
+                "Xác nhận xóa", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+        if (answer != JOptionPane.YES_OPTION) {
+            return;
+        }
+        String maChanDoan = phacDoDangChon.getMaChanDoan();
+        boolean daXoa;
+        try {
+            daXoa = keHoachDAO.xoa(phacDoDangChon.getMaKeHoach());
+        } catch (SQLException e) {
+            hienLoiSql("xóa phác đồ", e);
+            return;
+        }
+        try {
+            napDuLieu(maChanDoan);
+            showMessage(daXoa ? "Đã xóa phác đồ." : "Không tìm thấy phác đồ để xóa.");
+        } catch (SQLException e) {
+            hienLoiSql("làm mới dữ liệu sau khi xóa phác đồ", e);
+        }
+    }
+
+    private void datThoiGian(int ngay) {
+        int gioiHan = Math.max(365, ngay);
+        spnThoiGian.setModel(new SpinnerNumberModel(ngay, Math.min(1, ngay), gioiHan, 1));
+    }
+
+    private void lamMoi() {
+        ChanDoan selected = (ChanDoan) cboLanKham.getSelectedItem();
+        String maChanDoan = selected == null ? null : selected.getMaChanDoan();
+        try {
+            napDuLieu(maChanDoan);
+        } catch (SQLException e) {
+            hienLoiSql("làm mới dữ liệu phác đồ", e);
+        }
+    }
+
+    private String trangThaiHienThi(String trangThai) {
+        if (KeHoachDieuTri.HOAN_THANH.equals(trangThai)) {
+            return HOAN_THANH;
+        }
+        if (KeHoachDieuTri.HUY.equals(trangThai)) {
+            return DA_HUY;
+        }
+        return DANG_THUC_HIEN;
+    }
+
+    private String trangThaiDatabase(String trangThai) {
+        if (HOAN_THANH.equals(trangThai)) {
+            return KeHoachDieuTri.HOAN_THANH;
+        }
+        if (DA_HUY.equals(trangThai)) {
+            return KeHoachDieuTri.HUY;
+        }
+        if (DANG_THUC_HIEN.equals(trangThai)) {
+            return KeHoachDieuTri.DANG_THUC_HIEN;
         }
         return null;
+    }
+
+    private String nullToEmpty(String value) {
+        return value == null ? "" : value;
+    }
+
+    private void hienLoiSql(String thaoTac, SQLException e) {
+        String detail = e.getMessage() == null ? e.toString() : e.getMessage();
+        String state = e.getSQLState() == null ? "" : "\nSQLState: " + e.getSQLState();
+        JOptionPane.showMessageDialog(this, "Lỗi SQL khi " + thaoTac + ":\n" + detail + state,
+                "Lỗi cơ sở dữ liệu", JOptionPane.ERROR_MESSAGE);
     }
 
     private void showMessage(String message) {

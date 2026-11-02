@@ -1,5 +1,6 @@
 package gui;
 
+import dao.DichVuDAO;
 import entity.DichVu;
 
 import java.awt.BorderLayout;
@@ -9,6 +10,7 @@ import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
+import java.sql.SQLException;
 import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.List;
@@ -44,7 +46,7 @@ import javax.swing.table.TableRowSorter;
  * Bên trái: bảng giá + tìm kiếm (bấm tiêu đề cột để sắp xếp, ví dụ theo đơn
  * giá).
  * Bên phải: form thêm / sửa / xóa.
- * Dữ liệu tạm giữ trong bộ nhớ, chỗ cần nối DAO được đánh dấu "TODO DAO".
+ * Dữ liệu được đọc và lưu qua DichVuDAO.
  */
 public class DanhMucQuanLyDichVuPanel extends JPanel {
     private static final Color INK = new Color(32, 53, 68);
@@ -57,6 +59,7 @@ public class DanhMucQuanLyDichVuPanel extends JPanel {
     private static final NumberFormat MONEY_FMT = NumberFormat.getIntegerInstance(Locale.forLanguageTag("vi-VN"));
 
     private final List<DichVu> danhSach = new ArrayList<>();
+    private final DichVuDAO dichVuDAO = new DichVuDAO();
     private final DefaultTableModel tableModel = new DefaultTableModel(
             new String[] { "Mã dịch vụ", "Tên dịch vụ", "Đơn giá", "Bảo hành", "Mô tả" }, 0) {
         @Override
@@ -94,27 +97,29 @@ public class DanhMucQuanLyDichVuPanel extends JPanel {
         setLayout(new BorderLayout(18, 0));
         setOpaque(false);
 
-        loadData();
         setupTable();
         add(createListCard(), BorderLayout.CENTER);
         add(createFormCard(), BorderLayout.EAST);
 
+        SQLException loadError = loadData();
         refreshTable();
         clearForm();
+        if (loadError != null) {
+            showDatabaseError("tải danh sách dịch vụ", loadError);
+        }
     }
 
     // ---------------------------- Dữ liệu ----------------------------
 
-    /**
-     * TODO DAO: thay bằng dichVuDAO.getAll(). Hiện dùng dữ liệu mẫu theo file SQL.
-     */
-    private void loadData() {
-        danhSach.add(new DichVu("DV001", "Lay cao rang", 200000, 0, "Lay cao va danh bong"));
-        danhSach.add(new DichVu("DV002", "Tram rang composite", 300000, 6, "Tram rang sau bang composite"));
-        danhSach.add(new DichVu("DV003", "Nho rang khon", 1500000, 0, "Tieu phau nho rang khon moc lech"));
-        danhSach.add(new DichVu("DV004", "Boc rang su", 3500000, 60, "Boc rang su tham my / 1 rang"));
-        danhSach.add(new DichVu("DV005", "Dieu tri tuy rang", 1200000, 12, "Lay tuy va tram bit ong tuy"));
-        danhSach.add(new DichVu("DV006", "Tay trang rang", 2000000, 12, "Tay trang tai phong kham"));
+    private SQLException loadData() {
+        try {
+            danhSach.clear();
+            danhSach.addAll(dichVuDAO.getAllDichVu());
+            return null;
+        } catch (SQLException ex) {
+            danhSach.clear();
+            return ex;
+        }
     }
 
     private DichVu findById(String ma) {
@@ -394,14 +399,19 @@ public class DanhMucQuanLyDichVuPanel extends JPanel {
             if (findById(dv.getMaDichVu()) != null) {
                 throw new IllegalArgumentException("Mã dịch vụ đã tồn tại.");
             }
-            // TODO DAO: dichVuDAO.insert(dv);
-            danhSach.add(dv);
+            if (!dichVuDAO.insertDichVu(dv)) {
+                showDatabaseMessage("Không thể thêm dịch vụ vì dữ liệu chưa được lưu.");
+                return;
+            }
+            SQLException refreshError = loadData();
             refreshTable();
             clearForm();
-            JOptionPane.showMessageDialog(this, "Đã thêm dịch vụ " + dv.getTenDichVu() + ".");
+            showSaveResult("Đã thêm dịch vụ " + dv.getTenDichVu() + ".", refreshError);
         } catch (IllegalArgumentException ex) {
             JOptionPane.showMessageDialog(this, ex.getMessage(), "Dữ liệu không hợp lệ",
                     JOptionPane.WARNING_MESSAGE);
+        } catch (SQLException ex) {
+            showDatabaseError("thêm dịch vụ", ex);
         }
     }
 
@@ -412,16 +422,25 @@ public class DanhMucQuanLyDichVuPanel extends JPanel {
             if (current == null) {
                 throw new IllegalArgumentException("Không tìm thấy dịch vụ cần cập nhật.");
             }
-            // TODO DAO: dichVuDAO.update(updated);
-            // Hóa đơn cũ không bị ảnh hưởng khi đổi giá vì ChiTietHoaDon đã lưu
-            // DonGiaTaiThoiDiem.
-            danhSach.set(danhSach.indexOf(current), updated);
+            if (!dichVuDAO.updateDichVu(updated)) {
+                showDatabaseMessage("Không tìm thấy dịch vụ để cập nhật. Danh sách sẽ được tải lại.");
+                SQLException refreshError = loadData();
+                refreshTable();
+                clearForm();
+                if (refreshError != null) {
+                    showDatabaseError("tải lại danh sách dịch vụ", refreshError);
+                }
+                return;
+            }
+            SQLException refreshError = loadData();
             refreshTable();
             clearForm();
-            JOptionPane.showMessageDialog(this, "Đã cập nhật thông tin dịch vụ.");
+            showSaveResult("Đã cập nhật thông tin dịch vụ.", refreshError);
         } catch (IllegalArgumentException ex) {
             JOptionPane.showMessageDialog(this, ex.getMessage(), "Dữ liệu không hợp lệ",
                     JOptionPane.WARNING_MESSAGE);
+        } catch (SQLException ex) {
+            showDatabaseError("cập nhật dịch vụ", ex);
         }
     }
 
@@ -434,14 +453,48 @@ public class DanhMucQuanLyDichVuPanel extends JPanel {
                 "Xóa dịch vụ " + dv.getMaDichVu() + " - " + dv.getTenDichVu() + "?",
                 "Xác nhận xóa", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
         if (choice == JOptionPane.YES_OPTION) {
-            // TODO DAO: dichVuDAO.delete(ma). Dịch vụ đã nằm trong kế hoạch điều trị / hóa
-            // đơn sẽ
-            // vướng khóa ngoại -> bắt SQLException và báo "Dịch vụ đã được sử dụng, không
-            // thể xóa".
-            danhSach.remove(dv);
+            try {
+                if (!dichVuDAO.deleteDichVu(dv.getMaDichVu())) {
+                    showDatabaseMessage("Không tìm thấy dịch vụ để xóa. Danh sách sẽ được tải lại.");
+                    SQLException refreshError = loadData();
+                    refreshTable();
+                    clearForm();
+                    if (refreshError != null) {
+                        showDatabaseError("tải lại danh sách dịch vụ", refreshError);
+                    }
+                    return;
+                }
+            } catch (SQLException ex) {
+                showDatabaseError("xóa dịch vụ", ex);
+                return;
+            }
+            SQLException refreshError = loadData();
             refreshTable();
             clearForm();
+            showSaveResult("Đã xóa dịch vụ " + dv.getMaDichVu() + ".", refreshError);
         }
+    }
+
+    private void showSaveResult(String successMessage, SQLException refreshError) {
+        if (refreshError == null) {
+            JOptionPane.showMessageDialog(this, successMessage);
+        } else {
+            showDatabaseMessage(successMessage + "\nKhông thể tải lại danh sách: " + refreshError.getMessage());
+        }
+    }
+
+    private void showDatabaseError(String action, SQLException ex) {
+        if (ex.getErrorCode() == 547) {
+            showDatabaseMessage("Không thể " + action + " vì dịch vụ đã được sử dụng hoặc đang được tham chiếu.");
+        } else if (ex.getErrorCode() == 2601 || ex.getErrorCode() == 2627) {
+            showDatabaseMessage("Không thể " + action + " vì dữ liệu bị trùng. Vui lòng tải lại danh sách.");
+        } else {
+            showDatabaseMessage("Không thể " + action + ": " + ex.getMessage());
+        }
+    }
+
+    private void showDatabaseMessage(String message) {
+        JOptionPane.showMessageDialog(this, message, "Lỗi cơ sở dữ liệu", JOptionPane.ERROR_MESSAGE);
     }
 
     // ---------------------------- Kiểm tra dữ liệu ----------------------------

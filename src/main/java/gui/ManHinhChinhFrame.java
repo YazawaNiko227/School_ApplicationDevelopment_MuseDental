@@ -37,14 +37,20 @@ import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JOptionPane;
 import javax.swing.JScrollPane;
+import javax.swing.JTable;
+import javax.swing.SwingWorker;
 import javax.swing.JTextField;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import javax.swing.border.EmptyBorder;
+import javax.swing.table.DefaultTableModel;
 
 import dao.DashboardDAO;
+import dao.BenhNhanDAO;
+import entity.BenhNhan;
 import entity.LichHenTongQuan;
 import entity.ThongKeTongQuan;
 
@@ -66,6 +72,9 @@ import entity.ThongKeTongQuan;
  * khởi động lại ứng dụng hay mở thêm cửa sổ mới.
  */
 public final class ManHinhChinhFrame extends JFrame {
+    private static final java.util.logging.Logger LOGGER =
+            java.util.logging.Logger.getLogger(ManHinhChinhFrame.class.getName());
+
     // Màu giao diện dùng chung cho thanh điều hướng và vùng nội dung.
     private static final Color INK = new Color(32, 53, 68);
     private static final Color MUTED = new Color(119, 139, 151);
@@ -78,6 +87,7 @@ public final class ManHinhChinhFrame extends JFrame {
     private final String tenDangNhap;
     private final Set<String> menuDuocXem;
     private final DashboardDAO dashboardDAO = new DashboardDAO();
+    private final BenhNhanDAO benhNhanDAO = new BenhNhanDAO();
     // Các thành phần này được giữ lại để cập nhật trang khi người dùng chọn menu.
     private final JPanel contentPanel = new JPanel(new BorderLayout());
     private final JLabel pageTitle = new JLabel("Tổng quan");
@@ -455,14 +465,81 @@ public final class ManHinhChinhFrame extends JFrame {
         right.setOpaque(false);
         JTextField search = new JTextField();
         search.setFont(new Font("Arial", Font.PLAIN, 12));
-        search.setToolTipText("Tìm nhanh bệnh nhân, lịch hẹn...");
+        search.setToolTipText("Nhập mã, họ tên, số điện thoại hoặc CCCD bệnh nhân rồi nhấn Enter");
         search.setPreferredSize(new Dimension(230, 36));
         search.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(LINE),
                 new EmptyBorder(0, 11, 0, 11)));
+        search.addActionListener(event -> timKiemNhanhBenhNhan(search));
         right.add(search, BorderLayout.EAST);
         topBar.add(right, BorderLayout.EAST);
         return topBar;
+    }
+
+    private void timKiemNhanhBenhNhan(JTextField search) {
+        String keyword = search.getText().trim();
+        if (keyword.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Nhập từ khóa cần tìm.", "Tìm kiếm",
+                    JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+        if (!menuDuocXem.contains("Quản lý bệnh nhân")
+                && !menuDuocXem.contains("Tìm hồ sơ bệnh án EMR")) {
+            JOptionPane.showMessageDialog(this, "Tài khoản không có quyền tra cứu hồ sơ bệnh nhân.",
+                    "Không đủ quyền", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        search.setEnabled(false);
+        new SwingWorker<java.util.List<BenhNhan>, Void>() {
+            @Override
+            protected java.util.List<BenhNhan> doInBackground() throws Exception {
+                return benhNhanDAO.timKiem(keyword);
+            }
+
+            @Override
+            protected void done() {
+                search.setEnabled(true);
+                try {
+                    java.util.List<BenhNhan> patients = get();
+                    if (patients.isEmpty()) {
+                        JOptionPane.showMessageDialog(ManHinhChinhFrame.this,
+                                "Không tìm thấy bệnh nhân phù hợp.", "Kết quả tìm kiếm",
+                                JOptionPane.INFORMATION_MESSAGE);
+                        return;
+                    }
+
+                    DefaultTableModel model = new DefaultTableModel(
+                            new String[] { "Mã bệnh nhân", "Họ tên", "Số điện thoại" }, 0) {
+                        @Override
+                        public boolean isCellEditable(int row, int column) {
+                            return false;
+                        }
+                    };
+                    for (BenhNhan patient : patients) {
+                        model.addRow(new Object[] { patient.getMaBenhNhan(), patient.getHoTen(),
+                                patient.getSoDienThoai() == null ? "" : patient.getSoDienThoai() });
+                    }
+                    JTable results = new JTable(model);
+                    results.setFillsViewportHeight(true);
+                    results.setSelectionMode(javax.swing.ListSelectionModel.SINGLE_SELECTION);
+                    JScrollPane scroll = new JScrollPane(results);
+                    scroll.setPreferredSize(new Dimension(520, Math.min(360, 48 + patients.size() * 28)));
+                    JOptionPane.showMessageDialog(ManHinhChinhFrame.this, scroll,
+                            "Kết quả tìm kiếm bệnh nhân", JOptionPane.INFORMATION_MESSAGE);
+                } catch (InterruptedException exception) {
+                    Thread.currentThread().interrupt();
+                    JOptionPane.showMessageDialog(ManHinhChinhFrame.this,
+                            "Tìm kiếm bị gián đoạn.", "Lỗi tìm kiếm", JOptionPane.ERROR_MESSAGE);
+                } catch (java.util.concurrent.ExecutionException exception) {
+                    JOptionPane.showMessageDialog(ManHinhChinhFrame.this,
+                            "Không thể tìm bệnh nhân do lỗi cơ sở dữ liệu.",
+                            "Lỗi tìm kiếm", JOptionPane.ERROR_MESSAGE);
+                    LOGGER.log(java.util.logging.Level.SEVERE, "Tìm kiếm nhanh bệnh nhân thất bại.",
+                            exception.getCause());
+                }
+            }
+        }.execute();
     }
 
     // Thêm tiêu đề nhóm, ví dụ HỆ THỐNG hoặc CẬP NHẬT, vào thanh điều hướng.
@@ -572,8 +649,8 @@ public final class ManHinhChinhFrame extends JFrame {
     /* trinhKiet */
     private void showQuanLyNhanVien() {
         showContentPanel(
-                "Tìm hồ sơ nhân viên",
-                "Tra cứu theo mã nhân viên, họ tên, chức vụ hoặc số điện thoại",
+                "Quản lý nhân viên",
+                "Tra cứu, thêm, cập nhật và quản lý trạng thái nhân viên",
                 new DanhMucQuanLyNhanVienPanel());
     }
 
@@ -587,8 +664,8 @@ public final class ManHinhChinhFrame extends JFrame {
      */
     private void showPatientSearch() {
         showContentPanel(
-                "Tìm hồ sơ bệnh nhân",
-                "Tra cứu theo mã bệnh nhân, họ tên, số điện thoại hoặc CCCD",
+                "Quản lý bệnh nhân",
+                "Tra cứu, thêm, cập nhật và quản lý hồ sơ bệnh nhân",
                 new DanhMucQuanLyBenhNhanPanel());
     }
 
@@ -603,7 +680,7 @@ public final class ManHinhChinhFrame extends JFrame {
     private void showVatTuYTe() {
         showContentPanel(
                 "Danh mục quản lý vật tư y tế",
-                "Tìm kiếm lần khám, chẩn đoán và nội dung bệnh án điện tử",
+                "Tra cứu, cập nhật và theo dõi tồn kho vật tư y tế",
                 new DanhMucQuanLyVatTuYTePanel());
     }
 

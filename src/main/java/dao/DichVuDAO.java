@@ -48,4 +48,30 @@ public class DichVuDAO {
             return stmt.executeUpdate() == 1;
         }
     }
+
+    public boolean updateDichVu(DichVu dichVu) throws SQLException {
+        Objects.requireNonNull(dichVu, "Dịch vụ không được null.");
+        String sql = "UPDATE DichVu SET TenDichVu = ?, DonGia = ?, ThoiGianBaoHanh = ?, MoTa = ? "
+                + "WHERE MaDichVu = ?";
+        try (PreparedStatement stmt = ConnectDB.getConnection().prepareStatement(sql)) {
+            stmt.setString(1, dichVu.getTenDichVu());
+            stmt.setDouble(2, dichVu.getDonGia());
+            if (dichVu.getThoiGianBaoHanh() == null) {
+                stmt.setNull(3, Types.INTEGER);
+            } else {
+                stmt.setInt(3, dichVu.getThoiGianBaoHanh());
+            }
+            stmt.setString(4, dichVu.getMoTa());
+            stmt.setString(5, dichVu.getMaDichVu());
+            return stmt.executeUpdate() == 1;
+        }
+    }
+
+    public boolean deleteDichVu(String maDichVu) throws SQLException {
+        String sql = "DELETE FROM DichVu WHERE MaDichVu = ?";
+        try (PreparedStatement stmt = ConnectDB.getConnection().prepareStatement(sql)) {
+            stmt.setString(1, maDichVu);
+            return stmt.executeUpdate() == 1;
+        }
+    }
 }

@@ -13,12 +13,22 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import dao.ChanDoanDAO;
+import dao.DichVuDAO;
+import dao.KeHoachDieuTriDAO;
+import dao.KeHoachDieuTri_DichVuDAO;
+import entity.ChanDoan;
+import entity.ChiTietKeHoachDieuTriDichVu;
+import entity.DichVu;
+import entity.KeHoachDieuTri;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
+import javax.swing.DefaultListCellRenderer;
 import javax.swing.JLabel;
+import javax.swing.JList;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
@@ -60,7 +70,7 @@ public class CapNhatPhacDoDieuTriVaDuToanChiPhiPanel extends JPanel {
     private static final Color LINE = new Color(226, 234, 237);
     private static final DecimalFormat TIEN = new DecimalFormat("#,##0");
 
-    // Trạng thái phác đồ (DB lưu không dấu: 'Dang thuc hien', 'Hoan thanh').
+    // Trạng thái hiển thị và trạng thái lưu trong CSDL.
     private static final String DANG_THUC_HIEN = "Đang thực hiện";
     private static final String HOAN_THANH = "Hoàn thành";
     private static final String HUY = "Hủy";
@@ -75,7 +85,7 @@ public class CapNhatPhacDoDieuTriVaDuToanChiPhiPanel extends JPanel {
     private final Map<String, Integer> dichVuDangChon = new LinkedHashMap<>();
 
     // ----- Chọn lần khám -----
-    private final JComboBox<String> cboLanKham = new JComboBox<>();
+    private final JComboBox<ChanDoan> cboLanKham = new JComboBox<>();
     private final JLabel lblBenhNhan = new JLabel(" ");
     private final JLabel lblKetLuan = new JLabel(" ");
     private final JLabel lblCoPhacDo = new JLabel(" ");
@@ -260,12 +270,14 @@ public class CapNhatPhacDoDieuTriVaDuToanChiPhiPanel extends JPanel {
         JPanel actions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         actions.setOpaque(false);
         JButton btnXoa = createButton("Xóa dịch vụ", false);
+        JButton btnXoaPhacDo = createButton("Xóa phác đồ", false);
         JButton btnLamMoi = createButton("Làm mới", false);
         JButton btnLuu = createButton("Lưu phác đồ", true);
         btnXoa.addActionListener(event -> xoaDichVu());
         btnLamMoi.addActionListener(event -> taiDanhSachLanKham());
         btnLuu.addActionListener(event -> luuPhacDo());
         actions.add(btnXoa);
+        actions.add(btnXoaPhacDo);
         actions.add(btnLamMoi);
         actions.add(btnLuu);
         bottom.add(actions, BorderLayout.SOUTH);
@@ -361,7 +373,12 @@ public class CapNhatPhacDoDieuTriVaDuToanChiPhiPanel extends JPanel {
         }
         String maDichVu = (String) dichVuModel.getValueAt(row, 0);
         int soLuong = (Integer) spnSoLuong.getValue();
-        dichVuDangChon.merge(maDichVu, soLuong, Integer::sum);
+        try {
+            dichVuDangChon.merge(maDichVu, soLuong, Math::addExact);
+        } catch (ArithmeticException e) {
+            showWarning("Tổng số lượng dịch vụ vượt giới hạn cho phép.");
+            return;
+        }
         spnSoLuong.setValue(1);
         loadDichVuDaChon();
     }
@@ -384,6 +401,10 @@ public class CapNhatPhacDoDieuTriVaDuToanChiPhiPanel extends JPanel {
             showMessage("Vui lòng chọn lần khám.");
             return;
         }
+        if (!lanKhamDaNap) {
+            showWarning("Không thể lưu khi dữ liệu lần khám chưa được tải thành công.");
+            return;
+        }
         String ten = txtTenPhacDo.getText().trim();
         if (ten.isEmpty()) {
             showWarning("Tên phác đồ không được để trống.");
@@ -397,6 +418,21 @@ public class CapNhatPhacDoDieuTriVaDuToanChiPhiPanel extends JPanel {
         }
         if (dichVuDangChon.isEmpty()) {
             showWarning("Phác đồ cần có ít nhất một dịch vụ.");
+            return;
+        }
+        if ((Integer) spnThoiGian.getValue() < 1) {
+            showWarning("Thời gian dự kiến phải lớn hơn 0 ngày.");
+            return;
+        }
+
+        if (benhNhanDangChon == null || benhNhanDangChon.getMaBenhNhan() == null
+                || benhNhanDangChon.getMaBenhNhan().trim().isEmpty()) {
+            showWarning("Không xác định được bệnh nhân của lần khám này.");
+            return;
+        }
+        String trangThai = trangThaiDatabase((String) cboTrangThai.getSelectedItem());
+        if (trangThai == null) {
+            showWarning("Vui lòng chọn trạng thái phác đồ hợp lệ.");
             return;
         }
 
@@ -429,7 +465,54 @@ public class CapNhatPhacDoDieuTriVaDuToanChiPhiPanel extends JPanel {
     // HÀM HỖ TRỢ
     // =====================================================================
 
-    // Nạp danh mục dịch vụ, lọc theo từ khóa (mã hoặc tên).
+    private void napDuLieu() throws SQLException {
+        napDuLieu(null);
+    }
+
+    private void napDuLieu(String maChanDoanCanChon) throws SQLException {
+        lanKhamDaNap = false;
+        List<ChanDoan> cacLanKham = chanDoanDAO.layDangKham();
+        List<DichVu> cacDichVu = dichVuDAO.getAllDichVu();
+        Map<String, KeHoachDieuTriDAO.ThongTinBenhNhan> benhNhanMoi = new LinkedHashMap<>();
+        for (ChanDoan chanDoan : cacLanKham) {
+            KeHoachDieuTriDAO.ThongTinBenhNhan benhNhan =
+                    keHoachDAO.layThongTinBenhNhanTheoChanDoan(chanDoan.getMaChanDoan());
+            if (benhNhan == null) {
+                throw new SQLException("Không tìm thấy bệnh nhân liên kết với lần khám "
+                        + chanDoan.getMaChanDoan() + ".");
+            }
+            benhNhanMoi.put(chanDoan.getMaChanDoan(), benhNhan);
+        }
+
+        dangNapDuLieu = true;
+        try {
+            cboLanKham.removeAllItems();
+            for (ChanDoan chanDoan : cacLanKham) {
+                cboLanKham.addItem(chanDoan);
+            }
+            if (maChanDoanCanChon != null) {
+                for (int i = 0; i < cboLanKham.getItemCount(); i++) {
+                    if (maChanDoanCanChon.equals(cboLanKham.getItemAt(i).getMaChanDoan())) {
+                        cboLanKham.setSelectedIndex(i);
+                        break;
+                    }
+                }
+            }
+            benhNhanTheoChanDoan.clear();
+            benhNhanTheoChanDoan.putAll(benhNhanMoi);
+            cboLanKham.repaint();
+            dichVuTheoMa.clear();
+            for (DichVu dichVu : cacDichVu) {
+                dichVuTheoMa.put(dichVu.getMaDichVu(), dichVu);
+            }
+        } finally {
+            dangNapDuLieu = false;
+        }
+        loadDichVu();
+        chonLanKham();
+    }
+
+    // Lọc danh mục đã tải từ CSDL theo từ khóa (mã hoặc tên).
     private void loadDichVu() {
         String keyword = txtTimDichVu.getText().trim().toLowerCase();
         dichVuModel.setRowCount(0);
@@ -504,6 +587,17 @@ public class CapNhatPhacDoDieuTriVaDuToanChiPhiPanel extends JPanel {
         if (HOAN_THANH.equals(trangThai)) return KeHoachDieuTri.HOAN_THANH;
         if (HUY.equals(trangThai)) return KeHoachDieuTri.HUY;
         throw new IllegalArgumentException("Trạng thái phác đồ không hợp lệ.");
+    }
+
+    private String nullToEmpty(String value) {
+        return value == null ? "" : value;
+    }
+
+    private void hienLoiSql(String thaoTac, SQLException e) {
+        String detail = e.getMessage() == null ? e.toString() : e.getMessage();
+        String state = e.getSQLState() == null ? "" : "\nSQLState: " + e.getSQLState();
+        JOptionPane.showMessageDialog(this, "Lỗi SQL khi " + thaoTac + ":\n" + detail + state,
+                "Lỗi cơ sở dữ liệu", JOptionPane.ERROR_MESSAGE);
     }
 
     private void showMessage(String message) {

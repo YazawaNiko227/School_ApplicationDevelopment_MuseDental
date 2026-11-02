@@ -73,7 +73,7 @@ public class BenhNhanDAO {
             }
             con.commit();
             return true;
-        } catch (SQLException e) {
+        } catch (SQLException | RuntimeException e) {
             con.rollback();
             throw e;
         } finally {
@@ -124,7 +124,7 @@ public class BenhNhanDAO {
             }
             con.commit();
             return ok;
-        } catch (SQLException e) {
+        } catch (SQLException | RuntimeException e) {
             con.rollback();
             throw e;
         } finally {

@@ -10,6 +10,7 @@ import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
+import java.awt.GraphicsEnvironment;
 import java.text.DecimalFormat;
 import java.time.LocalDate;
 import javax.swing.BorderFactory;
@@ -72,6 +73,10 @@ public class ThongKeRevenueReportPanel extends JPanel {
     private final JLabel lblSoHoaDon = new JLabel("0");
     private final JLabel lblTienDichVu = new JLabel("0 đ");
     private final JLabel lblTienThuoc = new JLabel("0 đ");
+    private final JLabel lblTrangThai = new JLabel(" ");
+    private JButton btnThongKe;
+    private JButton btnLamMoi;
+    private int reportRequestId;
 
     // ----- Kết quả -----
     private final DefaultTableModel tableModel = new DefaultTableModel(
@@ -152,7 +157,13 @@ public class ThongKeRevenueReportPanel extends JPanel {
                 + "hóa đơn trả góp được tính toàn bộ giá trị hóa đơn theo ngày lập, không phải tiền đã thu.");
         note.setFont(new Font("Arial", Font.ITALIC, 11));
         note.setForeground(MUTED);
-        card.add(note, BorderLayout.SOUTH);
+        JPanel footer = new JPanel(new BorderLayout(8, 0));
+        footer.setOpaque(false);
+        lblTrangThai.setFont(new Font("Arial", Font.PLAIN, 11));
+        lblTrangThai.setForeground(MUTED);
+        footer.add(note, BorderLayout.CENTER);
+        footer.add(lblTrangThai, BorderLayout.EAST);
+        card.add(footer, BorderLayout.SOUTH);
         return card;
     }
 
@@ -168,8 +179,8 @@ public class ThongKeRevenueReportPanel extends JPanel {
         chonDenNgay.setToolTipText("Chọn ngày kết thúc từ lịch");
         cboNhom.setFont(new Font("Arial", Font.PLAIN, 12));
 
-        JButton btnThongKe = createButton("Thống kê", true);
-        JButton btnLamMoi = createButton("Làm mới", false);
+        btnThongKe = createButton("Thống kê", true);
+        btnLamMoi = createButton("Làm mới", false);
         btnThongKe.addActionListener(event -> thongKe());
         btnLamMoi.addActionListener(event -> lamMoi());
 
@@ -229,11 +240,16 @@ public class ThongKeRevenueReportPanel extends JPanel {
     private void thongKe() {
         LocalDate tuNgay = GiaoDienUtil.layNgayDaChon(chonTuNgay);
         LocalDate denNgay = GiaoDienUtil.layNgayDaChon(chonDenNgay);
+        int requestId = ++reportRequestId;
         if (tuNgay == null || denNgay == null) {
+            setLoading(false);
+            clearResults("Khoảng ngày không hợp lệ.");
             showWarning("Vui lòng chọn đầy đủ Từ ngày và Đến ngày.");
             return;
         }
         if (tuNgay.isAfter(denNgay)) {
+            setLoading(false);
+            clearResults("Khoảng ngày không hợp lệ.");
             showWarning("Từ ngày không được sau Đến ngày.");
             return;
         }
@@ -257,7 +273,7 @@ public class ThongKeRevenueReportPanel extends JPanel {
         }
         double tong = baoCao.getTongDoanhThu();
 
-        // Cập nhật thẻ tổng hợp.
+        double tong = tongDichVu + tongThuoc;
         lblTongDoanhThu.setText(TIEN.format(tong) + " đ");
         lblSoHoaDon.setText(String.valueOf(baoCao.getSoHoaDon()));
         lblTienDichVu.setText(TIEN.format(baoCao.getTienDichVu()) + " đ");

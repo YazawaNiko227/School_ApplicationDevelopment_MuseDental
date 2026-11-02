@@ -7,6 +7,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -17,6 +18,56 @@ import java.util.List;
  *   xuất kho.
  */
 public class LichHenDAO {
+
+    /** Appointment and patient/room details required by the clinical examination screen. */
+    public record LichHenKhamInfo(String maLichHen, LocalDateTime thoiGianHen, String trangThai,
+            String maBenhNhan, String hoTen, String gioiTinh, LocalDate ngaySinh, String tienSuBenhLy,
+            String thongTinDiUng, String nguoiBaoHo, String maHoSo, String maNhaSi, String tenNhaSi,
+            String maPhong, String trangThaiPhong, LocalDateTime thoiGianCheckIn) {
+    }
+
+    /** Eligible appointments for today's clinical examination queue. */
+    public List<LichHenKhamInfo> layChoKhamHomNay(LocalDate ngay) throws SQLException {
+        String sql = "SELECT LH.MaLichHen, LH.ThoiGianHen, LH.TrangThai, LH.MaBenhNhan, BN.HoTen, "
+                + "BN.GioiTinh, BN.NgaySinh, BN.TienSuBenhLy, BN.ThongTinDiUng, BN.NguoiBaoHo, "
+                + "HS.MaHoSo, LH.MaNhaSiPhuTrach, NS.HoTen AS TenNhaSi, LH.MaPhong, PK.TrangThai AS TrangThaiPhong, "
+                + "LH.ThoiGianCheckIn "
+                + "FROM LichHen LH "
+                + "JOIN BenhNhan BN ON BN.MaBenhNhan = LH.MaBenhNhan "
+                + "JOIN NhanVien NS ON NS.MaNhanVien = LH.MaNhaSiPhuTrach "
+                + "JOIN PhongKham PK ON PK.MaPhong = LH.MaPhong "
+                + "LEFT JOIN HoSoBenhAn HS ON HS.MaBenhNhan = LH.MaBenhNhan "
+                + "WHERE CAST(LH.ThoiGianHen AS DATE) = ? "
+                + "AND LH.TrangThai IN (N'Da check-in', N'Dang kham', N'Hoan thanh') "
+                + "ORDER BY LH.ThoiGianHen, LH.MaLichHen";
+        try (PreparedStatement ps = ConnectDB.getConnection().prepareStatement(sql)) {
+            ps.setDate(1, Date.valueOf(ngay));
+            try (ResultSet rs = ps.executeQuery()) {
+                List<LichHenKhamInfo> ketQua = new ArrayList<>();
+                while (rs.next()) {
+                    ketQua.add(new LichHenKhamInfo(
+                            rs.getString("MaLichHen"),
+                            rs.getTimestamp("ThoiGianHen").toLocalDateTime(),
+                            rs.getString("TrangThai"),
+                            rs.getString("MaBenhNhan"),
+                            rs.getString("HoTen"),
+                            rs.getString("GioiTinh"),
+                            rs.getDate("NgaySinh") == null ? null : rs.getDate("NgaySinh").toLocalDate(),
+                            rs.getString("TienSuBenhLy"),
+                            rs.getString("ThongTinDiUng"),
+                            rs.getString("NguoiBaoHo"),
+                            rs.getString("MaHoSo"),
+                            rs.getString("MaNhaSiPhuTrach"),
+                            rs.getString("TenNhaSi"),
+                            rs.getString("MaPhong"),
+                            rs.getString("TrangThaiPhong"),
+                            rs.getTimestamp("ThoiGianCheckIn") == null
+                                    ? null : rs.getTimestamp("ThoiGianCheckIn").toLocalDateTime()));
+                }
+                return ketQua;
+            }
+        }
+    }
 
     /** Lịch hẹn bệnh nhân của một nha sĩ trong khoảng tuần đang xem. */
     public List<LichHenInfo> layTheoNhaSiTrongTuan(String maNhaSi, LocalDate dauTuan, LocalDate cuoiTuan)

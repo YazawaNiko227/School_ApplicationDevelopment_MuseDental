@@ -26,6 +26,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.function.IntConsumer;
+import dao.ChanDoanDAO;
+import dao.HoSoBenhAnDAO;
+import dao.LichHenDAO;
+import dao.LichHenDAO.LichHenKhamInfo;
+import dao.SoDoRangDAO;
+import entity.ChanDoan;
+import entity.HoSoBenhAn;
+import entity.SoDoRang;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
@@ -668,9 +676,9 @@ public class XuLyKhamLamSangVaSoDoRangPanel extends JPanel {
         hienThiCa();
     }
 
-    // Nạp lại bảng hàng chờ, giữ nguyên dòng đang chọn (nếu có).
-    private void lamMoi() {
-        lamMoi(caHienTai == null ? null : caHienTai.maLich);
+    // Nạp lại hàng chờ, chẩn đoán và sơ đồ răng từ cơ sở dữ liệu.
+    private void lamMoi() throws SQLException {
+        lamMoi(caHienTai == null ? null : caHienTai.maLich, false);
     }
 
     private void lamMoi(String maLichCanChon) {
@@ -714,14 +722,66 @@ public class XuLyKhamLamSangVaSoDoRangPanel extends JPanel {
         int dangKhamDem = 0;
         int hoanThanh = 0;
         for (CaKham ca : dsCa) {
-            if (DA_CHECK_IN.equals(ca.trangThai)) {
-                choKham++;
-            } else if (DANG_KHAM.equals(ca.trangThai)) {
-                dangKhamDem++;
-            } else if (HOAN_THANH.equals(ca.trangThai)) {
-                hoanThanh++;
-            } else {
-                continue; // Lịch chưa check-in chưa vào hàng chờ khám.
+            caCu.put(ca.maLich, ca);
+        }
+        if (dangKham(caHienTai)) {
+            ghiFormVaoCa(caHienTai);
+        }
+
+        Map<String, ChanDoan> chanDoanTheoLich = new TreeMap<>();
+        for (ChanDoan chanDoan : chanDoanDAO.layTatCa()) {
+            if (chanDoan.getMaLichHen() != null) {
+                chanDoanTheoLich.put(chanDoan.getMaLichHen(), chanDoan);
+            }
+        }
+        List<LichHenKhamInfo> lichHomNay = lichHenDAO.layChoKhamHomNay(LocalDate.now());
+        List<CaKham> caMoi = new ArrayList<>();
+        for (LichHenKhamInfo info : lichHomNay) {
+            String trangThai = trangThaiLichHienThi(info.trangThai());
+            String trangThaiPhong = trangThaiPhongHienThi(info.trangThaiPhong());
+            String tenNhaSi = info.maNhaSi() + " - " + info.tenNhaSi();
+            CaKham ca = new CaKham(info.maLichHen(), info.thoiGianHen(), info.maBenhNhan(),
+                    info.hoTen(), info.gioiTinh(), info.ngaySinh(), info.tienSuBenhLy(),
+                    info.thongTinDiUng(), info.nguoiBaoHo(), info.maHoSo(), info.maNhaSi(),
+                    tenNhaSi, info.maPhong(), trangThaiPhong, trangThai, info.thoiGianCheckIn());
+            ChanDoan chanDoan = chanDoanTheoLich.get(info.maLichHen());
+            if (chanDoan != null) {
+                ca.maChanDoan = chanDoan.getMaChanDoan();
+                ca.lyDo = chanDoan.getLyDoKham() == null ? "" : chanDoan.getLyDoKham();
+                ca.trieuChung = chanDoan.getTrieuChung() == null ? "" : chanDoan.getTrieuChung();
+                ca.ketLuan = chanDoan.getKetLuanChanDoan() == null ? "" : chanDoan.getKetLuanChanDoan();
+                ca.daChot = "Da chot".equals(chanDoan.getTrangThai());
+            }
+            CaKham banCu = caCu.get(ca.maLich);
+            if (banCu != null && ca.maChanDoan != null
+                    && ca.maChanDoan.equals(banCu.maChanDoan)) {
+                ca.lyDo = banCu.lyDo;
+                ca.trieuChung = banCu.trieuChung;
+                ca.ketLuan = banCu.ketLuan;
+            }
+            caMoi.add(ca);
+        }
+
+        dsCa.clear();
+        dsCa.addAll(caMoi);
+        dangNapBang = true;
+        try {
+            lichModel.setRowCount(0);
+            int choKham = 0;
+            int dangKhamDem = 0;
+            int hoanThanh = 0;
+            for (CaKham ca : dsCa) {
+                if (DA_CHECK_IN.equals(ca.trangThai)) {
+                    choKham++;
+                } else if (DANG_KHAM.equals(ca.trangThai)) {
+                    dangKhamDem++;
+                } else if (HOAN_THANH.equals(ca.trangThai)) {
+                    hoanThanh++;
+                } else {
+                    continue;
+                }
+                lichModel.addRow(new Object[] {
+                        ca.maLich, ca.gioHen.format(GIO), ca.hoTen, ca.maPhong, ca.trangThai });
             }
             lichModel.addRow(new Object[] {
                     ca.maLich, dinhDangGioHen(ca.gioHen), ca.hoTen, ca.maPhong, ca.trangThai });
@@ -737,8 +797,9 @@ public class XuLyKhamLamSangVaSoDoRangPanel extends JPanel {
                     break;
                 }
             }
+        } finally {
+            dangNapBang = false;
         }
-        dangNapBang = false;
         caHienTai = layCaDangChon();
         if (caHienTai != null) {
             napSoDoRang(caHienTai);
@@ -801,6 +862,7 @@ public class XuLyKhamLamSangVaSoDoRangPanel extends JPanel {
             txtKetLuan.setText("");
             chart.setData(new TreeMap<>());
             chart.setChild(false);
+            chart.clearSelection();
             chkRangSua.setSelected(false);
         } else {
             int tuoi = ca.ngaySinh == null ? -1 : Period.between(ca.ngaySinh, LocalDate.now()).getYears();
@@ -865,7 +927,7 @@ public class XuLyKhamLamSangVaSoDoRangPanel extends JPanel {
     // Cập nhật khu ghi nhận răng theo răng đang chọn và trạng thái ca khám.
     private void capNhatEditorRang() {
         Integer maRang = chart.getSelected();
-        boolean choPhepSua = dangKham(caHienTai);
+        boolean choPhepSua = dangKham(caHienTai) && caHienTai.maHoSo != null;
         if (maRang == null) {
             lblRangChon.setText("Nhấp vào một răng trên sơ đồ để xem hoặc ghi nhận tình trạng.");
             cboTinhTrang.setSelectedIndex(0);
@@ -927,10 +989,10 @@ public class XuLyKhamLamSangVaSoDoRangPanel extends JPanel {
 
     private CaKham layCaDangChon() {
         int row = lichTable.getSelectedRow();
-        if (row < 0) {
+        if (row < 0 || row >= lichTable.getRowCount()) {
             return null;
         }
-        String ma = (String) lichModel.getValueAt(row, 0);
+        String ma = (String) lichModel.getValueAt(lichTable.convertRowIndexToModel(row), 0);
         for (CaKham ca : dsCa) {
             if (ca.maLich.equals(ma)) {
                 return ca;
@@ -964,6 +1026,20 @@ public class XuLyKhamLamSangVaSoDoRangPanel extends JPanel {
             txtKetLuan.requestFocusInWindow();
             throw new IllegalArgumentException("Kết luận chẩn đoán tối đa 1000 ký tự.");
         }
+    }
+
+    private ChanDoan lapChanDoan(CaKham ca) {
+        return new ChanDoan(ca.maChanDoan, LocalDate.now(), ca.lyDo, ca.trieuChung, ca.ketLuan,
+                "Nhap", ca.maLich, ca.maHoSo, ca.maNhaSi);
+    }
+
+    private static boolean isTinhTrangHopLe(String tinhTrang) {
+        for (String hopLe : TINH_TRANG) {
+            if (hopLe.equals(tinhTrang)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private void showMessage(String message) {
@@ -1201,13 +1277,19 @@ public class XuLyKhamLamSangVaSoDoRangPanel extends JPanel {
 
         void setData(Map<Integer, String[]> data) {
             this.data = data;
-            this.selected = null;
             repaint();
         }
 
         void setChild(boolean child) {
-            this.child = child;
-            this.selected = null;
+            if (this.child != child) {
+                this.child = child;
+                this.selected = null;
+                repaint();
+            }
+        }
+
+        void clearSelection() {
+            selected = null;
             repaint();
         }
 

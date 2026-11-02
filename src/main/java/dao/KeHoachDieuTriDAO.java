@@ -11,6 +11,24 @@ public class KeHoachDieuTriDAO {
     private static final String SELECT = "SELECT MaKeHoach, TenPhacDo, ThoiGianDuKien, TrangThai, "
             + "MaChanDoan, MaBenhNhan FROM KeHoachDieuTri ";
 
+    public static final class ThongTinBenhNhan {
+        private final String maBenhNhan;
+        private final String hoTen;
+
+        private ThongTinBenhNhan(String maBenhNhan, String hoTen) {
+            this.maBenhNhan = maBenhNhan;
+            this.hoTen = hoTen;
+        }
+
+        public String getMaBenhNhan() {
+            return maBenhNhan;
+        }
+
+        public String getHoTen() {
+            return hoTen;
+        }
+    }
+
     public List<KeHoachDieuTri> layTatCa() throws SQLException {
         List<KeHoachDieuTri> ds = new ArrayList<>();
         try (PreparedStatement ps = ConnectDB.getConnection().prepareStatement(SELECT + "ORDER BY MaKeHoach");
@@ -40,6 +58,19 @@ public class KeHoachDieuTriDAO {
         }
     }
 
+    public ThongTinBenhNhan layThongTinBenhNhanTheoChanDoan(String maChanDoan) throws SQLException {
+        String sql = "SELECT B.MaBenhNhan, B.HoTen FROM ChanDoan C "
+                + "JOIN HoSoBenhAn H ON H.MaHoSo = C.MaHoSo "
+                + "JOIN BenhNhan B ON B.MaBenhNhan = H.MaBenhNhan "
+                + "WHERE C.MaChanDoan = ?";
+        try (PreparedStatement ps = ConnectDB.getConnection().prepareStatement(sql)) {
+            ps.setString(1, maChanDoan);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? new ThongTinBenhNhan(rs.getString("MaBenhNhan"), rs.getString("HoTen")) : null;
+            }
+        }
+    }
+
     public String sinhMa() throws SQLException {
         return BenhNhanDAO.sinhMa(ConnectDB.getConnection(), "KeHoachDieuTri", "MaKeHoach", "KH");
     }
@@ -52,6 +83,24 @@ public class KeHoachDieuTriDAO {
      * @return mã kế hoạch (mới hoặc cũ)
      */
     public String luuPhacDo(KeHoachDieuTri kh, List<String[]> dsDichVu) throws SQLException {
+        if (kh == null) {
+            throw new IllegalArgumentException("Phác đồ không được null.");
+        }
+        if (dsDichVu == null || dsDichVu.isEmpty()) {
+            throw new IllegalArgumentException("Phác đồ cần có ít nhất một dịch vụ.");
+        }
+        for (String[] dong : dsDichVu) {
+            if (dong == null || dong.length < 2 || dong[0] == null || dong[0].trim().isEmpty()) {
+                throw new IllegalArgumentException("Thông tin dịch vụ trong phác đồ không hợp lệ.");
+            }
+            try {
+                if (Integer.parseInt(dong[1]) <= 0) {
+                    throw new IllegalArgumentException("Số lượng dịch vụ phải lớn hơn 0.");
+                }
+            } catch (NumberFormatException e) {
+                throw new IllegalArgumentException("Số lượng dịch vụ phải là số nguyên dương.", e);
+            }
+        }
         Connection con = ConnectDB.getConnection();
         boolean autoCommitCu = con.getAutoCommit();
         try {
@@ -104,7 +153,7 @@ public class KeHoachDieuTriDAO {
             }
             con.commit();
             return kh.getMaKeHoach();
-        } catch (SQLException e) {
+        } catch (SQLException | RuntimeException e) {
             con.rollback();
             throw e;
         } finally {
@@ -130,7 +179,7 @@ public class KeHoachDieuTriDAO {
             }
             con.commit();
             return n == 1;
-        } catch (SQLException e) {
+        } catch (SQLException | RuntimeException e) {
             con.rollback();
             throw e;
         } finally {

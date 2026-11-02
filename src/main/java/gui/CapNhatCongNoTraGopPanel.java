@@ -1,5 +1,7 @@
 package gui;
 
+import dao.CongNoTraGopDAO;
+import dao.HoaDonDAO;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
@@ -12,6 +14,7 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.sql.SQLException;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
@@ -171,6 +174,8 @@ public class CapNhatCongNoTraGopPanel extends JPanel {
 
     private final CongNoTraGopDAO congNoDAO = new CongNoTraGopDAO();
     private final List<CongNo> dsCongNo = new ArrayList<>();
+    private final HoaDonDAO hoaDonDAO = new HoaDonDAO();
+    private final CongNoTraGopDAO congNoDAO = new CongNoTraGopDAO();
     private boolean dangNapBang = false;
 
     // ----- Thẻ thống kê -----
@@ -433,6 +438,8 @@ public class CapNhatCongNoTraGopPanel extends JPanel {
             return;
         }
 
+        lamMoi(cn.ma);
+        CongNo capNhat = layCongNoDangChon();
         String thongBao = "Đã thu đợt " + (row + 1) + ": " + TIEN.format(dot.soTien) + " đ.";
         if (soDotConLaiSauKhiThu == 0) {
             thongBao += "\nHồ sơ " + cn.ma + " đã trả hết, hóa đơn " + cn.maHoaDon
@@ -441,7 +448,6 @@ public class CapNhatCongNoTraGopPanel extends JPanel {
             thongBao += "\nCòn " + soDotConLaiSauKhiThu + " đợt, "
                     + TIEN.format(conLaiSauKhiThu) + " đ.";
         }
-        lamMoi(cn.ma);
         showMessage(thongBao);
     }
 
@@ -468,13 +474,10 @@ public class CapNhatCongNoTraGopPanel extends JPanel {
                     + " đ của hóa đơn " + cn.maHoaDon + " sẽ đến hạn vào ngày " + dot.denHan.format(NGAY)
                     + ". Xin cảm ơn.";
         }
-        int choice = JOptionPane.showConfirmDialog(this,
-                "Gửi tin nhắn tới " + cn.hoTen + " (" + cn.soDienThoai + "):\n\n" + noiDung,
-                "Xác nhận nhắc nợ", JOptionPane.YES_NO_OPTION);
-        if (choice == JOptionPane.YES_OPTION) {
-            // TODO: gửi SMS / Zalo thật khi có tích hợp (hiện chỉ giả lập).
-            showMessage("Đã gửi nhắc nợ tới " + cn.soDienThoai + ".");
-        }
+        JOptionPane.showMessageDialog(this,
+                "Chưa tích hợp gửi SMS/Zalo; nội dung dưới đây chỉ để tham khảo, chưa được gửi.\n"
+                        + "Liên hệ: " + cn.soDienThoai + "\n\n" + noiDung,
+                "Nội dung nhắc nợ", JOptionPane.INFORMATION_MESSAGE);
     }
 
     // =====================================================================
@@ -530,6 +533,12 @@ public class CapNhatCongNoTraGopPanel extends JPanel {
         }
         dangNapBang = false;
         hienThiChiTiet();
+    }
+
+    private void showDatabaseError(String action, SQLException exception) {
+        JOptionPane.showMessageDialog(this,
+                action + ":\n" + exception.getMessage(),
+                "Lỗi cơ sở dữ liệu", JOptionPane.ERROR_MESSAGE);
     }
 
     // Thống kê tính trên toàn bộ hồ sơ (không phụ thuộc bộ lọc).

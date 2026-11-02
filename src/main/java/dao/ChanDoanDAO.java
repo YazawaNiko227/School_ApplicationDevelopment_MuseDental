@@ -179,7 +179,9 @@ public class ChanDoanDAO {
                 ps.setString(3, maLichHen);
                 ps.setString(4, maHoSo);
                 ps.setString(5, maNhaSi);
-                ps.executeUpdate();
+                if (ps.executeUpdate() != 1) {
+                    throw new SQLException("Không tạo được bản ghi chẩn đoán nháp.");
+                }
             }
             capNhatTrangThaiVaoKham(con, maLichHen, maPhong);
             con.commit();
@@ -248,7 +250,7 @@ public class ChanDoanDAO {
             }
             con.commit();
             return true;
-        } catch (SQLException e) {
+        } catch (SQLException | RuntimeException e) {
             con.rollback();
             throw e;
         } finally {

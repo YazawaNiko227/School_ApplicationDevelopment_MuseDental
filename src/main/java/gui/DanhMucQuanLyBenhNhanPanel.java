@@ -1,6 +1,7 @@
 package gui;
 
 import com.toedter.calendar.JDateChooser;
+import dao.BenhNhanDAO;
 import entity.BenhNhan;
 import util.GiaoDienUtil;
 
@@ -11,6 +12,7 @@ import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
+import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.Period;
 import java.time.format.DateTimeFormatter;
@@ -47,7 +49,7 @@ import javax.swing.table.TableRowSorter;
  *
  * Bên trái: danh sách + tìm kiếm (mã, họ tên, SĐT, CCCD). Bên phải: form thêm /
  * sửa / xóa.
- * Dữ liệu tạm giữ trong bộ nhớ, chỗ cần nối DAO được đánh dấu "TODO DAO".
+ * Dữ liệu được đọc và lưu qua BenhNhanDAO.
  */
 public class DanhMucQuanLyBenhNhanPanel extends JPanel {
     private static final Color INK = new Color(32, 53, 68);
@@ -63,6 +65,7 @@ public class DanhMucQuanLyBenhNhanPanel extends JPanel {
     private static final Pattern CCCD_PATTERN = Pattern.compile("^\\d{12}$");
 
     private final List<BenhNhan> danhSach = new ArrayList<>();
+    private final BenhNhanDAO benhNhanDAO = new BenhNhanDAO();
     private final DefaultTableModel tableModel = new DefaultTableModel(
             new String[] { "Mã BN", "Họ tên", "Giới tính", "Ngày sinh", "Số điện thoại", "Dị ứng" }, 0) {
         @Override
@@ -96,30 +99,29 @@ public class DanhMucQuanLyBenhNhanPanel extends JPanel {
         setLayout(new BorderLayout(18, 0));
         setOpaque(false);
 
-        loadData();
         setupTable();
         add(createListCard(), BorderLayout.CENTER);
         add(createFormCard(), BorderLayout.EAST);
 
+        SQLException loadError = loadData();
         refreshTable();
         clearForm();
+        if (loadError != null) {
+            showDatabaseError("tải danh sách bệnh nhân", loadError);
+        }
     }
 
     // ---------------------------- Dữ liệu ----------------------------
 
-    /**
-     * TODO DAO: thay bằng benhNhanDAO.getAll(). Hiện dùng dữ liệu mẫu theo file
-     * SQL.
-     */
-    private void loadData() {
-        danhSach.add(new BenhNhan("BN001", "Vo Thanh Hai", LocalDate.of(1990, 4, 10), "Nam", "0912000001",
-                "Quan 7, TP.HCM", "079090000001", "Khong", "Di ung Penicillin", null));
-        danhSach.add(new BenhNhan("BN002", "Nguyen Thi Lan", LocalDate.of(1985, 9, 21), "Nu", "0912000002",
-                "Quan 10, TP.HCM", "079085000002", "Cao huyet ap", null, null));
-        danhSach.add(new BenhNhan("BN003", "Dang Quoc Khanh", LocalDate.of(1978, 1, 15), "Nam", "0912000003",
-                "TP. Thu Duc", "079078000003", "Tieu duong type 2", null, null));
-        danhSach.add(new BenhNhan("BN004", "Tran Bao Ngoc", LocalDate.of(2015, 6, 30), "Nu", "0912000004",
-                "Quan Phu Nhuan", null, "Khong", null, "Tran Van Minh (cha)"));
+    private SQLException loadData() {
+        try {
+            danhSach.clear();
+            danhSach.addAll(benhNhanDAO.layTatCa());
+            return null;
+        } catch (SQLException ex) {
+            danhSach.clear();
+            return ex;
+        }
     }
 
     private BenhNhan findById(String ma) {
@@ -461,18 +463,19 @@ public class DanhMucQuanLyBenhNhanPanel extends JPanel {
             if (findById(bn.getMaBenhNhan()) != null) {
                 throw new IllegalArgumentException("Mã bệnh nhân đã tồn tại.");
             }
-            // TODO DAO: benhNhanDAO.insert(bn);
-            // Lưu ý: HoSoBenhAn và BenhNhan quan hệ 1-1 (UQ_HoSoBenhAn_BenhNhan), nên nếu
-            // hệ thống
-            // yêu cầu mỗi bệnh nhân có hồ sơ ngay khi tạo thì tạo luôn HoSoBenhAn ở bước
-            // này.
-            danhSach.add(bn);
+            if (!benhNhanDAO.them(bn)) {
+                showDatabaseMessage("Không thể thêm bệnh nhân vì dữ liệu chưa được lưu.");
+                return;
+            }
+            SQLException refreshError = loadData();
             refreshTable();
             clearForm();
-            JOptionPane.showMessageDialog(this, "Đã thêm bệnh nhân " + bn.getHoTen() + ".");
+            showSaveResult("Đã thêm bệnh nhân " + bn.getHoTen() + ".", refreshError);
         } catch (IllegalArgumentException ex) {
             JOptionPane.showMessageDialog(this, ex.getMessage(), "Dữ liệu không hợp lệ",
                     JOptionPane.WARNING_MESSAGE);
+        } catch (SQLException ex) {
+            showDatabaseError("thêm bệnh nhân", ex);
         }
     }
 
@@ -483,14 +486,25 @@ public class DanhMucQuanLyBenhNhanPanel extends JPanel {
             if (current == null) {
                 throw new IllegalArgumentException("Không tìm thấy bệnh nhân cần cập nhật.");
             }
-            // TODO DAO: benhNhanDAO.update(updated);
-            danhSach.set(danhSach.indexOf(current), updated);
+            if (!benhNhanDAO.capNhat(updated)) {
+                showDatabaseMessage("Không tìm thấy bệnh nhân để cập nhật. Danh sách sẽ được tải lại.");
+                SQLException refreshError = loadData();
+                refreshTable();
+                clearForm();
+                if (refreshError != null) {
+                    showDatabaseError("tải lại danh sách bệnh nhân", refreshError);
+                }
+                return;
+            }
+            SQLException refreshError = loadData();
             refreshTable();
             clearForm();
-            JOptionPane.showMessageDialog(this, "Đã cập nhật thông tin bệnh nhân.");
+            showSaveResult("Đã cập nhật thông tin bệnh nhân.", refreshError);
         } catch (IllegalArgumentException ex) {
             JOptionPane.showMessageDialog(this, ex.getMessage(), "Dữ liệu không hợp lệ",
                     JOptionPane.WARNING_MESSAGE);
+        } catch (SQLException ex) {
+            showDatabaseError("cập nhật bệnh nhân", ex);
         }
     }
 
@@ -504,15 +518,49 @@ public class DanhMucQuanLyBenhNhanPanel extends JPanel {
                         + "Bệnh nhân đã có hồ sơ, lịch hẹn hoặc hóa đơn sẽ không xóa được.",
                 "Xác nhận xóa", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
         if (choice == JOptionPane.YES_OPTION) {
-            // TODO DAO: benhNhanDAO.delete(ma). Bệnh nhân đã có HoSoBenhAn / LichHen /
-            // HoaDon /
-            // KeHoachDieuTri sẽ vướng khóa ngoại -> bắt SQLException và báo "Bệnh nhân đã
-            // có dữ liệu
-            // khám chữa bệnh, không thể xóa".
-            danhSach.remove(bn);
+            try {
+                if (!benhNhanDAO.xoa(bn.getMaBenhNhan())) {
+                    showDatabaseMessage("Không tìm thấy bệnh nhân để xóa. Danh sách sẽ được tải lại.");
+                    SQLException refreshError = loadData();
+                    refreshTable();
+                    clearForm();
+                    if (refreshError != null) {
+                        showDatabaseError("tải lại danh sách bệnh nhân", refreshError);
+                    }
+                    return;
+                }
+            } catch (SQLException ex) {
+                showDatabaseError("xóa bệnh nhân", ex);
+                return;
+            }
+            SQLException refreshError = loadData();
             refreshTable();
             clearForm();
+            showSaveResult("Đã xóa bệnh nhân " + bn.getMaBenhNhan() + ".", refreshError);
         }
+    }
+
+    private void showSaveResult(String successMessage, SQLException refreshError) {
+        if (refreshError == null) {
+            JOptionPane.showMessageDialog(this, successMessage);
+        } else {
+            showDatabaseMessage(successMessage + "\nKhông thể tải lại danh sách: " + refreshError.getMessage());
+        }
+    }
+
+    private void showDatabaseError(String action, SQLException ex) {
+        if (ex.getErrorCode() == 547) {
+            showDatabaseMessage("Không thể " + action
+                    + " vì bệnh nhân đã có dữ liệu khám chữa bệnh hoặc đang được tham chiếu.");
+        } else if (ex.getErrorCode() == 2601 || ex.getErrorCode() == 2627) {
+            showDatabaseMessage("Không thể " + action + " vì dữ liệu bị trùng. Vui lòng tải lại danh sách.");
+        } else {
+            showDatabaseMessage("Không thể " + action + ": " + ex.getMessage());
+        }
+    }
+
+    private void showDatabaseMessage(String message) {
+        JOptionPane.showMessageDialog(this, message, "Lỗi cơ sở dữ liệu", JOptionPane.ERROR_MESSAGE);
     }
 
     // ---------------------------- Kiểm tra dữ liệu ----------------------------

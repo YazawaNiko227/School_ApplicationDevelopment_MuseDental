@@ -14,7 +14,6 @@ import java.awt.Font;
 import java.awt.Window;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.sql.SQLException;
 import java.text.DecimalFormat;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -298,7 +297,7 @@ public class TimKiemTraCuuHoaDonPanel extends JPanel {
                 HoaDon hd = new HoaDon(dong.maHoaDon(), dong.ngayLap(), dong.maBenhNhan(),
                         dong.tenBenhNhan(), dong.maNhanVien(), dong.tenNhanVien(),
                         hienThiPhuongThuc(dong.phuongThuc()), hienThiTrangThai(dong.trangThai()),
-                        new Object[0][0], new Object[0][0], new Object[0][0]);
+                        new Object[0][0], new Object[0][0], new Object[0][0], dong.tongTien());
                 dangHienThi.add(hd);
                 tableModel.addRow(new Object[] {
                         hd.ma, hd.ngayLap.format(NGAY), hd.maBenhNhan, hd.tenBenhNhan,
@@ -341,7 +340,7 @@ public class TimKiemTraCuuHoaDonPanel extends JPanel {
             List<HoaDonDAO.DotHoaDonTraCuu> dots = hoaDonDAO.layDotThanhToanHoaDon(summary.ma);
             hd = new HoaDon(summary.ma, summary.ngayLap, summary.maBenhNhan, summary.tenBenhNhan,
                     summary.maNhanVien, summary.tenNhanVien, summary.phuongThuc, summary.trangThai,
-                    chuyenDoiDong(dichVu), chuyenDoiDong(thuoc), chuyenDoiDot(dots));
+                    chuyenDoiDong(dichVu), chuyenDoiDong(thuoc), chuyenDoiDot(dots), summary.tongTienDb);
         } catch (java.sql.SQLException exception) {
             JOptionPane.showMessageDialog(this,
                     "Không thể tải chi tiết hóa đơn " + summary.ma + ":\n" + exception.getMessage(),
@@ -505,75 +504,6 @@ public class TimKiemTraCuuHoaDonPanel extends JPanel {
             kq.add(new Object[] { d[0], d[1], TIEN.format(donGia), soLuong, TIEN.format(donGia * soLuong) });
         }
         return kq;
-    }
-
-    private Object[][] dongThanhObject(List<HoaDonDAO.DongHoaDon> dong) {
-        Object[][] result = new Object[dong.size()][4];
-        for (int i = 0; i < dong.size(); i++) {
-            HoaDonDAO.DongHoaDon row = dong.get(i);
-            result[i] = new Object[] { row.ma, row.ten, row.donGia, row.soLuong };
-        }
-        return result;
-    }
-
-    private Object[][] dotsThanhObject(List<HoaDonDAO.DotHoaDon> dots) {
-        Object[][] result = new Object[dots.size()][5];
-        for (int i = 0; i < dots.size(); i++) {
-            HoaDonDAO.DotHoaDon dot = dots.get(i);
-            String trangThai;
-            if ("Da thanh toan".equals(dot.trangThai)) {
-                trangThai = DA_THANH_TOAN;
-            } else if (dot.ngayDenHan.isBefore(LocalDate.now())) {
-                trangThai = "Quá hạn";
-            } else {
-                trangThai = "Chưa đến hạn";
-            }
-            result[i] = new Object[] { dot.ma, dot.ngayDenHan.format(NGAY), dot.soTien,
-                    trangThai, dot.ngayThanhToan == null ? "-" : dot.ngayThanhToan.format(NGAY) };
-        }
-        return result;
-    }
-
-    private String giaTriDB(String giaTri) {
-        if (giaTri == null || TAT_CA.equals(giaTri)) {
-            return null;
-        }
-        if (TIEN_MAT.equals(giaTri)) {
-            return "Tien mat";
-        }
-        if (CHUYEN_KHOAN.equals(giaTri)) {
-            return "Chuyen khoan";
-        }
-        if (TRA_GOP.equals(giaTri)) {
-            return "Tra gop";
-        }
-        if (CHUA_THANH_TOAN.equals(giaTri)) {
-            return "Chua thanh toan";
-        }
-        if (DA_THANH_TOAN.equals(giaTri)) {
-            return "Da thanh toan";
-        }
-        return "Dang tra gop";
-    }
-
-    private String hienThiPhuongThuc(String phuongThuc) {
-        if ("Tien mat".equals(phuongThuc)) {
-            return TIEN_MAT;
-        }
-        if ("Chuyen khoan".equals(phuongThuc)) {
-            return CHUYEN_KHOAN;
-        }
-        return phuongThuc == null ? null : TRA_GOP;
-    }
-
-    private String hienThiTrangThai(String trangThai) {
-        if ("Da thanh toan".equals(trangThai)) {
-            return DA_THANH_TOAN;
-        }
-        if ("Dang tra gop".equals(trangThai)) {
-            return DANG_TRA_GOP;
-        }
-        return CHUA_THANH_TOAN;
     }
 
     private LocalDate toLocalDate(Date date) {

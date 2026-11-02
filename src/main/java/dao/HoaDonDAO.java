@@ -1,6 +1,7 @@
 package dao;
 
 import connectDB.ConnectDB;
+import entity.DichVu;
 import entity.HoaDon;
 import java.sql.Date;
 import java.sql.Connection;
@@ -27,10 +28,21 @@ public class HoaDonDAO {
             this.ketLuan = ketLuan;
         }
 
-        public String maChanDoan() { return maChanDoan; }
-        public String maBenhNhan() { return maBenhNhan; }
-        public String hoTen() { return hoTen; }
-        public String ketLuan() { return ketLuan; }
+        public String maChanDoan() {
+            return maChanDoan;
+        }
+
+        public String maBenhNhan() {
+            return maBenhNhan;
+        }
+
+        public String hoTen() {
+            return hoTen;
+        }
+
+        public String ketLuan() {
+            return ketLuan;
+        }
     }
 
     public static final class DongTinhTien {
@@ -46,10 +58,21 @@ public class HoaDonDAO {
             this.donGia = donGia;
         }
 
-        public String ma() { return ma; }
-        public String ten() { return ten; }
-        public int soLuong() { return soLuong; }
-        public double donGia() { return donGia; }
+        public String ma() {
+            return ma;
+        }
+
+        public String ten() {
+            return ten;
+        }
+
+        public int soLuong() {
+            return soLuong;
+        }
+
+        public double donGia() {
+            return donGia;
+        }
     }
 
     public static final class HoaDonTraCuu {
@@ -76,15 +99,41 @@ public class HoaDonDAO {
             this.tongTien = tongTien;
         }
 
-        public String maHoaDon() { return maHoaDon; }
-        public LocalDate ngayLap() { return ngayLap; }
-        public String maBenhNhan() { return maBenhNhan; }
-        public String tenBenhNhan() { return tenBenhNhan; }
-        public String maNhanVien() { return maNhanVien; }
-        public String tenNhanVien() { return tenNhanVien; }
-        public String phuongThuc() { return phuongThuc; }
-        public String trangThai() { return trangThai; }
-        public double tongTien() { return tongTien; }
+        public String maHoaDon() {
+            return maHoaDon;
+        }
+
+        public LocalDate ngayLap() {
+            return ngayLap;
+        }
+
+        public String maBenhNhan() {
+            return maBenhNhan;
+        }
+
+        public String tenBenhNhan() {
+            return tenBenhNhan;
+        }
+
+        public String maNhanVien() {
+            return maNhanVien;
+        }
+
+        public String tenNhanVien() {
+            return tenNhanVien;
+        }
+
+        public String phuongThuc() {
+            return phuongThuc;
+        }
+
+        public String trangThai() {
+            return trangThai;
+        }
+
+        public double tongTien() {
+            return tongTien;
+        }
     }
 
     public static final class DotHoaDonTraCuu {
@@ -103,11 +152,25 @@ public class HoaDonDAO {
             this.ngayThanhToan = ngayThanhToan;
         }
 
-        public String maDot() { return maDot; }
-        public LocalDate ngayDenHan() { return ngayDenHan; }
-        public double soTien() { return soTien; }
-        public String trangThai() { return trangThai; }
-        public LocalDate ngayThanhToan() { return ngayThanhToan; }
+        public String maDot() {
+            return maDot;
+        }
+
+        public LocalDate ngayDenHan() {
+            return ngayDenHan;
+        }
+
+        public double soTien() {
+            return soTien;
+        }
+
+        public String trangThai() {
+            return trangThai;
+        }
+
+        public LocalDate ngayThanhToan() {
+            return ngayThanhToan;
+        }
     }
 
     /** Tra cứu hóa đơn theo từ khóa, trạng thái, phương thức và khoảng ngày. */
@@ -281,7 +344,9 @@ public class HoaDonDAO {
         return ds;
     }
 
-    /** Lấy mã nhân viên từ tài khoản đang đăng nhập để ghi đúng người lập hóa đơn. */
+    /**
+     * Lấy mã nhân viên từ tài khoản đang đăng nhập để ghi đúng người lập hóa đơn.
+     */
     public String layMaNhanVienTheoTenDangNhap(String tenDangNhap) throws SQLException {
         String sql = "SELECT MaNhanVien FROM TaiKhoan "
                 + "WHERE TenDangNhap = ? AND TrangThaiTaiKhoan = N'Kich hoat'";
@@ -294,7 +359,8 @@ public class HoaDonDAO {
     }
 
     /**
-     * Lưu hóa đơn, các dòng tính tiền và lịch trả góp (nếu có) trong một transaction.
+     * Lưu hóa đơn, các dòng tính tiền và lịch trả góp (nếu có) trong một
+     * transaction.
      * Với trả góp, đợt đầu được ghi nhận đã thu ngay khi lập hóa đơn.
      *
      * @return mã hóa đơn vừa tạo
@@ -482,29 +548,6 @@ public class HoaDonDAO {
         }
     }
 
-    private static String sinhMa(Connection con, String bang, String cot, String tienTo) throws SQLException {
-        String sql = "SELECT COALESCE(MAX(TRY_CONVERT(int, SUBSTRING(" + cot
-                + ", LEN(?) + 1, 18))), 0) + 1 FROM " + bang + " WITH (UPDLOCK, HOLDLOCK) "
-                + "WHERE " + cot + " LIKE ? AND TRY_CONVERT(int, SUBSTRING(" + cot + ", LEN(?) + 1, 18)) IS NOT NULL";
-        try (PreparedStatement ps = con.prepareStatement(sql)) {
-            ps.setString(1, tienTo);
-            ps.setString(2, tienTo + "%");
-            ps.setString(3, tienTo);
-            try (ResultSet rs = ps.executeQuery()) {
-                rs.next();
-                return String.format("%s%03d", tienTo, rs.getInt(1));
-            }
-        }
-    }
-
-        LanKhamHoaDon(String maChanDoan, String maBenhNhan, String tenBenhNhan, String ketLuan) {
-            this.maChanDoan = maChanDoan;
-            this.maBenhNhan = maBenhNhan;
-            this.tenBenhNhan = tenBenhNhan;
-            this.ketLuan = ketLuan;
-        }
-    }
-
     public static final class NhanVienHoaDon {
         public final String ma;
         public final String ten;
@@ -646,7 +689,7 @@ public class HoaDonDAO {
         return ds;
     }
 
-    public List<DongHoaDon> layDichVuTheoChanDoan(String maChanDoan) throws SQLException {
+    public List<DongHoaDon> layDichVuHoaDonTheoChanDoan(String maChanDoan) throws SQLException {
         List<DongHoaDon> ds = new ArrayList<>();
         Map<String, DichVu> dichVuTheoMa = new HashMap<>();
         for (DichVu dichVu : new DichVuDAO().getAllDichVu()) {
@@ -672,7 +715,7 @@ public class HoaDonDAO {
         return ds;
     }
 
-    public List<DongHoaDon> layThuocTheoChanDoan(String maChanDoan) throws SQLException {
+    public List<DongHoaDon> layThuocHoaDonTheoChanDoan(String maChanDoan) throws SQLException {
         List<DongHoaDon> ds = new ArrayList<>();
         String sql = "SELECT vt.MaVatTu, vt.TenVatTu, ct.SoLuong, vt.DonGiaBan "
                 + "FROM DonThuoc dt JOIN ChiTietDonThuoc ct ON ct.MaDonThuoc = dt.MaDonThuoc "

@@ -9,7 +9,7 @@ import java.util.Objects;
  */
 public class TaiKhoan {
     private String tenDangNhap;
-    private String matKhauMaHoa;
+    private String matKhau;
     private String trangThaiTaiKhoan;
     private LocalDateTime lanDangNhapCuoi;
     private NhanVien nhanVien;
@@ -22,10 +22,10 @@ public class TaiKhoan {
         this.tenDangNhap = tenDangNhap;
     }
 
-    public TaiKhoan(String tenDangNhap, String matKhauMaHoa, String trangThaiTaiKhoan,
+    public TaiKhoan(String tenDangNhap, String matKhau, String trangThaiTaiKhoan,
             LocalDateTime lanDangNhapCuoi, NhanVien nhanVien, VaiTro vaiTro) {
         this.tenDangNhap = tenDangNhap;
-        this.matKhauMaHoa = matKhauMaHoa;
+        this.matKhau = matKhau;
         this.trangThaiTaiKhoan = trangThaiTaiKhoan;
         this.lanDangNhapCuoi = lanDangNhapCuoi;
         this.nhanVien = nhanVien;
@@ -40,12 +40,12 @@ public class TaiKhoan {
         this.tenDangNhap = tenDangNhap;
     }
 
-    public String getMatKhauMaHoa() {
-        return matKhauMaHoa;
+    public String getMatKhau() {
+        return matKhau;
     }
 
-    public void setMatKhauMaHoa(String matKhauMaHoa) {
-        this.matKhauMaHoa = matKhauMaHoa;
+    public void setMatKhau(String matKhau) {
+        this.matKhau = matKhau;
     }
 
     public String getTrangThaiTaiKhoan() {

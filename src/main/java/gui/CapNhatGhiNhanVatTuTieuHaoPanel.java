@@ -65,6 +65,7 @@ public class CapNhatGhiNhanVatTuTieuHaoPanel extends JPanel {
     // ----- 1. Thẻ chọn lịch hẹn -----
     private final JComboBox<String> cboLichHen = new JComboBox<>();
     private final JLabel lblBenhNhan = new JLabel(" ");
+    private boolean dangNapDanhSachLichHen;
 
     // ----- 2. Thẻ danh mục vật tư bên trái -----
     private final JTextField txtTimVatTu = new JTextField();
@@ -134,7 +135,11 @@ public class CapNhatGhiNhanVatTuTieuHaoPanel extends JPanel {
         lblBenhNhan.setAlignmentX(Component.LEFT_ALIGNMENT);
         the.add(lblBenhNhan);
 
-        cboLichHen.addActionListener(e -> chonLichHen());
+        cboLichHen.addActionListener(e -> {
+            if (!dangNapDanhSachLichHen) {
+                chonLichHen();
+            }
+        });
         return the;
     }
 
@@ -233,7 +238,7 @@ public class CapNhatGhiNhanVatTuTieuHaoPanel extends JPanel {
         JButton btnLuu = GiaoDienUtil.taoNut("Lưu phiếu xuất", true);
 
         btnXoa.addActionListener(e -> xoaVatTu());
-        btnLamMoi.addActionListener(e -> chonLichHen());
+        btnLamMoi.addActionListener(e -> taiDanhSachLichHen());
         btnLuu.addActionListener(e -> luuPhieuXuat());
 
         actions.add(btnXoa);
@@ -267,18 +272,32 @@ public class CapNhatGhiNhanVatTuTieuHaoPanel extends JPanel {
     /** Nạp các lịch hẹn đang khám hoặc vừa khám xong từ LichHenDAO. */
     public void taiDanhSachLichHen() {
         try {
+            String maLichDangChon = layMaLichHenDangChon();
+            List<LichHenInfo> lichHenMoi = lichHenDAO.layChoXuatKho();
             danhSachLichHen.clear();
-            danhSachLichHen.addAll(lichHenDAO.layChoXuatKho());
-
+            danhSachLichHen.addAll(lichHenMoi);
+            dangNapDanhSachLichHen = true;
             cboLichHen.removeAllItems();
             cboLichHen.addItem(XUAT_DUNG_CHUNG);
             for (LichHenInfo lh : danhSachLichHen) {
-                cboLichHen.addItem(
-                        lh.maLichHen() + " - " + lh.hoTen() + " (" + lh.trangThai() + ", P." + lh.maPhong() + ")");
+                String maChanDoan = lh.maChanDoan() == null ? "Chưa có chẩn đoán" : lh.maChanDoan();
+                cboLichHen.addItem(maChanDoan + " - " + lh.hoTen() + " (" + lh.maLichHen()
+                        + ", " + lh.trangThai() + ", P." + lh.maPhong() + ")");
             }
+            if (maLichDangChon != null) {
+                for (int i = 0; i < danhSachLichHen.size(); i++) {
+                    if (maLichDangChon.equals(danhSachLichHen.get(i).maLichHen())) {
+                        cboLichHen.setSelectedIndex(i + 1);
+                        break;
+                    }
+                }
+            }
+            dangNapDanhSachLichHen = false;
             chonLichHen();
         } catch (SQLException e) {
             GiaoDienUtil.baoLoi(this, e);
+        } finally {
+            dangNapDanhSachLichHen = false;
         }
     }
 
@@ -320,10 +339,14 @@ public class CapNhatGhiNhanVatTuTieuHaoPanel extends JPanel {
 
         if (index == 0) {
             lblBenhNhan.setText("Xuất dùng chung cho toàn phòng khám (không gắn với bệnh nhân nào).");
-        } else {
+        } else if (index - 1 < danhSachLichHen.size()) {
             LichHenInfo lh = danhSachLichHen.get(index - 1);
             lblBenhNhan.setText(
-                    "Bệnh nhân: " + lh.hoTen() + "  ·  Mã BN: " + lh.maBenhNhan() + "  ·  Phòng: " + lh.maPhong());
+                    "Lần khám: " + (lh.maChanDoan() == null ? "chưa có chẩn đoán" : lh.maChanDoan())
+                            + "  ·  Bệnh nhân: " + lh.hoTen() + "  ·  Mã BN: " + lh.maBenhNhan()
+                            + "  ·  Phòng: " + lh.maPhong());
+        } else {
+            return;
         }
 
         mapVatTuDangSoan.clear();
@@ -352,6 +375,13 @@ public class CapNhatGhiNhanVatTuTieuHaoPanel extends JPanel {
         } catch (SQLException e) {
             GiaoDienUtil.baoLoi(this, e);
         }
+    }
+
+    private String layMaLichHenDangChon() {
+        int index = cboLichHen.getSelectedIndex();
+        return index <= 0 || index - 1 >= danhSachLichHen.size()
+                ? null
+                : danhSachLichHen.get(index - 1).maLichHen();
     }
 
     /** Thêm vật tư vào phiếu đang soạn (cộng dồn nếu đã có trong phiếu). */

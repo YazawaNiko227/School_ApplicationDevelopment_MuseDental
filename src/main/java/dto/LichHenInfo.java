@@ -8,5 +8,10 @@ import java.time.LocalDateTime;
  * "Ghi nhận vật tư tiêu hao" (chọn lần khám cần xuất kho).
  */
 public record LichHenInfo(String maLichHen, LocalDateTime thoiGianHen, String trangThai,
-        String maBenhNhan, String hoTen, String maPhong) {
+        String maBenhNhan, String hoTen, String maPhong, String maChanDoan) {
+
+    public LichHenInfo(String maLichHen, LocalDateTime thoiGianHen, String trangThai,
+            String maBenhNhan, String hoTen, String maPhong) {
+        this(maLichHen, thoiGianHen, trangThai, maBenhNhan, hoTen, maPhong, null);
+    }
 }

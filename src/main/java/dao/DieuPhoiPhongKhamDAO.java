@@ -87,6 +87,13 @@ public class DieuPhoiPhongKhamDAO {
     }
 
     public List<LichHenDieuPhoi> layLichHomNay() throws SQLException {
+        return layLichTheoNgay(LocalDate.now());
+    }
+
+    public List<LichHenDieuPhoi> layLichTheoNgay(LocalDate ngay) throws SQLException {
+        if (ngay == null) {
+            throw new IllegalArgumentException("Ngày điều phối không được để trống.");
+        }
         String sql = "SELECT lh.MaLichHen, lh.ThoiGianHen, bn.HoTen AS TenBenhNhan, "
                 + "ns.MaNhanVien, ns.HoTen AS TenNhaSi, lh.MaPhong, lh.TrangThai, lh.ThoiGianCheckIn "
                 + "FROM LichHen lh "
@@ -94,11 +101,10 @@ public class DieuPhoiPhongKhamDAO {
                 + "INNER JOIN NhanVien ns ON ns.MaNhanVien = lh.MaNhaSiPhuTrach "
                 + "WHERE lh.ThoiGianHen >= ? AND lh.ThoiGianHen < ? "
                 + "ORDER BY lh.ThoiGianHen, lh.MaLichHen";
-        LocalDate homNay = LocalDate.now();
         List<LichHenDieuPhoi> danhSach = new ArrayList<>();
         try (PreparedStatement statement = getConnection().prepareStatement(sql)) {
-            statement.setTimestamp(1, Timestamp.valueOf(homNay.atStartOfDay()));
-            statement.setTimestamp(2, Timestamp.valueOf(homNay.plusDays(1).atStartOfDay()));
+            statement.setTimestamp(1, Timestamp.valueOf(ngay.atStartOfDay()));
+            statement.setTimestamp(2, Timestamp.valueOf(ngay.plusDays(1).atStartOfDay()));
             try (ResultSet result = statement.executeQuery()) {
                 while (result.next()) {
                     Timestamp thoiGianHen = result.getTimestamp("ThoiGianHen");

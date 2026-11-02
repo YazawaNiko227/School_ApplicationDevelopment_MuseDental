@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.Map;
 
 public class PhongKhamDAO {
-    private static final DateTimeFormatter GIO_HEN_FORMAT = DateTimeFormatter.ofPattern("HH:mm");
+    private static final DateTimeFormatter GIO_HEN_FORMAT = DateTimeFormatter.ofPattern("dd/MM HH:mm");
 
     public List<PhongKham> layTatCa() throws SQLException {
         String sql = "SELECT MaPhong, TenPhong, TrangThai FROM PhongKham ORDER BY MaPhong";
@@ -46,9 +46,9 @@ public class PhongKhamDAO {
         try (PreparedStatement statement = getConnection().prepareStatement(sql);
                 ResultSet result = statement.executeQuery()) {
             while (result.next()) {
-                Timestamp thoiGianHen = result.getTimestamp("ThoiGianHen");
+                Timestamp appointmentTime = result.getTimestamp("ThoiGianHen");
                 lichHenTheoPhong.put(result.getString("MaPhong"),
-                        thoiGianHen.toLocalDateTime().format(GIO_HEN_FORMAT) + " - " + result.getString("HoTen"));
+                        appointmentTime.toLocalDateTime().format(GIO_HEN_FORMAT) + " - " + result.getString("HoTen"));
             }
         }
         return lichHenTheoPhong;

@@ -4,14 +4,12 @@ import connectDB.ConnectDB;
 import entity.NhanVien;
 import entity.TaiKhoan;
 import entity.VaiTro;
-import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.util.Arrays;
-import security.PasswordHasher;
 
 public class DangNhapDAO {
     public TaiKhoan dangNhap(String tenDangNhap, char[] matKhau) throws SQLException {
@@ -19,7 +17,7 @@ public class DangNhapDAO {
             return null;
         }
 
-        String sql = "SELECT TK.TenDangNhap, TK.MatKhauMaHoa, TK.TrangThaiTaiKhoan, TK.LanDangNhapCuoi, "
+        String sql = "SELECT TK.TenDangNhap, TK.MatKhau, TK.TrangThaiTaiKhoan, TK.LanDangNhapCuoi, "
                 + "TK.MaVaiTro, VT.TenVaiTro, NV.MaNhanVien, NV.HoTen, NV.NgaySinh, NV.GioiTinh, "
                 + "NV.SoDienThoai, NV.Email, NV.DiaChi, NV.NgayVaoLam, NV.TrangThaiLamViec, "
                 + "NV.ChuyenMon, NV.SoChungChiHanhNghe "
@@ -35,7 +33,7 @@ public class DangNhapDAO {
                 if (!result.next()
                         || !"Kich hoat".equals(result.getString("TrangThaiTaiKhoan"))
                         || !"Dang lam viec".equals(result.getString("TrangThaiLamViec"))
-                        || !PasswordHasher.verify(matKhau, result.getString("MatKhauMaHoa"))) {
+                        || !khopMatKhau(matKhau, result.getString("MatKhau"))) {
                     return null;
                 }
 
@@ -66,6 +64,18 @@ public class DangNhapDAO {
             return taiKhoan;
         } finally {
             Arrays.fill(matKhau, '\0');
+        }
+    }
+
+    private static boolean khopMatKhau(char[] matKhau, String matKhauTrongCSDL) {
+        if (matKhauTrongCSDL == null) {
+            return false;
+        }
+        char[] storedPassword = matKhauTrongCSDL.toCharArray();
+        try {
+            return Arrays.equals(matKhau, storedPassword);
+        } finally {
+            Arrays.fill(storedPassword, '\0');
         }
     }
 

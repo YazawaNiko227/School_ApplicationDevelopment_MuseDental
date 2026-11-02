@@ -26,25 +26,7 @@ public class DonThuocDAO {
 
     /** Lần khám đang chờ kê đơn (TrangThai = 'Nhap') kèm thông tin bệnh nhân. */
     public List<LanKham> layLanKhamChoKeDon() throws SQLException {
-        String sql = "SELECT CD.MaChanDoan, BN.MaBenhNhan, BN.HoTen, CD.KetLuanChanDoan, BN.ThongTinDiUng "
-                + "FROM ChanDoan CD "
-                + "JOIN HoSoBenhAn HS ON HS.MaHoSo = CD.MaHoSo "
-                + "JOIN BenhNhan BN ON BN.MaBenhNhan = HS.MaBenhNhan "
-                + "WHERE CD.TrangThai = N'Nhap' "
-                + "ORDER BY CD.NgayKham DESC, CD.MaChanDoan DESC";
-        try (PreparedStatement ps = ConnectDB.getConnection().prepareStatement(sql);
-                ResultSet rs = ps.executeQuery()) {
-            List<LanKham> ketQua = new ArrayList<>();
-            while (rs.next()) {
-                ketQua.add(new LanKham(
-                        rs.getString("MaChanDoan"),
-                        rs.getString("MaBenhNhan"),
-                        rs.getString("HoTen"),
-                        rs.getString("KetLuanChanDoan"),
-                        rs.getString("ThongTinDiUng")));
-            }
-            return ketQua;
-        }
+        return new ChanDoanDAO().layThongTinDangKham();
     }
 
     /** Đơn thuốc đã lưu của một lần khám; chưa có trả null. */

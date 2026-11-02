@@ -52,6 +52,7 @@ import javax.swing.table.DefaultTableModel;
  * dịch vụ (ChiTietHoaDon), thuốc (ChiTietHoaDonThuoc) và các đợt thanh toán
  * (DotThanhToan, chỉ có với hóa đơn trả góp).
  *
+ * Danh sách và chi tiết hóa đơn được tải từ CSDL qua HoaDonDAO.
  */
 public class TimKiemTraCuuHoaDonPanel extends JPanel {
     private static final Color INK = new Color(32, 53, 68);
@@ -284,30 +285,31 @@ public class TimKiemTraCuuHoaDonPanel extends JPanel {
             return;
         }
 
-        String tuKhoa = txtTuKhoa.getText().trim();
-        String phuongThuc = giaTriDB((String) cboPhuongThuc.getSelectedItem());
-        String trangThai = giaTriDB((String) cboTrangThai.getSelectedItem());
+        String tuKhoa = txtTuKhoa.getText().trim().toLowerCase();
+        String phuongThuc = (String) cboPhuongThuc.getSelectedItem();
+        String trangThai = (String) cboTrangThai.getSelectedItem();
+
         dangHienThi.clear();
         tableModel.setRowCount(0);
         try {
-            for (HoaDonDAO.HoaDonTimKiem row : hoaDonDAO.traCuuHoaDon(
-                    tuKhoa, phuongThuc, trangThai, tuNgay, denNgay)) {
-                HoaDon hd = new HoaDon(row.ma, row.ngayLap, row.maBenhNhan, row.tenBenhNhan,
-                        row.maNhanVien, row.tenNhanVien, hienThiPhuongThuc(row.phuongThuc),
-                        hienThiTrangThai(row.trangThai), new Object[0][0], new Object[0][0],
-                        new Object[0][0], row.tongTien);
+            List<HoaDonDAO.HoaDonTraCuu> ketQua = hoaDonDAO.timKiemHoaDon(
+                    tuKhoa, giaTriPhuongThucDb(phuongThuc), giaTriTrangThaiDb(trangThai), tuNgay, denNgay);
+            for (HoaDonDAO.HoaDonTraCuu dong : ketQua) {
+                HoaDon hd = new HoaDon(dong.maHoaDon(), dong.ngayLap(), dong.maBenhNhan(),
+                        dong.tenBenhNhan(), dong.maNhanVien(), dong.tenNhanVien(),
+                        hienThiPhuongThuc(dong.phuongThuc()), hienThiTrangThai(dong.trangThai()),
+                        new Object[0][0], new Object[0][0], new Object[0][0]);
                 dangHienThi.add(hd);
                 tableModel.addRow(new Object[] {
                         hd.ma, hd.ngayLap.format(NGAY), hd.maBenhNhan, hd.tenBenhNhan,
                         hd.maNhanVien + " - " + hd.tenNhanVien,
                         hd.phuongThuc == null ? "-" : hd.phuongThuc,
-                        hd.trangThai, TIEN.format(row.tongTien) });
+                        hd.trangThai, TIEN.format(dong.tongTien()) });
             }
-        } catch (SQLException exception) {
-            lblKetQua.setText("Không thể tải dữ liệu hóa đơn.");
-            JOptionPane.showMessageDialog(this, "Không thể tra cứu hóa đơn:\n" + exception.getMessage(),
-                    "Lỗi cơ sở dữ liệu", JOptionPane.ERROR_MESSAGE);
-            return;
+        } catch (java.sql.SQLException exception) {
+            JOptionPane.showMessageDialog(this,
+                    "Không thể tra cứu hóa đơn từ CSDL:\n" + exception.getMessage(),
+                    "Lỗi tra cứu hóa đơn", JOptionPane.ERROR_MESSAGE);
         }
         lblKetQua.setText(dangHienThi.isEmpty()
                 ? "Không tìm thấy hóa đơn phù hợp"
@@ -331,26 +333,21 @@ public class TimKiemTraCuuHoaDonPanel extends JPanel {
                     "Thông báo", JOptionPane.INFORMATION_MESSAGE);
             return;
         }
-        HoaDon summary = dangHienThi.get(table.convertRowIndexToModel(row));
-        HoaDonDAO.ChiTietHoaDon persisted;
+        HoaDon summary = dangHienThi.get(row);
+        HoaDon hd;
         try {
-            persisted = hoaDonDAO.layChiTietHoaDon(summary.ma);
-        } catch (SQLException exception) {
-            JOptionPane.showMessageDialog(this, "Không thể tải chi tiết hóa đơn:\n" + exception.getMessage(),
-                    "Lỗi cơ sở dữ liệu", JOptionPane.ERROR_MESSAGE);
+            List<HoaDonDAO.DongTinhTien> dichVu = hoaDonDAO.layChiTietDichVuHoaDon(summary.ma);
+            List<HoaDonDAO.DongTinhTien> thuoc = hoaDonDAO.layChiTietThuocHoaDon(summary.ma);
+            List<HoaDonDAO.DotHoaDonTraCuu> dots = hoaDonDAO.layDotThanhToanHoaDon(summary.ma);
+            hd = new HoaDon(summary.ma, summary.ngayLap, summary.maBenhNhan, summary.tenBenhNhan,
+                    summary.maNhanVien, summary.tenNhanVien, summary.phuongThuc, summary.trangThai,
+                    chuyenDoiDong(dichVu), chuyenDoiDong(thuoc), chuyenDoiDot(dots));
+        } catch (java.sql.SQLException exception) {
+            JOptionPane.showMessageDialog(this,
+                    "Không thể tải chi tiết hóa đơn " + summary.ma + ":\n" + exception.getMessage(),
+                    "Lỗi tải chi tiết", JOptionPane.ERROR_MESSAGE);
             return;
         }
-        if (persisted == null) {
-            JOptionPane.showMessageDialog(this, "Hóa đơn không còn tồn tại. Hãy tìm kiếm lại.",
-                    "Không tìm thấy hóa đơn", JOptionPane.WARNING_MESSAGE);
-            timKiem();
-            return;
-        }
-        HoaDonDAO.HoaDonTimKiem h = persisted.hoaDon;
-        HoaDon hd = new HoaDon(h.ma, h.ngayLap, h.maBenhNhan, h.tenBenhNhan,
-                h.maNhanVien, h.tenNhanVien, hienThiPhuongThuc(h.phuongThuc),
-                hienThiTrangThai(h.trangThai), dongThanhObject(persisted.dichVu),
-                dongThanhObject(persisted.thuoc), dotsThanhObject(persisted.dots), h.tongTien);
 
         Window owner = SwingUtilities.getWindowAncestor(this);
         JDialog dialog = new JDialog(owner, "Chi tiết hóa đơn " + hd.ma, Dialog.ModalityType.APPLICATION_MODAL);
@@ -425,6 +422,79 @@ public class TimKiemTraCuuHoaDonPanel extends JPanel {
     // =====================================================================
     // HÀM HỖ TRỢ
     // =====================================================================
+
+    private static String giaTriPhuongThucDb(String phuongThuc) {
+        if (TIEN_MAT.equals(phuongThuc)) {
+            return "Tien mat";
+        }
+        if (CHUYEN_KHOAN.equals(phuongThuc)) {
+            return "Chuyen khoan";
+        }
+        return TRA_GOP.equals(phuongThuc) ? "Tra gop" : null;
+    }
+
+    private static String giaTriTrangThaiDb(String trangThai) {
+        if (CHUA_THANH_TOAN.equals(trangThai)) {
+            return "Chua thanh toan";
+        }
+        if (DA_THANH_TOAN.equals(trangThai)) {
+            return "Da thanh toan";
+        }
+        return DANG_TRA_GOP.equals(trangThai) ? "Dang tra gop" : null;
+    }
+
+    private static String hienThiPhuongThuc(String phuongThuc) {
+        if ("Tien mat".equals(phuongThuc)) {
+            return TIEN_MAT;
+        }
+        if ("Chuyen khoan".equals(phuongThuc)) {
+            return CHUYEN_KHOAN;
+        }
+        return "Tra gop".equals(phuongThuc) ? TRA_GOP : null;
+    }
+
+    private static String hienThiTrangThai(String trangThai) {
+        if ("Chua thanh toan".equals(trangThai)) {
+            return CHUA_THANH_TOAN;
+        }
+        if ("Da thanh toan".equals(trangThai)) {
+            return DA_THANH_TOAN;
+        }
+        if ("Dang tra gop".equals(trangThai)) {
+            return DANG_TRA_GOP;
+        }
+        if ("Chua den han".equals(trangThai)) {
+            return "Chưa đến hạn";
+        }
+        if ("Qua han".equals(trangThai)) {
+            return "Quá hạn";
+        }
+        return trangThai;
+    }
+
+    private static Object[][] chuyenDoiDong(List<HoaDonDAO.DongTinhTien> dong) {
+        Object[][] ketQua = new Object[dong.size()][4];
+        for (int i = 0; i < dong.size(); i++) {
+            HoaDonDAO.DongTinhTien ct = dong.get(i);
+            ketQua[i] = new Object[] { ct.ma(), ct.ten(), ct.donGia(), ct.soLuong() };
+        }
+        return ketQua;
+    }
+
+    private static Object[][] chuyenDoiDot(List<HoaDonDAO.DotHoaDonTraCuu> dots) {
+        Object[][] ketQua = new Object[dots.size()][5];
+        for (int i = 0; i < dots.size(); i++) {
+            HoaDonDAO.DotHoaDonTraCuu dot = dots.get(i);
+            ketQua[i] = new Object[] {
+                    dot.maDot(),
+                    dot.ngayDenHan().format(NGAY),
+                    dot.soTien(),
+                    hienThiTrangThai(dot.trangThai()),
+                    dot.ngayThanhToan() == null ? "-" : dot.ngayThanhToan().format(NGAY)
+            };
+        }
+        return ketQua;
+    }
 
     // Đổi các dòng {mã, tên, đơn giá, số lượng} thành dòng hiển thị có thành tiền.
     private List<Object[]> dongTien(Object[][] dong) {

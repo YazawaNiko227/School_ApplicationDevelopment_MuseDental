@@ -72,8 +72,10 @@ public class LichHenDAO {
     /** Lịch hẹn bệnh nhân của một nha sĩ trong khoảng tuần đang xem. */
     public List<LichHenInfo> layTheoNhaSiTrongTuan(String maNhaSi, LocalDate dauTuan, LocalDate cuoiTuan)
             throws SQLException {
-        String sql = "SELECT LH.MaLichHen, LH.ThoiGianHen, LH.TrangThai, LH.MaBenhNhan, BN.HoTen, LH.MaPhong "
+        String sql = "SELECT LH.MaLichHen, LH.ThoiGianHen, LH.TrangThai, LH.MaBenhNhan, "
+                + "BN.HoTen, LH.MaPhong, CD.MaChanDoan "
                 + "FROM LichHen LH JOIN BenhNhan BN ON BN.MaBenhNhan = LH.MaBenhNhan "
+                + "LEFT JOIN ChanDoan CD ON CD.MaLichHen = LH.MaLichHen "
                 + "WHERE LH.MaNhaSiPhuTrach = ? AND CAST(LH.ThoiGianHen AS DATE) BETWEEN ? AND ? "
                 + "ORDER BY LH.ThoiGianHen";
         try (PreparedStatement ps = ConnectDB.getConnection().prepareStatement(sql)) {
@@ -94,9 +96,12 @@ public class LichHenDAO {
      * 'Hoan thanh'), dùng để chọn lần ghi nhận vật tư tiêu hao.
      */
     public List<LichHenInfo> layChoXuatKho() throws SQLException {
-        String sql = "SELECT LH.MaLichHen, LH.ThoiGianHen, LH.TrangThai, LH.MaBenhNhan, BN.HoTen, LH.MaPhong "
+        String sql = "SELECT LH.MaLichHen, LH.ThoiGianHen, LH.TrangThai, LH.MaBenhNhan, "
+                + "BN.HoTen, LH.MaPhong, CD.MaChanDoan "
                 + "FROM LichHen LH JOIN BenhNhan BN ON BN.MaBenhNhan = LH.MaBenhNhan "
+                + "LEFT JOIN ChanDoan CD ON CD.MaLichHen = LH.MaLichHen "
                 + "WHERE LH.TrangThai IN (N'Dang kham', N'Hoan thanh') "
+                + "OR CD.TrangThai = N'Nhap' "
                 + "ORDER BY LH.ThoiGianHen DESC, LH.MaLichHen DESC";
         try (PreparedStatement ps = ConnectDB.getConnection().prepareStatement(sql);
                 ResultSet rs = ps.executeQuery()) {
@@ -115,6 +120,7 @@ public class LichHenDAO {
                 rs.getString("TrangThai"),
                 rs.getString("MaBenhNhan"),
                 rs.getString("HoTen"),
-                rs.getString("MaPhong"));
+                rs.getString("MaPhong"),
+                rs.getString("MaChanDoan"));
     }
 }

@@ -64,7 +64,7 @@ GO
 /* [MOI] MaVaiTro: vai tro cua tai khoan, dung de an/hien menu. */
 CREATE TABLE TaiKhoan (
     TenDangNhap        NVARCHAR(50)   NOT NULL,
-    MatKhauMaHoa       NVARCHAR(255)  NOT NULL,
+    MatKhau            NVARCHAR(255)  NOT NULL,
     TrangThaiTaiKhoan  NVARCHAR(20)   NOT NULL DEFAULT (N'Kich hoat'),
     LanDangNhapCuoi    DATETIME2(0)   NULL,
     MaNhanVien         NVARCHAR(20)   NOT NULL,
@@ -434,14 +434,14 @@ INSERT INTO VaiTro (MaVaiTro, TenVaiTro) VALUES
 (N'THU_KHO',  N'Nhan vien kho');
 GO
 
-INSERT INTO TaiKhoan (TenDangNhap, MatKhauMaHoa, TrangThaiTaiKhoan, LanDangNhapCuoi, MaNhanVien, MaVaiTro) VALUES
-(N'nv001', N'$2a$10$mauMaHoaBcryptNV001xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', N'Kich hoat', '2026-10-16 08:15:00', N'NV001', N'BAC_SI'),
-(N'nv002', N'$2a$10$mauMaHoaBcryptNV002xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', N'Kich hoat', '2026-10-16 08:30:00', N'NV002', N'BAC_SI'),
-(N'nv003', N'$2a$10$mauMaHoaBcryptNV003xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', N'Kich hoat', '2026-10-17 07:50:00', N'NV003', N'LE_TAN'),
-(N'nv004', N'$2a$10$mauMaHoaBcryptNV004xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', N'Kich hoat', '2026-10-17 07:55:00', N'NV004', N'THU_NGAN'),
-(N'nv005', N'$2a$10$mauMaHoaBcryptNV005xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', N'Kich hoat', NULL,                  N'NV005', N'THU_KHO'),
-(N'nv006', N'$2a$10$mauMaHoaBcryptNV006xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', N'Kich hoat', NULL,                  N'NV006', N'Y_TA'),
-(N'admin', N'$2a$10$mauMaHoaBcryptNV007xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', N'Kich hoat', NULL,                  N'NV007', N'QUAN_TRI');
+INSERT INTO TaiKhoan (TenDangNhap, MatKhau, TrangThaiTaiKhoan, LanDangNhapCuoi, MaNhanVien, MaVaiTro) VALUES
+(N'nv001', N'123456789', N'Kich hoat', '2026-10-16 08:15:00', N'NV001', N'BAC_SI'),
+(N'nv002', N'123456789', N'Kich hoat', '2026-10-16 08:30:00', N'NV002', N'BAC_SI'),
+(N'nv003', N'123456789', N'Kich hoat', '2026-10-17 07:50:00', N'NV003', N'LE_TAN'),
+(N'nv004', N'123456789', N'Kich hoat', '2026-10-17 07:55:00', N'NV004', N'THU_NGAN'),
+(N'nv005', N'123456789', N'Kich hoat', NULL,                  N'NV005', N'THU_KHO'),
+(N'nv006', N'123456789', N'Kich hoat', NULL,                  N'NV006', N'Y_TA'),
+(N'admin', N'123456789', N'Kich hoat', NULL,                  N'NV007', N'QUAN_TRI');
 GO
 
 INSERT INTO CaTruc (MaCa, Ngay, GioBatDau, GioKetThuc, LoaiCa, MaNhanVien, MaPhong) VALUES

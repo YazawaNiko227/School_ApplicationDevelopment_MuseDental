@@ -1,8 +1,10 @@
 package gui;
 
+import com.toedter.calendar.JDateChooser;
 import dao.DieuPhoiPhongKhamDAO;
 import dao.DieuPhoiPhongKhamDAO.LichHenDieuPhoi;
 import dao.DieuPhoiPhongKhamDAO.PhongDieuPhoi;
+import util.GiaoDienUtil;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -17,6 +19,7 @@ import java.time.format.DateTimeFormatter;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.time.LocalDate;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
@@ -106,6 +109,7 @@ public class XuLyDieuPhoiPhongKhamPanel extends JPanel {
         }
     };
     private final JTable phongTable = new JTable(phongModel);
+    private final JDateChooser chonNgayDieuPhoi = new JDateChooser();
 
     private final JComboBox<String> cboLoc = new JComboBox<>(new String[] {
             TAT_CA, CHO_XAC_NHAN, DA_XAC_NHAN, DA_CHECK_IN, DANG_KHAM, HOAN_THANH, HUY, VANG });
@@ -114,6 +118,9 @@ public class XuLyDieuPhoiPhongKhamPanel extends JPanel {
     private final JLabel[] summaryValues = new JLabel[4];
 
     public XuLyDieuPhoiPhongKhamPanel() {
+        GiaoDienUtil.cauHinhChonNgay(chonNgayDieuPhoi, "dd/MM/yyyy");
+        GiaoDienUtil.datNgayDuocChon(chonNgayDieuPhoi, LocalDate.now());
+
         setLayout(new BorderLayout(0, 18));
         setOpaque(false);
 
@@ -166,7 +173,7 @@ public class XuLyDieuPhoiPhongKhamPanel extends JPanel {
         return card;
     }
 
-    // Bảng lịch hẹn hôm nay + các nút thao tác.
+    // Bảng lịch hẹn theo ngày đã chọn + các nút thao tác.
     private JPanel createLichPanel() {
         JPanel panel = new JPanel(new BorderLayout(0, 12));
         panel.setBackground(Color.WHITE);
@@ -176,16 +183,25 @@ public class XuLyDieuPhoiPhongKhamPanel extends JPanel {
 
         JPanel header = new JPanel(new BorderLayout());
         header.setOpaque(false);
-        JLabel title = new JLabel("Lịch hẹn hôm nay");
+        JLabel title = new JLabel("Lịch hẹn theo ngày");
         title.setFont(new Font("Arial", Font.BOLD, 15));
         title.setForeground(INK);
         JPanel filterPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
         filterPanel.setOpaque(false);
+        JLabel dateLabel = new JLabel("Ngày:");
+        dateLabel.setFont(new Font("Arial", Font.PLAIN, 11));
+        dateLabel.setForeground(MUTED);
+        chonNgayDieuPhoi.setPreferredSize(new Dimension(130, 30));
+        JButton btnTaiNgay = createButton("Tải ngày", false);
+        btnTaiNgay.addActionListener(event -> lamMoi());
         JLabel filterLabel = new JLabel("Trạng thái:");
         filterLabel.setFont(new Font("Arial", Font.PLAIN, 11));
         filterLabel.setForeground(MUTED);
         cboLoc.setFont(new Font("Arial", Font.PLAIN, 12));
         cboLoc.addActionListener(event -> lamMoi());
+        filterPanel.add(dateLabel);
+        filterPanel.add(chonNgayDieuPhoi);
+        filterPanel.add(btnTaiNgay);
         filterPanel.add(filterLabel);
         filterPanel.add(cboLoc);
         header.add(title, BorderLayout.WEST);
@@ -364,10 +380,15 @@ public class XuLyDieuPhoiPhongKhamPanel extends JPanel {
         }
 
         try {
-            List<LichHenDieuPhoi> lichHomNay = dieuPhoiDAO.layLichHomNay();
+            LocalDate ngayChon = GiaoDienUtil.layNgayDaChon(chonNgayDieuPhoi);
+            if (ngayChon == null) {
+                showMessage("Vui lòng chọn ngày cần điều phối.");
+                return;
+            }
+            List<LichHenDieuPhoi> lichTrongNgay = dieuPhoiDAO.layLichTheoNgay(ngayChon);
             List<PhongDieuPhoi> phongKhamList = dieuPhoiDAO.layTatCaPhong();
             dsLichHen.clear();
-            for (LichHenDieuPhoi lich : lichHomNay) {
+            for (LichHenDieuPhoi lich : lichTrongNgay) {
                 dsLichHen.add(new Object[] {
                         lich.getMaLichHen(),
                         lich.getThoiGianHen(),

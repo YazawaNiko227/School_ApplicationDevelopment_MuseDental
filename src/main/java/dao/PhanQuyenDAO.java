@@ -7,6 +7,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -15,9 +16,47 @@ import java.util.Set;
 import util.PhanQuyenMenu;
 
 public class PhanQuyenDAO {
+    public void khoiTaoQuyenMacDinhNeuChuaCo() throws SQLException {
+        Connection connection = ConnectDB.getConnection();
+        boolean autoCommit = connection.getAutoCommit();
+        connection.setAutoCommit(false);
+        try {
+            boolean daCoQuyen;
+            try (PreparedStatement statement = connection
+                    .prepareStatement("SELECT TOP (1) 1 FROM QuyenVaiTro");
+                    ResultSet result = statement.executeQuery()) {
+                daCoQuyen = result.next();
+            }
+
+            if (!daCoQuyen) {
+                String sql = "INSERT INTO QuyenVaiTro (MaVaiTro, TenChucNang) VALUES (?, ?)";
+                try (PreparedStatement statement = connection.prepareStatement(sql)) {
+                    for (Map.Entry<String, Set<String>> role : PhanQuyenMenu.quyenMacDinhTheoVaiTro().entrySet()) {
+                        for (String function : role.getValue()) {
+                            statement.setString(1, role.getKey());
+                            statement.setString(2, function);
+                            statement.addBatch();
+                        }
+                    }
+                    statement.executeBatch();
+                }
+            }
+            connection.commit();
+        } catch (SQLException exception) {
+            rollback(connection, exception);
+            throw exception;
+        } finally {
+            connection.setAutoCommit(autoCommit);
+        }
+    }
+
     public List<VaiTro> layDanhSachVaiTro() throws SQLException {
+        String sql = "SELECT MaVaiTro, TenVaiTro FROM VaiTro "
+                + "ORDER BY CASE MaVaiTro "
+                + "WHEN N'QUAN_TRI' THEN 1 WHEN N'BAC_SI' THEN 2 WHEN N'Y_TA' THEN 3 "
+                + "WHEN N'LE_TAN' THEN 4 WHEN N'THU_NGAN' THEN 5 WHEN N'THU_KHO' THEN 6 "
+                + "ELSE 7 END, TenVaiTro";
         List<VaiTro> vaiTros = new ArrayList<>();
-        String sql = "SELECT MaVaiTro, TenVaiTro FROM VaiTro ORDER BY TenVaiTro";
         try (PreparedStatement statement = ConnectDB.getConnection().prepareStatement(sql);
                 ResultSet result = statement.executeQuery()) {
             while (result.next()) {
@@ -27,127 +66,99 @@ public class PhanQuyenDAO {
         return vaiTros;
     }
 
-    public Set<String> layChucNangDuocXem(String maVaiTro) throws SQLException {
-        Set<String> chucNang = new LinkedHashSet<>();
-        String sql = "SELECT TenChucNang FROM QuyenVaiTro WHERE MaVaiTro = ? ORDER BY TenChucNang";
-        try (PreparedStatement statement = ConnectDB.getConnection().prepareStatement(sql)) {
-            statement.setString(1, maVaiTro);
-            try (ResultSet result = statement.executeQuery()) {
-                while (result.next()) {
-                    chucNang.add(result.getString("TenChucNang"));
-                }
-            }
-        }
-        return chucNang;
-    }
-
     public Map<String, Set<String>> layTatCaQuyen() throws SQLException {
         Map<String, Set<String>> permissions = new LinkedHashMap<>();
-        for (VaiTro role : layDanhSachVaiTro()) {
-            permissions.put(role.getMaVaiTro(), new LinkedHashSet<>());
+        for (VaiTro vaiTro : layDanhSachVaiTro()) {
+            permissions.put(vaiTro.getMaVaiTro(), new LinkedHashSet<>());
         }
+
         String sql = "SELECT MaVaiTro, TenChucNang FROM QuyenVaiTro ORDER BY MaVaiTro, TenChucNang";
         try (PreparedStatement statement = ConnectDB.getConnection().prepareStatement(sql);
                 ResultSet result = statement.executeQuery()) {
             while (result.next()) {
-                Set<String> allowed = permissions.get(result.getString("MaVaiTro"));
-                if (allowed != null) {
-                    allowed.add(result.getString("TenChucNang"));
+                Set<String> rolePermissions = permissions.get(result.getString("MaVaiTro"));
+                if (rolePermissions != null) {
+                    rolePermissions.add(result.getString("TenChucNang"));
                 }
             }
         }
         return permissions;
     }
 
-    public void khoiTaoQuyenMacDinhNeuChuaCo() throws SQLException {
-        Connection connection = ConnectDB.getConnection();
-        boolean originalAutoCommit = connection.getAutoCommit();
-        connection.setAutoCommit(false);
-        try {
-            String checkSql = "SELECT GiaTri FROM CauHinhHeThong WITH (UPDLOCK, HOLDLOCK) "
-                    + "WHERE MaCauHinh = N'RBAC_INITIALIZED'";
-            boolean initialized;
-            try (PreparedStatement statement = connection.prepareStatement(checkSql);
-                    ResultSet result = statement.executeQuery()) {
-                initialized = result.next();
-            }
-            if (!initialized) {
-                String insertPermission = "INSERT INTO QuyenVaiTro (MaVaiTro, TenChucNang) VALUES (?, ?)";
-                try (PreparedStatement statement = connection.prepareStatement(insertPermission)) {
-                    for (Map.Entry<String, Set<String>> role : PhanQuyenMenu.quyenMacDinhTheoVaiTro().entrySet()) {
-                        for (String menu : role.getValue()) {
-                            statement.setString(1, role.getKey());
-                            statement.setString(2, menu);
-                            statement.addBatch();
-                        }
-                    }
-                    statement.executeBatch();
-                }
-                try (PreparedStatement statement = connection.prepareStatement(
-                        "INSERT INTO CauHinhHeThong (MaCauHinh, GiaTri) VALUES (N'RBAC_INITIALIZED', N'1')")) {
-                    statement.executeUpdate();
-                }
-            }
-            connection.commit();
-        } catch (SQLException | RuntimeException exception) {
-            connection.rollback();
-            throw exception;
-        } finally {
-            connection.setAutoCommit(originalAutoCommit);
+    public Set<String> layChucNangDuocXem(String maVaiTro) throws SQLException {
+        if (maVaiTro == null || maVaiTro.trim().isEmpty()) {
+            return Collections.emptySet();
         }
+
+        Set<String> permissions = new LinkedHashSet<>();
+        String sql = "SELECT TenChucNang FROM QuyenVaiTro WHERE MaVaiTro = ? ORDER BY TenChucNang";
+        try (PreparedStatement statement = ConnectDB.getConnection().prepareStatement(sql)) {
+            statement.setString(1, maVaiTro.trim());
+            try (ResultSet result = statement.executeQuery()) {
+                while (result.next()) {
+                    permissions.add(result.getString("TenChucNang"));
+                }
+            }
+        }
+        return Collections.unmodifiableSet(permissions);
     }
 
     public void capNhatTatCaQuyen(Map<String, Set<String>> permissions) throws SQLException {
-        Set<String> adminPermissions = permissions == null ? null : permissions.get(PhanQuyenMenu.QUAN_TRI);
-        if (adminPermissions == null || !adminPermissions.contains("Phân quyền hệ thống RBAC")) {
-            throw new IllegalArgumentException("Quản trị viên phải giữ quyền truy cập chức năng phân quyền.");
+        if (permissions == null) {
+            throw new IllegalArgumentException("Danh sách phân quyền không được để trống.");
         }
 
-        Set<String> roleIds = new LinkedHashSet<>();
-        for (VaiTro role : layDanhSachVaiTro()) {
-            roleIds.add(role.getMaVaiTro());
+        Set<String> roleCodes = new LinkedHashSet<>();
+        for (VaiTro vaiTro : layDanhSachVaiTro()) {
+            roleCodes.add(vaiTro.getMaVaiTro());
         }
-        if (!roleIds.equals(permissions.keySet())) {
-            throw new IllegalArgumentException("Danh sách vai trò gửi lên không khớp với dữ liệu trong CSDL.");
+        if (!permissions.keySet().equals(roleCodes)) {
+            throw new IllegalArgumentException("Danh sách phân quyền phải có đủ các vai trò trong CSDL.");
         }
 
-        Set<String> allowedMenus = new LinkedHashSet<>();
-        for (List<String> group : PhanQuyenMenu.nhomMenu().values()) {
-            allowedMenus.addAll(group);
+        Set<String> validFunctions = new LinkedHashSet<>();
+        for (List<String> functions : PhanQuyenMenu.nhomMenu().values()) {
+            validFunctions.addAll(functions);
         }
         for (Map.Entry<String, Set<String>> role : permissions.entrySet()) {
-            if (role.getKey() == null || role.getValue() == null) {
-                throw new IllegalArgumentException("Danh sách vai trò gửi lên không hợp lệ.");
-            }
-            if (!allowedMenus.containsAll(role.getValue())) {
-                throw new IllegalArgumentException("Quyền chứa chức năng không tồn tại trong menu.");
+            if (role.getValue() == null || !validFunctions.containsAll(role.getValue())) {
+                throw new IllegalArgumentException("Danh sách chức năng phân quyền không hợp lệ.");
             }
         }
 
         Connection connection = ConnectDB.getConnection();
-        boolean originalAutoCommit = connection.getAutoCommit();
+        boolean autoCommit = connection.getAutoCommit();
         connection.setAutoCommit(false);
         try {
             try (PreparedStatement delete = connection.prepareStatement("DELETE FROM QuyenVaiTro")) {
                 delete.executeUpdate();
             }
-            String insertSql = "INSERT INTO QuyenVaiTro (MaVaiTro, TenChucNang) VALUES (?, ?)";
-            try (PreparedStatement insert = connection.prepareStatement(insertSql)) {
+
+            String sql = "INSERT INTO QuyenVaiTro (MaVaiTro, TenChucNang) VALUES (?, ?)";
+            try (PreparedStatement insert = connection.prepareStatement(sql)) {
                 for (Map.Entry<String, Set<String>> role : permissions.entrySet()) {
-                    for (String menu : role.getValue()) {
+                    for (String function : role.getValue()) {
                         insert.setString(1, role.getKey());
-                        insert.setString(2, menu);
+                        insert.setString(2, function);
                         insert.addBatch();
                     }
                 }
                 insert.executeBatch();
             }
             connection.commit();
-        } catch (SQLException | RuntimeException exception) {
-            connection.rollback();
+        } catch (SQLException exception) {
+            rollback(connection, exception);
             throw exception;
         } finally {
-            connection.setAutoCommit(originalAutoCommit);
+            connection.setAutoCommit(autoCommit);
+        }
+    }
+
+    private static void rollback(Connection connection, SQLException originalException) {
+        try {
+            connection.rollback();
+        } catch (SQLException rollbackException) {
+            originalException.addSuppressed(rollbackException);
         }
     }
 }

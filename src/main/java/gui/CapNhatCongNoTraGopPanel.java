@@ -31,6 +31,8 @@ import javax.swing.SwingConstants;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
+import dao.CongNoTraGopDAO;
+import entity.DotThanhToan;
 
 /**
  * Panel "Công nợ và trả góp theo đợt" (bước 9 trong luồng khám bệnh chính,
@@ -45,9 +47,11 @@ import javax.swing.table.DefaultTableModel;
  * HoaDon chuyển sang 'Da thanh toan'.
  * 4. "Nhắc nợ": soạn nội dung nhắc bệnh nhân về đợt chưa thanh toán gần nhất.
  *
- * Đợt chưa thanh toán mà quá ngày đến hạn được hiển thị là "Quá hạn"
- * (khi nối DB nên cập nhật cột TrangThai = 'Qua han' khi mở màn hình).
+ * Đợt chưa thanh toán mà quá ngày đến hạn được hiển thị là "Quá hạn" mà không
+ * cần sửa dữ liệu trạng thái trong CSDL.
  *
+ * Hồ sơ và kỳ hạn được nạp từ CSDL; thao tác thu tiền cập nhật transaction qua
+ * DAO.
  */
 public class CapNhatCongNoTraGopPanel extends JPanel {
     private static final Color INK = new Color(32, 53, 68);
@@ -168,6 +172,7 @@ public class CapNhatCongNoTraGopPanel extends JPanel {
         }
     }
 
+    private final CongNoTraGopDAO congNoDAO = new CongNoTraGopDAO();
     private final List<CongNo> dsCongNo = new ArrayList<>();
     private final HoaDonDAO hoaDonDAO = new HoaDonDAO();
     private final CongNoTraGopDAO congNoDAO = new CongNoTraGopDAO();
@@ -418,26 +423,30 @@ public class CapNhatCongNoTraGopPanel extends JPanel {
             return;
         }
 
+        int soDotConLaiSauKhiThu = cn.soDotConLai() - 1;
+        double conLaiSauKhiThu = cn.conLai() - dot.soTien;
         try {
             if (!congNoDAO.thanhToanDot(dot.ma, LocalDate.now())) {
-                showWarning("Đợt đã được thanh toán hoặc không còn là đợt tiếp theo. Hãy tải lại dữ liệu.");
+                showWarning("Đợt này đã được thanh toán hoặc không còn tồn tại. Danh sách sẽ được tải lại.");
                 lamMoi(cn.ma);
                 return;
             }
-        } catch (SQLException exception) {
-            showDatabaseError("Không thể ghi nhận thanh toán", exception);
+        } catch (java.sql.SQLException exception) {
+            JOptionPane.showMessageDialog(this,
+                    "Không thể ghi nhận thanh toán:\n" + exception.getMessage(),
+                    "Lỗi cập nhật công nợ", JOptionPane.ERROR_MESSAGE);
             return;
         }
 
         lamMoi(cn.ma);
         CongNo capNhat = layCongNoDangChon();
         String thongBao = "Đã thu đợt " + (row + 1) + ": " + TIEN.format(dot.soTien) + " đ.";
-        if (capNhat != null && capNhat.soDotConLai() == 0) {
+        if (soDotConLaiSauKhiThu == 0) {
             thongBao += "\nHồ sơ " + cn.ma + " đã trả hết, hóa đơn " + cn.maHoaDon
                     + " chuyển sang \"Đã thanh toán\".";
         } else {
-            thongBao += "\nCòn " + (capNhat == null ? 0 : capNhat.soDotConLai())
-                    + " đợt, " + TIEN.format(capNhat == null ? 0 : capNhat.conLai()) + " đ.";
+            thongBao += "\nCòn " + soDotConLaiSauKhiThu + " đợt, "
+                    + TIEN.format(conLaiSauKhiThu) + " đ.";
         }
         showMessage(thongBao);
     }
@@ -481,31 +490,23 @@ public class CapNhatCongNoTraGopPanel extends JPanel {
         String keyword = txtTim.getText().trim().toLowerCase();
         String loc = (String) cboLoc.getSelectedItem();
 
+        dsCongNo.clear();
         try {
-            dsCongNo.clear();
-            for (HoaDonDAO.CongNoHoaDon row : hoaDonDAO.layCongNoTraGop()) {
-                CongNo cn = new CongNo(row.maCongNo, row.maHoaDon, row.maBenhNhan,
-                        row.tenBenhNhan, row.soDienThoai, row.tongTien);
-                for (HoaDonDAO.DotHoaDon dot : row.dots) {
-                    cn.dots.add(new Dot(dot.ma, dot.ngayDenHan, dot.soTien,
-                            "Da thanh toan".equals(dot.trangThai), dot.ngayThanhToan));
+            for (CongNoTraGopDAO.HoSoCongNo hoSo : congNoDAO.layTatCa()) {
+                CongNo congNo = new CongNo(hoSo.maCongNo(), hoSo.maHoaDon(), hoSo.maBenhNhan(),
+                        hoSo.hoTen(), hoSo.soDienThoai(), hoSo.tongSoTien());
+                for (DotThanhToan dot : hoSo.dsDot()) {
+                    congNo.dots.add(new Dot(dot.getMaDot(), dot.getNgayDenHan(), dot.getSoTienDot(),
+                            DotThanhToan.DA_THANH_TOAN.equals(dot.getTrangThai()),
+                            dot.getNgayThanhToanThucTe()));
                 }
-                dsCongNo.add(cn);
+                dsCongNo.add(congNo);
             }
-        } catch (SQLException exception) {
-            dsCongNo.clear();
-            congNoModel.setRowCount(0);
-            dotModel.setRowCount(0);
-            dangNapBang = false;
-            lblBenhNhan.setText("Không thể tải dữ liệu công nợ.");
-            lblHoaDon.setText(" ");
-            lblTienDo.setText(" ");
-            capNhatThongKe();
-            hienThiChiTiet();
-            showDatabaseError("Không thể tải danh sách công nợ", exception);
-            return;
+        } catch (java.sql.SQLException exception) {
+            JOptionPane.showMessageDialog(this,
+                    "Không thể tải dữ liệu công nợ từ CSDL:\n" + exception.getMessage(),
+                    "Lỗi tải công nợ", JOptionPane.ERROR_MESSAGE);
         }
-
         congNoModel.setRowCount(0);
         for (CongNo cn : dsCongNo) {
             boolean khopTuKhoa = keyword.isEmpty()

@@ -1,8 +1,8 @@
 package dto;
 
 /**
- * Một lần khám (ChanDoan) đang chờ kê đơn, kèm thông tin bệnh nhân.
- * DTO phục vụ chức năng "Kê đơn thuốc điện tử".
+ * Một lần khám (ChanDoan) đang mở, kèm thông tin bệnh nhân.
+ * Dùng chung cho kê đơn thuốc và lập phác đồ điều trị.
  *
  * @param maChanDoan     mã lần khám
  * @param maBenhNhan     mã bệnh nhân

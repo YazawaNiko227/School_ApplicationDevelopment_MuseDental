@@ -61,9 +61,11 @@ Các nhóm nghiệp vụ trên giao diện gồm:
 3. Nếu dùng SQL Server Express, instance thường có tên
    `localhost\SQLEXPRESS`. Bật TCP/IP trong SQL Server Configuration Manager
    và khởi động lại dịch vụ SQL Server sau khi thay đổi cấu hình.
-4. Tạo hoặc chọn một SQL login dành riêng cho ứng dụng; cấp quyền đọc và ghi
-   trên database `QuanLyPhongKhamMuse`. Không nên dùng tài khoản `sa` cho ứng
-   dụng thường ngày.
+4. Cấu hình SQL Server cho phép đăng nhập SQL Server (SQL Server Authentication)
+   và bật TCP/IP trên cổng `1433`. Kết nối mặc định trong `ConnectDB` dùng
+   `localhost`, database `QuanLyPhongKhamMuse` và tài khoản `sa`. Nếu máy bạn
+   dùng thông tin khác, sửa các hằng `URL`, `USER` và `PASSWORD` trong
+   `src/main/java/connectDB/ConnectDB.java`.
 
 ### Database đã tồn tại
 
@@ -71,37 +73,24 @@ Nếu database cũ chưa có các bảng RBAC, mở và chạy
 `database/Migration_RBAC.sql` trong SSMS. Không chạy script schema tạo mới
 trên database đang có dữ liệu nếu chưa sao lưu và hiểu rõ ảnh hưởng.
 
+Nếu database đã được tạo trước khi cập nhật cơ chế mật khẩu mẫu, chạy thêm
+`database/Migration_MatKhauMau.sql` trong SSMS để đổi tên cột mật khẩu và đặt
+mật khẩu `Muse@12345` cho các tài khoản mẫu vẫn còn giá trị placeholder.
+
 Các script SQL có lệnh `GO`; hãy chạy bằng SSMS hoặc công cụ hiểu cú pháp `GO`,
 không gửi toàn bộ file như một câu lệnh JDBC duy nhất.
 
 ## Cấu hình kết nối
 
-Ứng dụng đọc cấu hình từ biến môi trường:
+Ứng dụng hiện dùng cấu hình SQL Server mặc định khai báo trong
+`src/main/java/connectDB/ConnectDB.java`; không cần tạo biến môi trường trước
+khi chạy. Máy cần có SQL Server đang chạy, database `QuanLyPhongKhamMuse`,
+TCP/IP trên cổng `1433` và đăng nhập SQL Server được bật. Đây là cấu hình tiện
+cho môi trường phát triển cục bộ; không dùng tài khoản `sa` cho môi trường
+thực tế hoặc chia sẻ mật khẩu trong mã nguồn.
 
-| Biến               | Bắt buộc | Mô tả                                                                       |
-| ------------------ | -------: | --------------------------------------------------------------------------- |
-| `MUSE_DB_USER`     |       Có | SQL login dùng để kết nối.                                                  |
-| `MUSE_DB_PASSWORD` |       Có | Mật khẩu của SQL login.                                                     |
-| `MUSE_DB_URL`      |    Không | JDBC URL; mặc định dùng `localhost:1433` và database `QuanLyPhongKhamMuse`. |
-
-Ví dụ cấu hình tạm thời trong PowerShell. Thay URL nếu SQL Server của bạn dùng
-cổng khác:
-
-```powershell
-$env:MUSE_DB_USER = "muse_app"
-$secure = Read-Host "Nhập mật khẩu SQL Server" -AsSecureString
-$ptr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($secure)
-try {
-    $env:MUSE_DB_PASSWORD = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($ptr)
-} finally {
-    [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($ptr)
-}
-$env:MUSE_DB_URL = "jdbc:sqlserver://localhost:1433;databaseName=QuanLyPhongKhamMuse;encrypt=true;trustServerCertificate=true"
-```
-
-Các biến trên chỉ có hiệu lực trong cửa sổ PowerShell hiện tại. Hãy chạy lệnh
-build/chạy ứng dụng trong cùng cửa sổ đó. Không ghi mật khẩu vào mã nguồn,
-README hoặc Git.
+Mật khẩu tài khoản Muse được lưu dạng văn bản thuần theo yêu cầu demo; cách này
+không an toàn cho dữ liệu thật hoặc môi trường triển khai.
 
 ### Kiểm tra SQL Server không kết nối được
 
@@ -117,7 +106,7 @@ tài khoản chạy script tạo/cập nhật cấu trúc cần thêm quyền DD
 
 ## Biên dịch và chạy
 
-Từ thư mục gốc dự án, trong cửa sổ PowerShell đã cấu hình kết nối:
+Từ thư mục gốc dự án:
 
 ```powershell
 .\build.bat
@@ -134,8 +123,7 @@ java -cp "out;lib\*" gui.DangNhapFrame
 
 ## Tài khoản mẫu
 
-Schema tạo các tên đăng nhập mẫu sau. Mật khẩu trong script là hash placeholder
-và **không thể dùng để đăng nhập**:
+Các tài khoản mẫu dưới đây đều dùng chung mật khẩu `Muse@12345`:
 
 | Tên đăng nhập | Vai trò       |
 | ------------- | ------------- |
@@ -147,17 +135,8 @@ và **không thể dùng để đăng nhập**:
 | `nv006`       | Y tá          |
 | `admin`       | Quản trị viên |
 
-Sau khi build và cấu hình database, khởi tạo mật khẩu cho từng tài khoản mẫu
-trong PowerShell hoặc Command Prompt tương tác:
-
-```powershell
-java -cp "out;lib\*" util.TaoMatKhauBanDau
-```
-
-Công cụ yêu cầu mật khẩu mới (ít nhất 8 ký tự), xác nhận mật khẩu và tên đăng
-nhập. Chạy lại cho từng tài khoản bạn muốn sử dụng. Mật khẩu được băm bằng
-PBKDF2-HMAC-SHA256; công cụ chỉ cập nhật tài khoản còn hash placeholder, không
-đổi mật khẩu của tài khoản đã khởi tạo. Không chia sẻ thông tin đăng nhập.
+Các mật khẩu được lưu dạng văn bản thuần để tiện chạy đồ án cục bộ; không dùng
+cách này cho dữ liệu thật hoặc môi trường triển khai.
 
 ## Tình trạng chức năng
 
@@ -170,12 +149,13 @@ PBKDF2-HMAC-SHA256; công cụ chỉ cập nhật tài khoản còn hash placeho
 - Quản lý dịch vụ và bảng giá.
 - Quản lý thuốc/vật tư.
 - Đặt lịch hẹn, phân ca và xem lịch cá nhân.
-- Khám lâm sàng, chẩn đoán, sơ đồ răng.
-- Phác đồ điều trị và dự toán chi phí.
+- Điều phối, chuẩn bị phòng, khám lâm sàng và sơ đồ răng.
 - Kê đơn thuốc, ghi nhận xuất vật tư.
-- Chuẩn bị phòng và điều phối lịch khám.
-- Lập/tra cứu hóa đơn, theo dõi các đợt trả góp.
-- Tra cứu hồ sơ bệnh án và báo cáo doanh thu.
+- Lập hóa đơn cho lần khám đã chốt; chi tiết dịch vụ và thuốc lấy từ phác đồ/đơn thuốc.
+- Công nợ trả góp: tải hồ sơ và các đợt từ SQL, ghi nhận thu tiền theo transaction.
+- Tra cứu hóa đơn/chi tiết giao dịch và tra cứu bệnh án từ SQL.
+- Báo cáo doanh thu: tổng hợp hóa đơn đã thanh toán/đang trả góp từ các dòng
+  dịch vụ và thuốc trong SQL Server.
 
 Các thao tác lập hóa đơn và thu từng đợt được xử lý trong transaction. Lập hóa
 đơn lưu giá dịch vụ/thuốc tại thời điểm lập; với trả góp, đợt đầu được ghi nhận
@@ -183,16 +163,23 @@ Các thao tác lập hóa đơn và thu từng đợt được xử lý trong tr
 
 ### Giới hạn chức năng
 
-- Chức năng nhắc nợ chỉ soạn nội dung tham khảo; chưa gửi SMS/Zalo.
-- Báo cáo doanh thu tính toàn bộ giá trị hóa đơn theo ngày lập, bao gồm cả hóa
-  đơn đang trả góp; đây không phải báo cáo dòng tiền thực thu theo kỳ.
-- Phân quyền RBAC hiện ẩn/hiện menu theo vai trò, chưa thay thế kiểm tra quyền
-  ở tầng dữ liệu hoặc quyền SQL.
-- Một số màn hình nghiệp vụ khác chưa có kiểm thử end-to-end tự động.
+- Quản lý bệnh nhân và quản lý dịch vụ.
 
-Không dùng ứng dụng để ghi dữ liệu thử vào database đang vận hành. Hãy tạo
-database kiểm thử riêng và dùng SQL login có quyền tạo database để chạy script
-schema trước khi thử các thao tác thêm/sửa/xóa hoặc thanh toán.
+Một số DAO cho các nghiệp vụ trên đã tồn tại, nhưng giao diện chưa sử dụng
+chúng đầy đủ; DAO dịch vụ hiện mới hỗ trợ đọc/thêm. Vì vậy, dữ liệu nhập trên
+các màn hình quản lý này có thể chỉ nằm trong bộ nhớ và không được lưu vào SQL.
+
+Lập hóa đơn chỉ nhận lần khám đã chốt và chưa có hóa đơn. Khi chọn trả góp,
+đợt đầu được ghi nhận đã thu ngay lúc lập hóa đơn; các đợt còn lại được theo dõi
+ở màn Công nợ và trả góp theo đợt. Chẩn đoán đang ở trạng thái nháp chưa đủ
+điều kiện để lập hóa đơn.
+
+### Giới hạn phân quyền
+
+RBAC hiện điều khiển các mục menu được hiển thị theo vai trò. Đây chưa phải cơ
+chế phân quyền bảo mật ở tầng database hoặc kiểm tra quyền cho từng thao tác
+ghi. Không dùng phân quyền giao diện thay cho bảo vệ dữ liệu thật; hãy giới
+hạn quyền SQL login và chỉ dùng dữ liệu phù hợp trong môi trường phát triển.
 
 ## Kiểm thử
 

@@ -5,7 +5,6 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
-import security.PasswordHasher;
 
 public class DoiMatKhauDAO {
     public boolean doiMatKhau(String tenDangNhap, char[] matKhauHienTai, char[] matKhauMoi)
@@ -17,18 +16,17 @@ public class DoiMatKhauDAO {
         }
 
         try {
-            String hashHienTai = layHashDangHoatDong(tenDangNhap);
-            if (hashHienTai == null || !PasswordHasher.verify(matKhauHienTai, hashHienTai)) {
+            String matKhauDangLuu = layMatKhauDangHoatDong(tenDangNhap);
+            if (matKhauDangLuu == null || !khopMatKhau(matKhauHienTai, matKhauDangLuu)) {
                 return false;
             }
 
-            String hashMoi = PasswordHasher.hash(matKhauMoi);
-            String sql = "UPDATE TaiKhoan SET MatKhauMaHoa = ? "
-                    + "WHERE TenDangNhap = ? AND MatKhauMaHoa = ? AND TrangThaiTaiKhoan = N'Kich hoat'";
+            String sql = "UPDATE TaiKhoan SET MatKhau = ? "
+                    + "WHERE TenDangNhap = ? AND MatKhau = ? AND TrangThaiTaiKhoan = N'Kich hoat'";
             try (PreparedStatement statement = ConnectDB.getConnection().prepareStatement(sql)) {
-                statement.setString(1, hashMoi);
+                statement.setString(1, new String(matKhauMoi));
                 statement.setString(2, tenDangNhap.trim());
-                statement.setString(3, hashHienTai);
+                statement.setString(3, matKhauDangLuu);
                 return statement.executeUpdate() == 1;
             }
         } finally {
@@ -37,14 +35,23 @@ public class DoiMatKhauDAO {
         }
     }
 
-    private String layHashDangHoatDong(String tenDangNhap) throws SQLException {
-        String sql = "SELECT MatKhauMaHoa FROM TaiKhoan "
+    private String layMatKhauDangHoatDong(String tenDangNhap) throws SQLException {
+        String sql = "SELECT MatKhau FROM TaiKhoan "
                 + "WHERE TenDangNhap = ? AND TrangThaiTaiKhoan = N'Kich hoat'";
         try (PreparedStatement statement = ConnectDB.getConnection().prepareStatement(sql)) {
             statement.setString(1, tenDangNhap.trim());
             try (ResultSet result = statement.executeQuery()) {
-                return result.next() ? result.getString("MatKhauMaHoa") : null;
+                return result.next() ? result.getString("MatKhau") : null;
             }
+        }
+    }
+
+    private static boolean khopMatKhau(char[] matKhau, String matKhauTrongCSDL) {
+        char[] storedPassword = matKhauTrongCSDL.toCharArray();
+        try {
+            return Arrays.equals(matKhau, storedPassword);
+        } finally {
+            Arrays.fill(storedPassword, '\0');
         }
     }
 }

@@ -101,6 +101,7 @@ public final class ManHinhChinhFrame extends JFrame {
         setSize(1360, 850);
         setLocationRelativeTo(null);
         setContentPane(createLayout());
+        setExtendedState(JFrame.MAXIMIZED_BOTH);
         showDashboard();
     }
 

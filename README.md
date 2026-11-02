@@ -25,14 +25,14 @@ script Windows, chưa dùng Maven hoặc Gradle.
 Sidebar được tổ chức theo các nhóm Hệ thống, Danh mục, Cập nhật, Tìm kiếm, Xử
 lý và Thống kê. Ứng dụng có sáu vai trò mẫu:
 
-| Mã vai trò | Vai trò |
-|---|---|
+| Mã vai trò | Vai trò       |
+| ---------- | ------------- |
 | `QUAN_TRI` | Quản trị viên |
-| `BAC_SI` | Bác sĩ |
-| `Y_TA` | Y tá |
-| `LE_TAN` | Lễ tân |
-| `THU_NGAN` | Thu ngân |
-| `THU_KHO` | Nhân viên kho |
+| `BAC_SI`   | Bác sĩ        |
+| `Y_TA`     | Y tá          |
+| `LE_TAN`   | Lễ tân        |
+| `THU_NGAN` | Thu ngân      |
+| `THU_KHO`  | Nhân viên kho |
 
 Các nhóm nghiệp vụ trên giao diện gồm:
 
@@ -78,11 +78,11 @@ không gửi toàn bộ file như một câu lệnh JDBC duy nhất.
 
 Ứng dụng đọc cấu hình từ biến môi trường:
 
-| Biến | Bắt buộc | Mô tả |
-|---|---:|---|
-| `MUSE_DB_USER` | Có | SQL login dùng để kết nối. |
-| `MUSE_DB_PASSWORD` | Có | Mật khẩu của SQL login. |
-| `MUSE_DB_URL` | Không | JDBC URL; mặc định dùng `localhost:1433` và database `QuanLyPhongKhamMuse`. |
+| Biến               | Bắt buộc | Mô tả                                                                       |
+| ------------------ | -------: | --------------------------------------------------------------------------- |
+| `MUSE_DB_USER`     |       Có | SQL login dùng để kết nối.                                                  |
+| `MUSE_DB_PASSWORD` |       Có | Mật khẩu của SQL login.                                                     |
+| `MUSE_DB_URL`      |    Không | JDBC URL; mặc định dùng `localhost:1433` và database `QuanLyPhongKhamMuse`. |
 
 Ví dụ cấu hình tạm thời trong PowerShell. Thay URL nếu SQL Server của bạn dùng
 cổng khác:
@@ -137,15 +137,15 @@ java -cp "out;lib\*" gui.DangNhapFrame
 Schema tạo các tên đăng nhập mẫu sau. Mật khẩu trong script là hash placeholder
 và **không thể dùng để đăng nhập**:
 
-| Tên đăng nhập | Vai trò |
-|---|---|
-| `nv001` | Bác sĩ |
-| `nv002` | Bác sĩ |
-| `nv003` | Lễ tân |
-| `nv004` | Thu ngân |
-| `nv005` | Nhân viên kho |
-| `nv006` | Y tá |
-| `admin` | Quản trị viên |
+| Tên đăng nhập | Vai trò       |
+| ------------- | ------------- |
+| `nv001`       | Bác sĩ        |
+| `nv002`       | Bác sĩ        |
+| `nv003`       | Lễ tân        |
+| `nv004`       | Thu ngân      |
+| `nv005`       | Nhân viên kho |
+| `nv006`       | Y tá          |
+| `admin`       | Quản trị viên |
 
 Sau khi build và cấu hình database, khởi tạo mật khẩu cho từng tài khoản mẫu
 trong PowerShell hoặc Command Prompt tương tác:

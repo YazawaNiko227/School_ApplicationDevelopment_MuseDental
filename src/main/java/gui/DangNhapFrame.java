@@ -74,6 +74,7 @@ public final class DangNhapFrame extends JFrame {
         setSize(1120, 720);
         setLocationRelativeTo(null);
         setContentPane(createContent());
+        setExtendedState(JFrame.MAXIMIZED_BOTH);
         getRootPane().setDefaultButton(createLoginButtonReference);
     }
 

@@ -10,7 +10,6 @@ import java.awt.FlowLayout;
 import java.awt.Font;
 import java.io.File;
 import java.io.IOException;
-import java.sql.SQLException;
 import java.text.DecimalFormat;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -34,7 +33,6 @@ import javax.swing.SpinnerNumberModel;
 import javax.swing.border.EmptyBorder;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.table.DefaultTableModel;
-import dao.HoaDonDAO;
 import entity.HoaDon;
 import util.HoaDonPdfExporter;
 
@@ -147,7 +145,6 @@ public class XuLyLapHoaDonPanel extends JPanel {
         center.add(createThanhToanCard(), BorderLayout.EAST);
         add(center, BorderLayout.CENTER);
 
-        napNhanVien();
         napComboLanKham();
         // Gắn listener sau khi đã nạp item để không bị kích hoạt sớm.
         cboLanKham.addActionListener(event -> {
@@ -171,8 +168,6 @@ public class XuLyLapHoaDonPanel extends JPanel {
 
         cboLanKham.setFont(new Font("Arial", Font.PLAIN, 12));
         card.add(createRow("Lần khám (đã chốt)", cboLanKham));
-        cboNhanVien.setFont(new Font("Arial", Font.PLAIN, 12));
-        card.add(createRow("Nhân viên lập", cboNhanVien));
 
         lblBenhNhan.setFont(new Font("Arial", Font.BOLD, 12));
         lblBenhNhan.setForeground(INK);
@@ -370,15 +365,10 @@ public class XuLyLapHoaDonPanel extends JPanel {
             showWarning("Lần khám này không có khoản nào để tính tiền.");
             return;
         }
-        HoaDonDAO.LanKhamHoaDon lanKham = dsLanKham.get(index);
-        HoaDonDAO.NhanVienHoaDon nhanVien = (HoaDonDAO.NhanVienHoaDon) cboNhanVien.getSelectedItem();
-        if (nhanVien == null) {
-            showWarning("Không có nhân viên đang làm việc để ghi nhận hóa đơn.");
-            return;
-        }
+        String[] lanKham = dsLanKham.get(index);
         boolean traGop = TRA_GOP.equals(cboPhuongThuc.getSelectedItem());
-        int soDot = traGop ? (Integer) spnSoDot.getValue() : 1;
-        String phuongThuc = traGop ? "Tra gop"
+        int soDot = traGop ? (Integer) spnSoDot.getValue() : 0;
+        String phuongThucDb = traGop ? "Tra gop"
                 : CHUYEN_KHOAN.equals(cboPhuongThuc.getSelectedItem()) ? "Chuyen khoan" : "Tien mat";
         String xacNhanThu = traGop
                 ? "Xác nhận đã thu đợt đầu " + TIEN.format(Math.floor(tong / soDot)) + " đ."
@@ -386,19 +376,15 @@ public class XuLyLapHoaDonPanel extends JPanel {
                         ? "Chỉ tiếp tục sau khi đã đối soát giao dịch chuyển khoản."
                         : "Chỉ tiếp tục sau khi đã nhận đủ tiền mặt.";
         int choice = JOptionPane.showConfirmDialog(this,
-                "Lập hóa đơn " + TIEN.format(tong) + " đ cho " + lanKham.tenBenhNhan + "\n"
-                        + "Nhân viên lập: " + nhanVien + "\nPhương thức: "
+                "Lập hóa đơn " + TIEN.format(tong) + " đ cho " + lanKham[2] + "\n"
+                        + "Nhân viên lập: " + tenDangNhap + "\nPhương thức: "
                         + cboPhuongThuc.getSelectedItem() + "\n" + xacNhanThu,
                 "Xác nhận lập hóa đơn", JOptionPane.YES_NO_OPTION);
         if (choice != JOptionPane.YES_OPTION) {
             return;
         }
 
-        String[] lanKham = dsLanKham.get(index);
         String trangThai = traGop ? HoaDon.DANG_TRA_GOP : HoaDon.DA_THANH_TOAN;
-        int soDot = traGop ? (Integer) spnSoDot.getValue() : 0;
-        String phuongThucDb = traGop ? "Tra gop"
-                : TIEN_MAT.equals(phuongThuc) ? "Tien mat" : "Chuyen khoan";
         String maHoaDon;
         try {
             maHoaDon = hoaDonDAO.lapHoaDon(LocalDate.now(), trangThai, phuongThucDb,
@@ -420,7 +406,16 @@ public class XuLyLapHoaDonPanel extends JPanel {
                 "Bạn có muốn xuất hóa đơn " + maHoaDon + " ra file PDF không?",
                 "Xuất hóa đơn PDF", JOptionPane.YES_NO_OPTION);
         if (exportChoice == JOptionPane.YES_OPTION) {
-            xuatHoaDonPdf(detail);
+            try {
+                HoaDonDAO.ChiTietHoaDon detail = hoaDonDAO.layChiTietHoaDon(maHoaDon);
+                if (detail == null) {
+                    showWarning("Không tìm thấy hóa đơn vừa lập để xuất PDF.");
+                } else {
+                    xuatHoaDonPdf(detail);
+                }
+            } catch (java.sql.SQLException exception) {
+                showDatabaseError("Không thể tải hóa đơn để xuất PDF", exception);
+            }
         }
         napComboLanKham();
     }
@@ -477,6 +472,34 @@ public class XuLyLapHoaDonPanel extends JPanel {
         return rows;
     }
 
+    private static double tong(List<HoaDonDAO.DongHoaDon> dongHoaDon) {
+        double tong = 0;
+        for (HoaDonDAO.DongHoaDon dong : dongHoaDon) {
+            tong += dong.thanhTien();
+        }
+        return tong;
+    }
+
+    private static String hienThiPhuongThuc(String phuongThuc) {
+        if ("Tien mat".equals(phuongThuc)) {
+            return TIEN_MAT;
+        }
+        if ("Chuyen khoan".equals(phuongThuc)) {
+            return CHUYEN_KHOAN;
+        }
+        return "Tra gop".equals(phuongThuc) ? TRA_GOP : phuongThuc;
+    }
+
+    private static String hienThiTrangThai(String trangThai) {
+        if (HoaDon.DA_THANH_TOAN.equals(trangThai)) {
+            return "Đã thanh toán";
+        }
+        if (HoaDon.DANG_TRA_GOP.equals(trangThai)) {
+            return "Đang trả góp";
+        }
+        return trangThai;
+    }
+
     // Nạp lại combo các lần khám chờ lập hóa đơn.
     private void napComboLanKham() {
         dangNapCombo = true;
@@ -513,21 +536,6 @@ public class XuLyLapHoaDonPanel extends JPanel {
         }
         dangNapCombo = false;
         chonLanKham();
-    }
-
-    private void napNhanVien() {
-        HoaDonDAO.NhanVienHoaDon chon = (HoaDonDAO.NhanVienHoaDon) cboNhanVien.getSelectedItem();
-        cboNhanVien.removeAllItems();
-        try {
-            for (HoaDonDAO.NhanVienHoaDon nv : hoaDonDAO.layNhanVienDangLamViec()) {
-                cboNhanVien.addItem(nv);
-                if (chon != null && chon.ma.equals(nv.ma)) {
-                    cboNhanVien.setSelectedItem(nv);
-                }
-            }
-        } catch (SQLException exception) {
-            showDatabaseError("Không thể tải danh sách nhân viên", exception);
-        }
     }
 
     private void showDatabaseError(String action, Exception exception) {

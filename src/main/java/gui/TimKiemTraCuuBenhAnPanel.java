@@ -2,14 +2,12 @@ package gui; /*Võ Thành Tài */
 
 import dao.BanGhiBenhAnDAO;
 import entity.BanGhiBenhAn;
-import dao.BanGhiBenhAnDAO;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
-import java.awt.GraphicsEnvironment;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -51,8 +49,6 @@ public class TimKiemTraCuuBenhAnPanel extends JPanel {
             "Mã chẩn đoán", "Mã hồ sơ", "Bệnh nhân", "Ngày khám", "Nha sĩ", "Lý do khám"
     };
 
-    private final BanGhiBenhAnDAO benhAnDAO = new BanGhiBenhAnDAO();
-    private final List<BanGhiBenhAn> allRecords = new ArrayList<>();
     private final List<BanGhiBenhAn> shownRecords = new ArrayList<>();
 
     private final JTextField keywordField = new JTextField();
@@ -77,6 +73,16 @@ public class TimKiemTraCuuBenhAnPanel extends JPanel {
     private final JTextArea symptomArea = createReadOnlyArea();
     private final JTextArea conclusionArea = createReadOnlyArea();
 
+    private static final class SearchResult {
+        private final List<String> dentists;
+        private final List<BanGhiBenhAn> records;
+
+        private SearchResult(List<String> dentists, List<BanGhiBenhAn> records) {
+            this.dentists = dentists;
+            this.records = records;
+        }
+    }
+
     public TimKiemTraCuuBenhAnPanel() {
         super(new BorderLayout(0, 16));
         setOpaque(false);
@@ -85,7 +91,7 @@ public class TimKiemTraCuuBenhAnPanel extends JPanel {
         add(createResultPanel(), BorderLayout.CENTER);
         add(createDetailPanel(), BorderLayout.SOUTH);
 
-        loadDentists();
+        dentistCombo.addItem(ALL_DENTISTS);
         applyFilter();
     }
 
@@ -328,35 +334,6 @@ public class TimKiemTraCuuBenhAnPanel extends JPanel {
 
     // ===================== LỌC DỮ LIỆU =====================
 
-    private void loadDentists() {
-        dentistCombo.addItem(ALL_DENTISTS);
-        try {
-            allRecords.clear();
-            allRecords.addAll(benhAnDAO.layTatCa());
-            List<String> seen = new ArrayList<>();
-            for (BanGhiBenhAn record : allRecords) {
-                if (record.getTenNhaSi() != null && !seen.contains(record.getTenNhaSi())) {
-                    seen.add(record.getTenNhaSi());
-                    dentistCombo.addItem(record.getTenNhaSi());
-                }
-            }
-        } catch (java.sql.SQLException exception) {
-            JOptionPane.showMessageDialog(this,
-                    "Không thể tải dữ liệu bệnh án từ CSDL:\n" + exception.getMessage(),
-                    "Lỗi tải bệnh án", JOptionPane.ERROR_MESSAGE);
-        }
-    }
-
-    private LocalDate toLocalDate(Date date) {
-        if (date == null) {
-            return null;
-        }
-
-        return date.toInstant()
-                .atZone(ZoneId.systemDefault())
-                .toLocalDate();
-    }
-
     private void applyFilter() {
         LocalDate from = GiaoDienUtil.layNgayDaChon(fromDateField);
         LocalDate to = GiaoDienUtil.layNgayDaChon(toDateField);
@@ -429,24 +406,37 @@ public class TimKiemTraCuuBenhAnPanel extends JPanel {
     private void clearResults(String status) {
         shownRecords.clear();
         tableModel.setRowCount(0);
-        try {
-            List<BanGhiBenhAn> results = benhAnDAO.timKiem(
-                    keyword, dentist == null || ALL_DENTISTS.equals(dentist) ? null : dentist, from, to);
-            for (BanGhiBenhAn record : results) {
-                shownRecords.add(record);
-                tableModel.addRow(new Object[] {
-                        record.getMaChanDoan(),
-                        record.getMaHoSo(),
-                        record.getTenBenhNhan(),
-                        record.getNgayKham().format(DATE_FORMAT),
-                        record.getTenNhaSi(),
-                        record.getLyDoKham()
-                });
+        resultCount.setText(status);
+        resultCount.setForeground(MUTED);
+        showDetail(-1);
+    }
+
+    private void updateDentists(List<String> dentists, String selectedDentist) {
+        dentistCombo.removeAllItems();
+        dentistCombo.addItem(ALL_DENTISTS);
+        for (String dentist : dentists) {
+            if (dentist != null && !dentist.trim().isEmpty()) {
+                dentistCombo.addItem(dentist);
             }
-        } catch (java.sql.SQLException exception) {
-            JOptionPane.showMessageDialog(this,
-                    "Không thể tra cứu bệnh án từ CSDL:\n" + exception.getMessage(),
-                    "Lỗi tra cứu bệnh án", JOptionPane.ERROR_MESSAGE);
+        }
+        if (selectedDentist != null) {
+            dentistCombo.setSelectedItem(selectedDentist);
+        }
+    }
+
+    private void showRecords(List<BanGhiBenhAn> records) {
+        shownRecords.clear();
+        shownRecords.addAll(records);
+        tableModel.setRowCount(0);
+        for (BanGhiBenhAn record : records) {
+            tableModel.addRow(new Object[] {
+                    record.getMaChanDoan(),
+                    record.getMaHoSo(),
+                    record.getTenBenhNhan(),
+                    record.getNgayKham().format(DATE_FORMAT),
+                    record.getTenNhaSi(),
+                    record.getLyDoKham()
+            });
         }
         resultCount.setText(records.isEmpty()
                 ? "Không tìm thấy lần khám phù hợp."
@@ -455,12 +445,14 @@ public class TimKiemTraCuuBenhAnPanel extends JPanel {
         showDetail(-1);
     }
 
-    private void resetFilter() {
-        keywordField.setText("");
-        dentistCombo.setSelectedIndex(0);
-        fromDateField.setDate(null);
-        toDateField.setDate(null);
-        applyFilter();
+    private void showDatabaseError(Throwable error) {
+        String detail = error.getMessage();
+        JOptionPane.showMessageDialog(this,
+                "Không thể tra cứu bệnh án từ CSDL:\n"
+                        + (detail == null || detail.trim().isEmpty()
+                                ? error.getClass().getSimpleName()
+                                : detail),
+                "Lỗi tra cứu bệnh án", JOptionPane.ERROR_MESSAGE);
     }
 
     private static String nullToEmpty(String value) {

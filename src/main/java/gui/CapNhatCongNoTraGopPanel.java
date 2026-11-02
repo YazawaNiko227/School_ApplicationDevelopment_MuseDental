@@ -1,7 +1,6 @@
 package gui;
 
 import dao.CongNoTraGopDAO;
-import dao.HoaDonDAO;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
@@ -14,7 +13,6 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
-import java.sql.SQLException;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
@@ -31,7 +29,6 @@ import javax.swing.SwingConstants;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
-import dao.CongNoTraGopDAO;
 import entity.DotThanhToan;
 
 /**
@@ -174,8 +171,6 @@ public class CapNhatCongNoTraGopPanel extends JPanel {
 
     private final CongNoTraGopDAO congNoDAO = new CongNoTraGopDAO();
     private final List<CongNo> dsCongNo = new ArrayList<>();
-    private final HoaDonDAO hoaDonDAO = new HoaDonDAO();
-    private final CongNoTraGopDAO congNoDAO = new CongNoTraGopDAO();
     private boolean dangNapBang = false;
 
     // ----- Thẻ thống kê -----
@@ -439,7 +434,6 @@ public class CapNhatCongNoTraGopPanel extends JPanel {
         }
 
         lamMoi(cn.ma);
-        CongNo capNhat = layCongNoDangChon();
         String thongBao = "Đã thu đợt " + (row + 1) + ": " + TIEN.format(dot.soTien) + " đ.";
         if (soDotConLaiSauKhiThu == 0) {
             thongBao += "\nHồ sơ " + cn.ma + " đã trả hết, hóa đơn " + cn.maHoaDon
@@ -533,12 +527,6 @@ public class CapNhatCongNoTraGopPanel extends JPanel {
         }
         dangNapBang = false;
         hienThiChiTiet();
-    }
-
-    private void showDatabaseError(String action, SQLException exception) {
-        JOptionPane.showMessageDialog(this,
-                action + ":\n" + exception.getMessage(),
-                "Lỗi cơ sở dữ liệu", JOptionPane.ERROR_MESSAGE);
     }
 
     // Thống kê tính trên toàn bộ hồ sơ (không phụ thuộc bộ lọc).

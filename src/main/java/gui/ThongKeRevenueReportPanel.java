@@ -10,7 +10,6 @@ import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
-import java.awt.GraphicsEnvironment;
 import java.text.DecimalFormat;
 import java.time.LocalDate;
 import javax.swing.BorderFactory;
@@ -76,7 +75,6 @@ public class ThongKeRevenueReportPanel extends JPanel {
     private final JLabel lblTrangThai = new JLabel(" ");
     private JButton btnThongKe;
     private JButton btnLamMoi;
-    private int reportRequestId;
 
     // ----- Kết quả -----
     private final DefaultTableModel tableModel = new DefaultTableModel(
@@ -240,16 +238,11 @@ public class ThongKeRevenueReportPanel extends JPanel {
     private void thongKe() {
         LocalDate tuNgay = GiaoDienUtil.layNgayDaChon(chonTuNgay);
         LocalDate denNgay = GiaoDienUtil.layNgayDaChon(chonDenNgay);
-        int requestId = ++reportRequestId;
         if (tuNgay == null || denNgay == null) {
-            setLoading(false);
-            clearResults("Khoảng ngày không hợp lệ.");
             showWarning("Vui lòng chọn đầy đủ Từ ngày và Đến ngày.");
             return;
         }
         if (tuNgay.isAfter(denNgay)) {
-            setLoading(false);
-            clearResults("Khoảng ngày không hợp lệ.");
             showWarning("Từ ngày không được sau Đến ngày.");
             return;
         }
@@ -273,7 +266,6 @@ public class ThongKeRevenueReportPanel extends JPanel {
         }
         double tong = baoCao.getTongDoanhThu();
 
-        double tong = tongDichVu + tongThuoc;
         lblTongDoanhThu.setText(TIEN.format(tong) + " đ");
         lblSoHoaDon.setText(String.valueOf(baoCao.getSoHoaDon()));
         lblTienDichVu.setText(TIEN.format(baoCao.getTienDichVu()) + " đ");

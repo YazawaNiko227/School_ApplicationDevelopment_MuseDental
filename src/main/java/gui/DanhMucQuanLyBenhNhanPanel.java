@@ -58,7 +58,7 @@ public class DanhMucQuanLyBenhNhanPanel extends JPanel {
     private static final Color LINE = new Color(226, 234, 237);
     private static final Color DANGER = new Color(214, 69, 80);
 
-    private static final String[] GIOI_TINH = { "Nam", "Nu", "Khac" };
+    private static final String[] GIOI_TINH = { "Nam", "Nu" };
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("dd/MM/uuuu")
             .withResolverStyle(ResolverStyle.STRICT);
     private static final Pattern PHONE_PATTERN = Pattern.compile("^0\\d{9,10}$");

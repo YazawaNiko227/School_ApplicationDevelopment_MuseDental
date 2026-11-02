@@ -54,7 +54,7 @@ public class DanhMucQuanLyNhanVienPanel extends JPanel {
         private static final String TT_DA_NGHI = "Da nghi viec";
         private static final String TAT_CA = "Tất cả trạng thái";
         private static final String[] TRANG_THAI = { TT_DANG_LAM, TT_TAM_NGHI, TT_DA_NGHI };
-        private static final String[] GIOI_TINH = { "Nam", "Nu", "Khac" };
+        private static final String[] GIOI_TINH = { "Nam", "Nu", };
         private static final String[] CHUYEN_MON = {
                         "", "Nha si - Nho rang", "Nha si - Chinh nha", "Nha si - Tong quat",
                         "Y ta", "Le tan", "Thu ngan", "Thu kho"
@@ -286,7 +286,6 @@ public class DanhMucQuanLyNhanVienPanel extends JPanel {
                 for (JComboBox<String> combo : java.util.Arrays.asList(cbGioiTinh, cbTrangThai, cbChuyenMon)) {
                         styleCombo(combo);
                 }
-                cbChuyenMon.setEditable(true);
                 txtMa.setBackground(new Color(244, 247, 250));
                 chonNgaySinh.setToolTipText("Chọn ngày sinh từ lịch");
                 chonNgayVaoLam.setToolTipText("Chọn ngày vào làm từ lịch");
@@ -430,7 +429,10 @@ public class DanhMucQuanLyNhanVienPanel extends JPanel {
                 txtDiaChi.setText(nv.getDiaChi() == null ? "" : nv.getDiaChi());
                 GiaoDienUtil.datNgayDuocChon(chonNgayVaoLam, nv.getNgayVaoLam());
                 cbTrangThai.setSelectedItem(nv.getTrangThaiLamViec());
-                cbChuyenMon.setSelectedItem(nv.getChuyenMon() == null ? "" : nv.getChuyenMon());
+                String chuyenMonHienTai = nv.getChuyenMon();
+                cbChuyenMon.setSelectedItem(chuyenMonHienTai == null ? "" : chuyenMonHienTai);
+                if (cbChuyenMon.getSelectedIndex() == -1)
+                        cbChuyenMon.setSelectedIndex(0);
                 txtChungChi.setText(nv.getSoChungChiHanhNghe() == null ? "" : nv.getSoChungChiHanhNghe());
         }
 
@@ -446,7 +448,7 @@ public class DanhMucQuanLyNhanVienPanel extends JPanel {
                 txtDiaChi.setText("");
                 GiaoDienUtil.datNgayDuocChon(chonNgayVaoLam, LocalDate.now());
                 cbTrangThai.setSelectedItem(TT_DANG_LAM);
-                cbChuyenMon.setSelectedItem("");
+                cbChuyenMon.setSelectedIndex(0);
                 txtChungChi.setText("");
                 setEditing(false);
                 txtHoTen.requestFocusInWindow();

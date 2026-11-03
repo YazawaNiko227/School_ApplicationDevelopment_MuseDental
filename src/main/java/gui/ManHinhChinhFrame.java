@@ -46,6 +46,7 @@ import javax.swing.border.EmptyBorder;
 import dao.DashboardDAO;
 import entity.LichHenTongQuan;
 import entity.ThongKeTongQuan;
+import util.GiaoDienUtil;
 
 /**
  * ManHinhChinhFrame là màn hình chính của hệ thống quản lý phòng khám Muse
@@ -921,7 +922,7 @@ public final class ManHinhChinhFrame extends JFrame {
                         appointment.getThoiGianHen().format(DateTimeFormatter.ofPattern("dd/MM HH:mm")),
                         appointment.getTenBenhNhan(),
                         appointment.getNoiDung(),
-                        appointment.getTrangThai(),
+                        GiaoDienUtil.hienThiTrangThai(appointment.getTrangThai()),
                         statusBackground));
             }
         }

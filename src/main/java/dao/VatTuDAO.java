@@ -13,7 +13,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class VatTuDAO {
-    public static final String LOAI_THUOC = "Thuoc";
+    public static final String LOAI_THUOC = "Thuốc";
 
     public List<VatTu> getAllExceptLoai(String loaiLoaiTru) throws SQLException {
         String sql = "SELECT MaVatTu, TenVatTu, LoaiVatTu, DonViTinh, SoLuongTon, "

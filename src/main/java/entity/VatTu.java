@@ -4,7 +4,7 @@ import java.time.LocalDate;
 
 /**
  * Entity ánh xạ bảng VatTu: thuốc và vật tư y tế dùng chung bảng, phân biệt
- * bằng LoaiVatTu ("Thuoc", "Tieu hao", "Vat lieu").
+ * bằng LoaiVatTu ("Thuốc", "Tiêu hao", "Vật liệu", "Dụng cụ").
  */
 public class VatTu {
     private String maVatTu;

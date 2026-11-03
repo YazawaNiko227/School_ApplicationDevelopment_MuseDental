@@ -68,19 +68,21 @@ public class DatLichHenDAO {
     }
 
     public List<BenhNhan> timBenhNhan(String tuKhoa) throws SQLException {
-        String sql = "SELECT TOP 50 MaBenhNhan, HoTen, NgaySinh, GioiTinh, SoDienThoai, DiaChi "
-                + "FROM BenhNhan WHERE MaBenhNhan LIKE ? OR HoTen LIKE ? OR SoDienThoai LIKE ? "
+        String sql = "SELECT TOP 50 MaBenhNhan, HoTen, NgaySinh, GioiTinh, SoDienThoai, DiaChi, SoCCCD "
+                + "FROM BenhNhan WHERE MaBenhNhan LIKE ? OR HoTen LIKE ? OR SoDienThoai LIKE ? OR SoCCCD LIKE ? "
                 + "ORDER BY CASE WHEN MaBenhNhan = ? THEN 0 "
-                + "WHEN SoDienThoai = ? THEN 1 WHEN HoTen = ? THEN 2 ELSE 3 END, HoTen";
+                + "WHEN SoDienThoai = ? THEN 1 WHEN SoCCCD = ? THEN 2 WHEN HoTen = ? THEN 3 ELSE 4 END, HoTen";
         String pattern = "%" + tuKhoa.trim() + "%";
         List<BenhNhan> danhSach = new ArrayList<>();
         try (PreparedStatement statement = getConnection().prepareStatement(sql)) {
             statement.setString(1, pattern);
             statement.setString(2, pattern);
             statement.setString(3, pattern);
-            statement.setString(4, tuKhoa.trim());
+            statement.setString(4, pattern);
             statement.setString(5, tuKhoa.trim());
             statement.setString(6, tuKhoa.trim());
+            statement.setString(7, tuKhoa.trim());
+            statement.setString(8, tuKhoa.trim());
             try (ResultSet result = statement.executeQuery()) {
                 while (result.next()) {
                     Date ngaySinh = result.getDate("NgaySinh");
@@ -91,6 +93,7 @@ public class DatLichHenDAO {
                     benhNhan.setGioiTinh(result.getString("GioiTinh"));
                     benhNhan.setSoDienThoai(result.getString("SoDienThoai"));
                     benhNhan.setDiaChi(result.getString("DiaChi"));
+                    benhNhan.setSoCCCD(result.getString("SoCCCD"));
                     danhSach.add(benhNhan);
                 }
             }
@@ -100,7 +103,7 @@ public class DatLichHenDAO {
 
     public List<NhanVien> layNhaSiDangLamViec() throws SQLException {
         String sql = "SELECT MaNhanVien, HoTen FROM NhanVien "
-                + "WHERE TrangThaiLamViec = N'Dang lam viec' AND ChuyenMon LIKE N'Nha si%' "
+                + "WHERE TrangThaiLamViec = N'Dang lam viec' AND ChuyenMon LIKE N'Nha sĩ%' "
                 + "ORDER BY HoTen";
         List<NhanVien> danhSach = new ArrayList<>();
         try (PreparedStatement statement = getConnection().prepareStatement(sql);
@@ -297,7 +300,7 @@ public class DatLichHenDAO {
                 + "AND ct.GioBatDau <= CAST(? AS TIME(0)) "
                 + "AND ct.GioKetThuc > CAST(? AS TIME(0)) "
                 + "AND nv.TrangThaiLamViec = N'Dang lam viec' "
-                + "AND nv.ChuyenMon LIKE N'Nha si%'";
+                + "AND nv.ChuyenMon LIKE N'Nha sĩ%'";
         try (PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setString(1, maNhaSi);
             statement.setDate(2, Date.valueOf(thoiGianHen.toLocalDate()));
@@ -331,9 +334,6 @@ public class DatLichHenDAO {
     }
 
     private String gioiTinhTrongDb(String gioiTinh) {
-        if ("Nữ".equals(gioiTinh)) {
-            return "Nu";
-        }
         return gioiTinh;
     }
 

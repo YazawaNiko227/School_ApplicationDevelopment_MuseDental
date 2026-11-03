@@ -80,7 +80,7 @@ public class XuLyBangPhanCongCaTrucYTaPanel extends JPanel {
     private static final String CA_SANG = "Ca sáng";
     private static final String CA_CHIEU = "Ca chiều";
     private static final String HANH_CHINH = "Hành chính";
-    private static final String[] LOAI_CA = { CA_SANG, CA_CHIEU, HANH_CHINH };
+    private static final String[] LOAI_CA = { CA_SANG, CA_CHIEU, HANH_CHINH, "Trực cuối tuần" };
 
     // Nhân viên được hiển thị có dấu; trạng thái phòng trong entity dùng giá trị
     // chuẩn của schema.

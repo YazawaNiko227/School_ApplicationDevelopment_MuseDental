@@ -52,12 +52,16 @@ public class DanhMucQuanLyNhanVienPanel extends JPanel {
         private static final String TT_DANG_LAM = "Dang lam viec";
         private static final String TT_TAM_NGHI = "Tam nghi";
         private static final String TT_DA_NGHI = "Da nghi viec";
+        private static final String TT_DANG_LAM_HT = "Đang làm việc";
+        private static final String TT_TAM_NGHI_HT = "Tạm nghỉ";
+        private static final String TT_DA_NGHI_HT = "Đã nghỉ việc";
         private static final String TAT_CA = "Tất cả trạng thái";
-        private static final String[] TRANG_THAI = { TT_DANG_LAM, TT_TAM_NGHI, TT_DA_NGHI };
-        private static final String[] GIOI_TINH = { "Nam", "Nu", };
+        private static final String[] TRANG_THAI = { TT_DANG_LAM_HT, TT_TAM_NGHI_HT, TT_DA_NGHI_HT };
+        private static final String[] GIOI_TINH = { "Nam", "Nữ" };
         private static final String[] CHUYEN_MON = {
-                        "", "Nha si - Nho rang", "Nha si - Chinh nha", "Nha si - Tong quat",
-                        "Y ta", "Le tan", "Thu ngan", "Thu kho"
+                        "", "Nha sĩ - Nhổ răng", "Nha sĩ - Chỉnh nha", "Nha sĩ - Phục hình",
+                        "Nha sĩ - Tổng quát", "Y tá", "Lễ tân", "Thu ngân", "Thủ kho",
+                        "Quản trị hệ thống"
         };
 
         private static final Pattern PHONE_PATTERN = Pattern.compile("^0\\d{9,10}$");
@@ -399,7 +403,8 @@ public class DanhMucQuanLyNhanVienPanel extends JPanel {
                 for (NhanVien nv : danhSach) {
                         tableModel.addRow(new Object[] {
                                         nv.getMaNhanVien(), nv.getHoTen(), nv.getGioiTinh(), nv.getSoDienThoai(),
-                                        nv.getChuyenMon() == null ? "" : nv.getChuyenMon(), nv.getTrangThaiLamViec()
+                                        nv.getChuyenMon() == null ? "" : nv.getChuyenMon(),
+                                        hienThiTrangThai(nv.getTrangThaiLamViec())
                         });
                 }
                 applyFilter();
@@ -428,7 +433,7 @@ public class DanhMucQuanLyNhanVienPanel extends JPanel {
                 txtEmail.setText(nv.getEmail() == null ? "" : nv.getEmail());
                 txtDiaChi.setText(nv.getDiaChi() == null ? "" : nv.getDiaChi());
                 GiaoDienUtil.datNgayDuocChon(chonNgayVaoLam, nv.getNgayVaoLam());
-                cbTrangThai.setSelectedItem(nv.getTrangThaiLamViec());
+                cbTrangThai.setSelectedItem(hienThiTrangThai(nv.getTrangThaiLamViec()));
                 String chuyenMonHienTai = nv.getChuyenMon();
                 cbChuyenMon.setSelectedItem(chuyenMonHienTai == null ? "" : chuyenMonHienTai);
                 if (cbChuyenMon.getSelectedIndex() == -1)
@@ -525,7 +530,7 @@ public class DanhMucQuanLyNhanVienPanel extends JPanel {
                 int choice = JOptionPane.showOptionDialog(this,
                                 "Bạn muốn xử lý nhân viên " + nv.getMaNhanVien() + " - " + nv.getHoTen() + " thế nào?\n"
                                                 + "• Xóa hẳn: xóa khỏi hệ thống (không thực hiện được nếu nhân viên đã có dữ liệu liên quan).\n"
-                                                + "• Cho nghỉ việc: giữ lại hồ sơ, chuyển trạng thái sang \"Da nghi viec\".",
+                                                + "• Cho nghỉ việc: giữ lại hồ sơ, chuyển trạng thái sang \"Đã nghỉ việc\".",
                                 "Xác nhận", JOptionPane.DEFAULT_OPTION, JOptionPane.QUESTION_MESSAGE,
                                 null, options, options[1]);
 
@@ -614,7 +619,8 @@ public class DanhMucQuanLyNhanVienPanel extends JPanel {
                 Object chuyenMonValue = cbChuyenMon.getSelectedItem();
                 String chuyenMon = chuyenMonValue == null ? "" : chuyenMonValue.toString().trim();
                 String chungChi = txtChungChi.getText().trim();
-                if (chuyenMon.toLowerCase().startsWith("nha si") && chungChi.isEmpty()) {
+                if ((chuyenMon.toLowerCase().startsWith("nha sĩ")
+                                || chuyenMon.toLowerCase().startsWith("nha si")) && chungChi.isEmpty()) {
                         txtChungChi.requestFocusInWindow();
                         throw new IllegalArgumentException("Nha sĩ bắt buộc nhập số chứng chỉ hành nghề.");
                 }
@@ -624,7 +630,34 @@ public class DanhMucQuanLyNhanVienPanel extends JPanel {
 
                 return new NhanVien(ma, hoTen, ngaySinh, (String) cbGioiTinh.getSelectedItem(), sdt,
                                 emptyToNull(email), emptyToNull(diaChi), ngayVaoLam,
-                                (String) cbTrangThai.getSelectedItem(), emptyToNull(chuyenMon), emptyToNull(chungChi));
+                                trangThaiTrongDb((String) cbTrangThai.getSelectedItem()),
+                                emptyToNull(chuyenMon), emptyToNull(chungChi));
+        }
+
+        private static String hienThiTrangThai(String trangThaiDb) {
+                if (TT_DANG_LAM.equals(trangThaiDb)) {
+                        return TT_DANG_LAM_HT;
+                }
+                if (TT_TAM_NGHI.equals(trangThaiDb)) {
+                        return TT_TAM_NGHI_HT;
+                }
+                if (TT_DA_NGHI.equals(trangThaiDb)) {
+                        return TT_DA_NGHI_HT;
+                }
+                return trangThaiDb == null ? "" : trangThaiDb;
+        }
+
+        private static String trangThaiTrongDb(String trangThaiHienThi) {
+                if (TT_DANG_LAM_HT.equals(trangThaiHienThi)) {
+                        return TT_DANG_LAM;
+                }
+                if (TT_TAM_NGHI_HT.equals(trangThaiHienThi)) {
+                        return TT_TAM_NGHI;
+                }
+                if (TT_DA_NGHI_HT.equals(trangThaiHienThi)) {
+                        return TT_DA_NGHI;
+                }
+                return trangThaiHienThi;
         }
 
         private static String emptyToNull(String value) {
@@ -646,9 +679,9 @@ public class DanhMucQuanLyNhanVienPanel extends JPanel {
                         setForeground(INK);
                         if (column == 5 && value != null) {
                                 String status = value.toString();
-                                if (TT_DANG_LAM.equals(status)) {
+                                if (TT_DANG_LAM_HT.equals(status)) {
                                         setForeground(TEAL);
-                                } else if (TT_TAM_NGHI.equals(status)) {
+                                } else if (TT_TAM_NGHI_HT.equals(status)) {
                                         setForeground(WARN);
                                 } else {
                                         setForeground(DANGER);

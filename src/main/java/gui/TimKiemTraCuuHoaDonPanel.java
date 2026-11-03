@@ -3,6 +3,7 @@ package gui;
 import com.toedter.calendar.JDateChooser;
 import dao.HoaDonDAO;
 import util.GiaoDienUtil;
+import util.QrCodeUtil;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
@@ -34,6 +35,7 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
+import javax.swing.ImageIcon;
 import javax.swing.ListSelectionModel;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
@@ -402,6 +404,22 @@ public class TimKiemTraCuuHoaDonPanel extends JPanel {
         content.add(createMoneyRow("Cộng tiền thuốc", hd.tienThuoc(), 13, INK));
         content.add(Box.createVerticalStrut(6));
         content.add(createMoneyRow("TỔNG GIÁ TRỊ HÓA ĐƠN", hd.tongTien(), 18, TEAL));
+
+        if (CHUYEN_KHOAN.equals(hd.phuongThuc) || "Chuyen khoan".equals(hd.phuongThuc)) {
+            String noiDungQr = "THANH TOAN " + hd.ma + " - " + TIEN.format(hd.tongTien()) + " d";
+            JPanel qrBox = new JPanel(new BorderLayout(14, 0));
+            qrBox.setOpaque(false);
+            qrBox.setAlignmentX(Component.LEFT_ALIGNMENT);
+            qrBox.setBorder(new EmptyBorder(12, 0, 0, 0));
+            JLabel qrText = new JLabel("<html><b>Mã QR chuyển khoản (tượng trưng)</b><br>"
+                    + noiDungQr + "<br><i>QR minh họa, không dùng để quét thật.</i></html>");
+            qrText.setFont(new Font("Arial", Font.PLAIN, 11));
+            qrText.setForeground(INK);
+            qrBox.add(qrText, BorderLayout.CENTER);
+            qrBox.add(new JLabel(new ImageIcon(
+                    QrCodeUtil.taoMaQrTuongTrung(noiDungQr, 120))), BorderLayout.EAST);
+            content.add(qrBox);
+        }
 
         JScrollPane scroll = new JScrollPane(content);
         scroll.setBorder(null);

@@ -57,7 +57,8 @@ Các nhóm nghiệp vụ trên giao diện gồm:
 1. Mở SQL Server Management Studio (SSMS) và kết nối đến SQL Server của bạn.
 2. Mở và chạy script `database/QuanLyPhongKhamMuse_Schema .sql` trong SSMS.
    Tên file có một dấu cách trước phần mở rộng `.sql`. Script tạo database
-   `QuanLyPhongKhamMuse`, các bảng và dữ liệu mẫu.
+   `QuanLyPhongKhamMuse`, các bảng và dữ liệu mẫu đầy đủ (bao gồm cả bộ dữ
+   liệu mở rộng `SEED_FULL_V1`).
 3. Nếu dùng SQL Server Express, instance thường có tên
    `localhost\SQLEXPRESS`. Bật TCP/IP trong SQL Server Configuration Manager
    và khởi động lại dịch vụ SQL Server sau khi thay đổi cấu hình.
@@ -76,6 +77,14 @@ trên database đang có dữ liệu nếu chưa sao lưu và hiểu rõ ảnh h
 Nếu database đã được tạo trước khi cập nhật cơ chế mật khẩu mẫu, chạy thêm
 `database/Migration_MatKhauMau.sql` trong SSMS để đổi tên cột mật khẩu và đặt
 mật khẩu `Muse@12345` cho các tài khoản mẫu vẫn còn giá trị placeholder.
+
+Script `database/QuanLyPhongKhamMuse_Schema .sql` đã bao gồm phần chuyển dữ
+liệu sang tiếng Việt có dấu ở cuối file. Nếu database đã tồn tại và chỉ muốn
+chuyển đổi dữ liệu, chạy riêng đoạn từ mục
+`CHUYEN DU LIEU MAU SANG TIENG VIET CO DAU` đến hết file. Các mã trạng thái nội
+bộ (`Dang lam viec`, `Cho xac nhan`, `Da thanh toan`...) vẫn giữ không dấu vì
+được dùng trong điều kiện truy vấn; giao diện sẽ tự hiển thị các trạng thái này
+bằng tiếng Việt có dấu.
 
 Các script SQL có lệnh `GO`; hãy chạy bằng SSMS hoặc công cụ hiểu cú pháp `GO`,
 không gửi toàn bộ file như một câu lệnh JDBC duy nhất.

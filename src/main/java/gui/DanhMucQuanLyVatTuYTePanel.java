@@ -46,7 +46,7 @@ import javax.swing.table.TableRowSorter;
 
 /**
  * Panel quản lý vật tư y tế (CRUD) cho mục DANH MỤC → "Quản lý Vật tư y tế".
- * Dùng bảng VatTu, nhưng chỉ quản lý các dòng có LoaiVatTu khác "Thuoc"
+ * Dùng bảng VatTu, nhưng chỉ quản lý các dòng có LoaiVatTu khác "Thuốc"
  * (phần thuốc do DanhMucQuanLyThuocPanel đảm nhiệm).
  *
  * Bên trái: danh sách + tìm kiếm + lọc loại. Bên phải: form thêm / sửa / xóa.
@@ -59,9 +59,9 @@ public class DanhMucQuanLyVatTuYTePanel extends JPanel {
     private static final Color LINE = new Color(226, 234, 237);
     private static final Color DANGER = new Color(214, 69, 80);
 
-    private static final String LOAI_THUOC = "Thuoc";
+    private static final String LOAI_THUOC = "Thuốc";
     private static final String TAT_CA = "Tất cả loại";
-    private static final String[] LOAI_VAT_TU = { "Tieu hao", "Vat lieu", "Dung cu" };
+    private static final String[] LOAI_VAT_TU = { "Tiêu hao", "Vật liệu", "Dụng cụ" };
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("dd/MM/uuuu")
             .withResolverStyle(ResolverStyle.STRICT);
     // Định dạng tiền kiểu Việt Nam: 1.500.000
@@ -262,7 +262,8 @@ public class DanhMucQuanLyVatTuYTePanel extends JPanel {
         GiaoDienUtil.cauHinhChonNgay(chonHanSuDung, "dd/MM/yyyy");
         chonHanSuDung.setPreferredSize(new Dimension(160, 36));
         styleCombo(cbLoai);
-        cbLoai.setEditable(true); // cho phép nhập loại mới ngoài danh sách gợi ý
+        // Chỉ cho chọn loại vật tư trong danh sách, không cho nhập text tự do.
+        cbLoai.setEditable(false);
         txtMa.setEditable(false);
         txtMa.setBackground(new Color(244, 247, 250));
         chonHanSuDung.setToolTipText("Chọn hạn sử dụng từ lịch, để trống nếu vật tư không có hạn dùng");
@@ -510,7 +511,7 @@ public class DanhMucQuanLyVatTuYTePanel extends JPanel {
         Object loaiValue = cbLoai.getSelectedItem();
         String loai = loaiValue == null ? "" : loaiValue.toString().trim();
         if (loai.isEmpty()) {
-            throw new IllegalArgumentException("Vui lòng chọn hoặc nhập loại vật tư.");
+            throw new IllegalArgumentException("Vui lòng chọn loại vật tư.");
         }
         if (LOAI_THUOC.equalsIgnoreCase(loai)) {
             throw new IllegalArgumentException("Loại \"Thuoc\" được quản lý ở mục Quản Lý Thuốc.");

@@ -163,7 +163,7 @@ public final class XuLyDatLichHenPanel extends JPanel {
         JPanel searchRow = new JPanel(new BorderLayout(8, 0));
         searchRow.setOpaque(false);
         styleField(txtTimKiem);
-        txtTimKiem.setToolTipText("Nhập mã bệnh nhân, họ tên hoặc số điện thoại");
+        txtTimKiem.setToolTipText("Nhập mã bệnh nhân, họ tên, số điện thoại hoặc CCCD");
         JPanel searchButtons = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
         searchButtons.setOpaque(false);
         JButton btnTim = createButton("Tìm", true);
@@ -273,7 +273,35 @@ public final class XuLyDatLichHenPanel extends JPanel {
                 showMessage("Không tìm thấy bệnh nhân. Bấm \"Bệnh nhân mới\" để tạo hồ sơ.");
                 return;
             }
-            hienThiBenhNhan(ketQua.get(0));
+            BenhNhan duocChon = ketQua.get(0);
+            if (ketQua.size() > 1) {
+                Object[] luaChon = new Object[ketQua.size()];
+                for (int i = 0; i < ketQua.size(); i++) {
+                    BenhNhan bn = ketQua.get(i);
+                    StringBuilder moTa = new StringBuilder();
+                    moTa.append(bn.getMaBenhNhan()).append(" - ").append(bn.getHoTen());
+                    if (bn.getSoDienThoai() != null && !bn.getSoDienThoai().trim().isEmpty()) {
+                        moTa.append(" - SĐT ").append(bn.getSoDienThoai());
+                    }
+                    if (bn.getSoCCCD() != null && !bn.getSoCCCD().trim().isEmpty()) {
+                        moTa.append(" - CCCD ").append(bn.getSoCCCD());
+                    }
+                    luaChon[i] = moTa.toString();
+                }
+                Object chon = JOptionPane.showInputDialog(this,
+                        "Tìm thấy " + ketQua.size() + " bệnh nhân. Chọn bệnh nhân cần đặt lịch:",
+                        "Kết quả tìm kiếm", JOptionPane.QUESTION_MESSAGE, null, luaChon, luaChon[0]);
+                if (chon == null) {
+                    return;
+                }
+                for (int i = 0; i < luaChon.length; i++) {
+                    if (luaChon[i].equals(chon)) {
+                        duocChon = ketQua.get(i);
+                        break;
+                    }
+                }
+            }
+            hienThiBenhNhan(duocChon);
         } catch (SQLException ex) {
             showDatabaseError("Không thể tìm bệnh nhân.", ex);
         }
@@ -363,7 +391,7 @@ public final class XuLyDatLichHenPanel extends JPanel {
         benhNhan.setNgaySinh(ngaySinh == null ? null
                 : ngaySinh.toInstant().atZone(ZoneId.systemDefault()).toLocalDate());
         String gioiTinh = (String) cboGioiTinh.getSelectedItem();
-        benhNhan.setGioiTinh("Nữ".equals(gioiTinh) ? "Nu" : gioiTinh);
+        benhNhan.setGioiTinh(gioiTinh);
         benhNhan.setDiaChi(txtDiaChi.getText().trim().isEmpty() ? null : txtDiaChi.getText().trim());
         return benhNhan;
     }

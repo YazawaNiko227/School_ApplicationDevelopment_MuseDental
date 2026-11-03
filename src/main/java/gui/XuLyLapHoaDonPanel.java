@@ -19,6 +19,7 @@ import java.util.Locale;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
+import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JFileChooser;
@@ -35,6 +36,7 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.table.DefaultTableModel;
 import entity.HoaDon;
 import util.HoaDonPdfExporter;
+import util.QrCodeUtil;
 
 /**
  * Panel "Lập hóa đơn" (bước 9 trong luồng khám bệnh chính).
@@ -126,6 +128,9 @@ public class XuLyLapHoaDonPanel extends JPanel {
     };
     private final JTable dotTable = new JTable(dotModel);
     private final JLabel lblGhiChuThanhToan = new JLabel(" ");
+    private final JLabel lblQr = new JLabel();
+    private final JLabel lblQrNoiDung = new JLabel(" ");
+    private final JPanel qrPanel = new JPanel();
     private final JButton btnLap = createButton("Lập hóa đơn", true);
 
     public XuLyLapHoaDonPanel() {
@@ -250,6 +255,27 @@ public class XuLyLapHoaDonPanel extends JPanel {
         top.add(createRow("Phương thức", cboPhuongThuc));
         top.add(createRow("Số đợt trả góp", spnSoDot));
 
+        JLabel qrTitle = new JLabel("Mã QR chuyển khoản (tượng trưng)");
+        qrTitle.setFont(new Font("Arial", Font.BOLD, 11));
+        qrTitle.setForeground(MUTED);
+        qrTitle.setAlignmentX(Component.LEFT_ALIGNMENT);
+        lblQr.setAlignmentX(Component.LEFT_ALIGNMENT);
+        lblQrNoiDung.setFont(new Font("Arial", Font.PLAIN, 10));
+        lblQrNoiDung.setForeground(MUTED);
+        lblQrNoiDung.setAlignmentX(Component.LEFT_ALIGNMENT);
+        qrPanel.setOpaque(false);
+        qrPanel.setLayout(new BoxLayout(qrPanel, BoxLayout.Y_AXIS));
+        qrPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        qrPanel.setBorder(new EmptyBorder(8, 0, 8, 0));
+        qrPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 215));
+        qrPanel.add(qrTitle);
+        qrPanel.add(Box.createVerticalStrut(4));
+        qrPanel.add(lblQr);
+        qrPanel.add(Box.createVerticalStrut(4));
+        qrPanel.add(lblQrNoiDung);
+        qrPanel.setVisible(false);
+        top.add(qrPanel);
+
         lblGhiChuThanhToan.setFont(new Font("Arial", Font.ITALIC, 11));
         lblGhiChuThanhToan.setForeground(MUTED);
         lblGhiChuThanhToan.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -340,13 +366,34 @@ public class XuLyLapHoaDonPanel extends JPanel {
     /** Bật/tắt phần trả góp theo phương thức thanh toán. */
     private void capNhatPhuongThuc() {
         boolean traGop = TRA_GOP.equals(cboPhuongThuc.getSelectedItem());
+        boolean chuyenKhoan = CHUYEN_KHOAN.equals(cboPhuongThuc.getSelectedItem());
         spnSoDot.setEnabled(traGop);
+        qrPanel.setVisible(chuyenKhoan);
+        if (chuyenKhoan) {
+            capNhatMaQr();
+        }
+        if (qrPanel.getParent() != null) {
+            qrPanel.getParent().revalidate();
+            qrPanel.getParent().repaint();
+        }
         if (traGop) {
             lblGhiChuThanhToan.setText("Đợt 1 thu ngay khi lập hóa đơn, các đợt sau cách nhau 1 tháng.");
         } else {
             lblGhiChuThanhToan.setText("Thanh toán một lần, hóa đơn ghi nhận \"Đã thanh toán\".");
         }
         loadBangDot();
+    }
+
+    /** Cập nhật ảnh QR tượng trưng theo lần khám và tổng tiền đang chọn. */
+    private void capNhatMaQr() {
+        double tong = tienDichVu + tienThuoc;
+        String noiDung = "THANH TOAN HOA DON - " + TIEN.format(tong) + " d";
+        int index = cboLanKham.getSelectedIndex();
+        if (index >= 0 && index < dsLanKham.size()) {
+            noiDung = "THANH TOAN " + dsLanKham.get(index)[0] + " - " + TIEN.format(tong) + " d";
+        }
+        lblQr.setIcon(new ImageIcon(QrCodeUtil.taoMaQrTuongTrung(noiDung, 140)));
+        lblQrNoiDung.setText("<html>" + noiDung + "<br><i>QR tượng trưng, không dùng để quét thật.</i></html>");
     }
 
     /** Kiểm tra rồi lập hóa đơn (và công nợ nếu trả góp). */
@@ -375,10 +422,26 @@ public class XuLyLapHoaDonPanel extends JPanel {
                 : CHUYEN_KHOAN.equals(cboPhuongThuc.getSelectedItem())
                         ? "Chỉ tiếp tục sau khi đã đối soát giao dịch chuyển khoản."
                         : "Chỉ tiếp tục sau khi đã nhận đủ tiền mặt.";
-        int choice = JOptionPane.showConfirmDialog(this,
-                "Lập hóa đơn " + TIEN.format(tong) + " đ cho " + lanKham[2] + "\n"
-                        + "Nhân viên lập: " + tenDangNhap + "\nPhương thức: "
-                        + cboPhuongThuc.getSelectedItem() + "\n" + xacNhanThu,
+        Object thongDiepXacNhan;
+        if (CHUYEN_KHOAN.equals(cboPhuongThuc.getSelectedItem())) {
+            String noiDungQr = "THANH TOAN " + lanKham[0] + " - " + TIEN.format(tong) + " d";
+            JLabel text = new JLabel("<html>Lập hóa đơn <b>" + TIEN.format(tong) + " đ</b> cho "
+                    + lanKham[2] + "<br>Nhân viên lập: " + tenDangNhap
+                    + "<br>Phương thức: " + cboPhuongThuc.getSelectedItem()
+                    + "<br>" + xacNhanThu
+                    + "<br><br>Mã QR bên cạnh là mã <b>tượng trưng</b> để minh họa chuyển khoản.</html>");
+            JPanel xacNhanPanel = new JPanel(new BorderLayout(16, 0));
+            xacNhanPanel.setOpaque(false);
+            xacNhanPanel.add(text, BorderLayout.CENTER);
+            xacNhanPanel.add(new JLabel(new ImageIcon(
+                    QrCodeUtil.taoMaQrTuongTrung(noiDungQr, 130))), BorderLayout.EAST);
+            thongDiepXacNhan = xacNhanPanel;
+        } else {
+            thongDiepXacNhan = "Lập hóa đơn " + TIEN.format(tong) + " đ cho " + lanKham[2] + "\n"
+                    + "Nhân viên lập: " + tenDangNhap + "\nPhương thức: "
+                    + cboPhuongThuc.getSelectedItem() + "\n" + xacNhanThu;
+        }
+        int choice = JOptionPane.showConfirmDialog(this, thongDiepXacNhan,
                 "Xác nhận lập hóa đơn", JOptionPane.YES_NO_OPTION);
         if (choice != JOptionPane.YES_OPTION) {
             return;

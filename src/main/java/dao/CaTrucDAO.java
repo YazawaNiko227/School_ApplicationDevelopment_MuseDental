@@ -190,6 +190,9 @@ public class CaTrucDAO {
         if ("Hanh chinh".equalsIgnoreCase(loaiCa)) {
             return "Hành chính";
         }
+        if ("Truc cuoi tuan".equalsIgnoreCase(loaiCa)) {
+            return "Trực cuối tuần";
+        }
         return loaiCa;
     }
 
@@ -202,6 +205,9 @@ public class CaTrucDAO {
         }
         if ("Hành chính".equalsIgnoreCase(loaiCa)) {
             return "Hanh chinh";
+        }
+        if ("Trực cuối tuần".equalsIgnoreCase(loaiCa)) {
+            return "Truc cuoi tuan";
         }
         return loaiCa;
     }

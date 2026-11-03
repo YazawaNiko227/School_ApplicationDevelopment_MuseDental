@@ -70,7 +70,7 @@ public class CapNhatGhiNhanVatTuTieuHaoPanel extends JPanel {
     // ----- 2. Thẻ danh mục vật tư bên trái -----
     private final JTextField txtTimVatTu = new JTextField();
     private final JComboBox<String> cboLoai = new JComboBox<>(
-            new String[] { TAT_CA, "Thuốc", "Tiêu hao", "Vật liệu" });
+            new String[] { TAT_CA, "Thuốc", "Tiêu hao", "Vật liệu", "Dụng cụ" });
     private final DefaultTableModel modelVatTu = new DefaultTableModel(
             new String[] { "Mã", "Tên vật tư", "Loại", "ĐVT", "Tồn" }, 0) {
         @Override

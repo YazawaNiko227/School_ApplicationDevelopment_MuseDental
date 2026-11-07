@@ -3,12 +3,12 @@ package entity;
 import java.time.LocalDate;
 
 public class BanGhiBenhAn {
-    private String maHoSo;
-    private String maChanDoan;
-    private String maBenhNhan;
+    private HoSoBenhAn maHoSo;
+    private ChanDoan maChanDoan;
+    private BenhNhan maBenhNhan;
     private String tenBenhNhan;
     private LocalDate ngayKham;
-    private String maNhaSi;
+    private NhanVien maNhaSi;
     private String tenNhaSi;
     private String lyDoKham;
     private String trieuChung;
@@ -20,40 +20,100 @@ public class BanGhiBenhAn {
     public BanGhiBenhAn(String maHoSo, String maChanDoan, String maBenhNhan, String tenBenhNhan,
             LocalDate ngayKham, String maNhaSi, String tenNhaSi,
             String lyDoKham, String trieuChung, String ketLuanChanDoan) {
-        this.maHoSo = maHoSo;
-        this.maChanDoan = maChanDoan;
-        this.maBenhNhan = maBenhNhan;
+        setMaHoSo(maHoSo);
+        setMaChanDoan(maChanDoan);
+        setMaBenhNhan(maBenhNhan);
         this.tenBenhNhan = tenBenhNhan;
         this.ngayKham = ngayKham;
-        this.maNhaSi = maNhaSi;
+        setMaNhaSi(maNhaSi);
         this.tenNhaSi = tenNhaSi;
         this.lyDoKham = lyDoKham;
         this.trieuChung = trieuChung;
         this.ketLuanChanDoan = ketLuanChanDoan;
     }
 
-    public String getMaHoSo() {
+    public HoSoBenhAn getMaHoSo() {
         return maHoSo;
     }
 
-    public void setMaHoSo(String maHoSo) {
-        this.maHoSo = maHoSo;
+    public String getMaHoSoId() {
+        return maHoSo == null ? null : maHoSo.getMaHoSo();
     }
 
-    public String getMaChanDoan() {
+    public HoSoBenhAn getHoSoBenhAn() {
+        return maHoSo;
+    }
+
+    public void setHoSoBenhAn(HoSoBenhAn hoSoBenhAn) {
+        this.maHoSo = hoSoBenhAn;
+    }
+
+    public void setMaHoSo(HoSoBenhAn hoSoBenhAn) { setHoSoBenhAn(hoSoBenhAn); }
+
+    public void setMaHoSo(String maHoSo) {
+        if (maHoSo == null) {
+            this.maHoSo = null;
+        } else {
+            HoSoBenhAn hoSo = new HoSoBenhAn();
+            hoSo.setMaHoSo(maHoSo);
+            this.maHoSo = hoSo;
+        }
+    }
+
+    public ChanDoan getMaChanDoan() {
         return maChanDoan;
     }
 
-    public void setMaChanDoan(String maChanDoan) {
-        this.maChanDoan = maChanDoan;
+    public String getMaChanDoanId() {
+        return maChanDoan == null ? null : maChanDoan.getMaChanDoan();
     }
 
-    public String getMaBenhNhan() {
+    public ChanDoan getChanDoan() {
+        return maChanDoan;
+    }
+
+    public void setChanDoan(ChanDoan chanDoan) {
+        this.maChanDoan = chanDoan;
+    }
+
+    public void setMaChanDoan(ChanDoan chanDoan) { setChanDoan(chanDoan); }
+
+    public void setMaChanDoan(String maChanDoan) {
+        if (maChanDoan == null) {
+            this.maChanDoan = null;
+        } else {
+            ChanDoan chanDoan = new ChanDoan();
+            chanDoan.setMaChanDoan(maChanDoan);
+            this.maChanDoan = chanDoan;
+        }
+    }
+
+    public BenhNhan getMaBenhNhan() {
         return maBenhNhan;
     }
 
+    public String getMaBenhNhanId() {
+        return maBenhNhan == null ? null : maBenhNhan.getMaBenhNhan();
+    }
+
+    public BenhNhan getBenhNhan() {
+        return maBenhNhan;
+    }
+
+    public void setBenhNhan(BenhNhan benhNhan) {
+        this.maBenhNhan = benhNhan;
+    }
+
+    public void setMaBenhNhan(BenhNhan benhNhan) { setBenhNhan(benhNhan); }
+
     public void setMaBenhNhan(String maBenhNhan) {
-        this.maBenhNhan = maBenhNhan;
+        if (maBenhNhan == null) {
+            this.maBenhNhan = null;
+        } else {
+            BenhNhan benhNhan = new BenhNhan();
+            benhNhan.setMaBenhNhan(maBenhNhan);
+            this.maBenhNhan = benhNhan;
+        }
     }
 
     public String getTenBenhNhan() {
@@ -72,12 +132,32 @@ public class BanGhiBenhAn {
         this.ngayKham = ngayKham;
     }
 
-    public String getMaNhaSi() {
+    public NhanVien getMaNhaSi() {
         return maNhaSi;
     }
 
+    public String getMaNhaSiId() {
+        return maNhaSi == null ? null : maNhaSi.getMaNhanVien();
+    }
+
+    public NhanVien getNhaSi() {
+        return maNhaSi;
+    }
+
+    public void setNhaSi(NhanVien nhaSi) {
+        this.maNhaSi = nhaSi;
+    }
+
+    public void setMaNhaSi(NhanVien nhaSi) { setNhaSi(nhaSi); }
+
     public void setMaNhaSi(String maNhaSi) {
-        this.maNhaSi = maNhaSi;
+        if (maNhaSi == null) {
+            this.maNhaSi = null;
+        } else {
+            NhanVien nhaSi = new NhanVien();
+            nhaSi.setMaNhanVien(maNhaSi);
+            this.maNhaSi = nhaSi;
+        }
     }
 
     public String getTenNhaSi() {
@@ -114,6 +194,7 @@ public class BanGhiBenhAn {
 
     @Override
     public String toString() {
-        return "BanGhiBenhAn{" + maChanDoan + ", " + maHoSo + ", " + tenBenhNhan + ", " + ngayKham + "}";
+        return "BanGhiBenhAn{" + getMaChanDoanId() + ", " + getMaHoSoId() + ", " + tenBenhNhan + ", "
+                + ngayKham + "}";
     }
 }

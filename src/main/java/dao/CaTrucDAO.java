@@ -2,6 +2,7 @@ package dao;
 
 import connectDB.ConnectDB;
 import entity.CaTruc;
+import entity.ChuyenMon;
 import entity.NhanVien;
 import entity.PhongKham;
 
@@ -64,7 +65,9 @@ public class CaTrucDAO {
     }
 
     public List<NhanVien> layTatCaNhanVien() throws SQLException {
-        String sql = "SELECT MaNhanVien, HoTen, ChuyenMon, TrangThaiLamViec FROM NhanVien ORDER BY MaNhanVien";
+        String sql = "SELECT NV.MaNhanVien, NV.HoTen, NV.MaChuyenMon, CM.TenChuyenMon, NV.TrangThaiLamViec "
+                + "FROM NhanVien NV LEFT JOIN ChuyenMon CM ON CM.MaChuyenMon = NV.MaChuyenMon "
+                + "ORDER BY NV.MaNhanVien";
         List<NhanVien> nhanVienList = new ArrayList<>();
         try (PreparedStatement statement = getConnection().prepareStatement(sql);
                 ResultSet result = statement.executeQuery()) {
@@ -72,7 +75,10 @@ public class CaTrucDAO {
                 NhanVien nhanVien = new NhanVien();
                 nhanVien.setMaNhanVien(result.getString("MaNhanVien"));
                 nhanVien.setHoTen(result.getString("HoTen"));
-                nhanVien.setChuyenMon(result.getString("ChuyenMon"));
+                String maChuyenMon = result.getString("MaChuyenMon");
+                if (maChuyenMon != null) {
+                    nhanVien.setChuyenMon(new ChuyenMon(maChuyenMon, result.getString("TenChuyenMon")));
+                }
                 nhanVien.setTrangThaiLamViec(trangThaiHienThi(result.getString("TrangThaiLamViec")));
                 nhanVienList.add(nhanVien);
             }
@@ -101,7 +107,7 @@ public class CaTrucDAO {
                 + "AND GioBatDau < CAST(? AS TIME(0)) AND GioKetThuc > CAST(? AS TIME(0)) "
                 + "AND (? IS NULL OR MaCa <> ?)";
         try (PreparedStatement statement = getConnection().prepareStatement(sql)) {
-            statement.setString(1, ca.getMaNhanVien());
+            statement.setString(1, ca.getMaNhanVienId());
             statement.setDate(2, Date.valueOf(ca.getNgay()));
             statement.setTime(3, Time.valueOf(ca.getGioKetThuc()));
             statement.setTime(4, Time.valueOf(ca.getGioBatDau()));
@@ -155,8 +161,8 @@ public class CaTrucDAO {
             statement.setTime(2, Time.valueOf(ca.getGioBatDau()));
             statement.setTime(3, Time.valueOf(ca.getGioKetThuc()));
             statement.setString(4, loaiCaTrongDb(ca.getLoaiCa()));
-            statement.setString(5, ca.getMaNhanVien());
-            statement.setString(6, ca.getMaPhong());
+            statement.setString(5, ca.getMaNhanVienId());
+            statement.setString(6, ca.getMaPhongId());
             statement.setString(7, ca.getMaCa());
             return statement.executeUpdate() == 1;
         }
@@ -176,8 +182,8 @@ public class CaTrucDAO {
         statement.setTime(3, Time.valueOf(ca.getGioBatDau()));
         statement.setTime(4, Time.valueOf(ca.getGioKetThuc()));
         statement.setString(5, loaiCaTrongDb(ca.getLoaiCa()));
-        statement.setString(6, ca.getMaNhanVien());
-        statement.setString(7, ca.getMaPhong());
+        statement.setString(6, ca.getMaNhanVienId());
+        statement.setString(7, ca.getMaPhongId());
     }
 
     private String loaiCaHienThi(String loaiCa) {

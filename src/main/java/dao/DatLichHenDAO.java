@@ -2,6 +2,7 @@ package dao;
 
 import connectDB.ConnectDB;
 import entity.BenhNhan;
+import entity.LichHenThongTin;
 import entity.NhanVien;
 import entity.PhongKham;
 
@@ -18,55 +19,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class DatLichHenDAO {
-    public static final class LichHenThongTin {
-        private final String maLichHen;
-        private final LocalDateTime thoiGianHen;
-        private final String maBenhNhan;
-        private final String tenBenhNhan;
-        private final String tenNhaSi;
-        private final String tenPhong;
-        private final String trangThai;
-
-        private LichHenThongTin(String maLichHen, LocalDateTime thoiGianHen, String maBenhNhan,
-                String tenBenhNhan, String tenNhaSi, String tenPhong, String trangThai) {
-            this.maLichHen = maLichHen;
-            this.thoiGianHen = thoiGianHen;
-            this.maBenhNhan = maBenhNhan;
-            this.tenBenhNhan = tenBenhNhan;
-            this.tenNhaSi = tenNhaSi;
-            this.tenPhong = tenPhong;
-            this.trangThai = trangThai;
-        }
-
-        public String getMaLichHen() {
-            return maLichHen;
-        }
-
-        public LocalDateTime getThoiGianHen() {
-            return thoiGianHen;
-        }
-
-        public String getMaBenhNhan() {
-            return maBenhNhan;
-        }
-
-        public String getTenBenhNhan() {
-            return tenBenhNhan;
-        }
-
-        public String getTenNhaSi() {
-            return tenNhaSi;
-        }
-
-        public String getTenPhong() {
-            return tenPhong;
-        }
-
-        public String getTrangThai() {
-            return trangThai;
-        }
-    }
-
     public List<BenhNhan> timBenhNhan(String tuKhoa) throws SQLException {
         String sql = "SELECT TOP 50 MaBenhNhan, HoTen, NgaySinh, GioiTinh, SoDienThoai, DiaChi, SoCCCD "
                 + "FROM BenhNhan WHERE MaBenhNhan LIKE ? OR HoTen LIKE ? OR SoDienThoai LIKE ? OR SoCCCD LIKE ? "
@@ -102,9 +54,10 @@ public class DatLichHenDAO {
     }
 
     public List<NhanVien> layNhaSiDangLamViec() throws SQLException {
-        String sql = "SELECT MaNhanVien, HoTen FROM NhanVien "
-                + "WHERE TrangThaiLamViec = N'Dang lam viec' AND ChuyenMon LIKE N'Nha sĩ%' "
-                + "ORDER BY HoTen";
+        String sql = "SELECT NV.MaNhanVien, NV.HoTen FROM NhanVien NV "
+                + "JOIN ChuyenMon CM ON CM.MaChuyenMon = NV.MaChuyenMon "
+                + "WHERE NV.TrangThaiLamViec = N'Dang lam viec' AND CM.TenChuyenMon LIKE N'Nha sĩ%' "
+                + "ORDER BY NV.HoTen";
         List<NhanVien> danhSach = new ArrayList<>();
         try (PreparedStatement statement = getConnection().prepareStatement(sql);
                 ResultSet result = statement.executeQuery()) {
@@ -113,6 +66,39 @@ public class DatLichHenDAO {
                 nhaSi.setMaNhanVien(result.getString("MaNhanVien"));
                 nhaSi.setHoTen(result.getString("HoTen"));
                 danhSach.add(nhaSi);
+            }
+        }
+        return danhSach;
+    }
+
+    public List<NhanVien> layNhaSiRanh(LocalDateTime thoiGianHen) throws SQLException {
+        if (thoiGianHen == null) {
+            throw new IllegalArgumentException("Thời gian hẹn không được để trống.");
+        }
+        String sql = "SELECT DISTINCT NV.MaNhanVien, NV.HoTen FROM NhanVien NV "
+                + "JOIN ChuyenMon CM ON CM.MaChuyenMon = NV.MaChuyenMon "
+                + "JOIN CaTruc CT ON CT.MaNhanVien = NV.MaNhanVien "
+                + "WHERE NV.TrangThaiLamViec = N'Dang lam viec' "
+                + "AND CM.TenChuyenMon LIKE N'Nha sĩ%' "
+                + "AND CT.Ngay = ? AND CT.GioBatDau <= CAST(? AS TIME(0)) "
+                + "AND CT.GioKetThuc > CAST(? AS TIME(0)) "
+                + "AND NOT EXISTS (SELECT 1 FROM LichHen LH "
+                + "WHERE LH.MaNhaSiPhuTrach = NV.MaNhanVien AND LH.ThoiGianHen = ? "
+                + "AND LH.TrangThai IN (N'Cho xac nhan', N'Da xac nhan', N'Da check-in', N'Dang kham')) "
+                + "ORDER BY NV.HoTen";
+        List<NhanVien> danhSach = new ArrayList<>();
+        try (PreparedStatement statement = getConnection().prepareStatement(sql)) {
+            statement.setDate(1, Date.valueOf(thoiGianHen.toLocalDate()));
+            statement.setTime(2, Time.valueOf(thoiGianHen.toLocalTime()));
+            statement.setTime(3, Time.valueOf(thoiGianHen.toLocalTime()));
+            statement.setTimestamp(4, Timestamp.valueOf(thoiGianHen));
+            try (ResultSet result = statement.executeQuery()) {
+                while (result.next()) {
+                    NhanVien nhaSi = new NhanVien();
+                    nhaSi.setMaNhanVien(result.getString("MaNhanVien"));
+                    nhaSi.setHoTen(result.getString("HoTen"));
+                    danhSach.add(nhaSi);
+                }
             }
         }
         return danhSach;
@@ -300,7 +286,8 @@ public class DatLichHenDAO {
                 + "AND ct.GioBatDau <= CAST(? AS TIME(0)) "
                 + "AND ct.GioKetThuc > CAST(? AS TIME(0)) "
                 + "AND nv.TrangThaiLamViec = N'Dang lam viec' "
-                + "AND nv.ChuyenMon LIKE N'Nha sĩ%'";
+                + "AND EXISTS (SELECT 1 FROM ChuyenMon cm "
+                + "WHERE cm.MaChuyenMon = nv.MaChuyenMon AND cm.TenChuyenMon LIKE N'Nha sĩ%')";
         try (PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setString(1, maNhaSi);
             statement.setDate(2, Date.valueOf(thoiGianHen.toLocalDate()));

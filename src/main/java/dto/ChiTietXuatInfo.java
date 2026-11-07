@@ -2,7 +2,7 @@ package dto;
 
 /**
  * DTO chứa thông tin một dòng vật tư đã xuất kho kèm tên và đơn vị tính,
- * phục vụ hiển thị bảng lịch sử xuất kho trong panel "Ghi nhận vật tư tiêu hao".
+ * phục vụ hiển thị chi tiết một phiếu trong panel tra cứu lịch sử vật tư.
  */
 public record ChiTietXuatInfo(
         String maPhieuXuat,

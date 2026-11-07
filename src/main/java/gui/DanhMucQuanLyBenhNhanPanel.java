@@ -1,8 +1,8 @@
 package gui;
 
 import com.toedter.calendar.JDateChooser;
-import dao.BenhNhanDAO;
 import entity.BenhNhan;
+import service.BenhNhanService;
 import util.GiaoDienUtil;
 
 import java.awt.BorderLayout;
@@ -13,13 +13,10 @@ import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
 import java.sql.SQLException;
-import java.time.LocalDate;
-import java.time.Period;
 import java.time.format.DateTimeFormatter;
 import java.time.format.ResolverStyle;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.regex.Pattern;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
@@ -49,7 +46,7 @@ import javax.swing.table.TableRowSorter;
  *
  * Bên trái: danh sách + tìm kiếm (mã, họ tên, SĐT, CCCD). Bên phải: form thêm /
  * sửa / xóa.
- * Dữ liệu được đọc và lưu qua BenhNhanDAO.
+ * Dữ liệu được đọc và lưu qua BenhNhanService, tách biệt khỏi phần trình bày.
  */
 public class DanhMucQuanLyBenhNhanPanel extends JPanel {
     private static final Color INK = new Color(32, 53, 68);
@@ -61,11 +58,8 @@ public class DanhMucQuanLyBenhNhanPanel extends JPanel {
     private static final String[] GIOI_TINH = { "Nam", "Nữ" };
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("dd/MM/uuuu")
             .withResolverStyle(ResolverStyle.STRICT);
-    private static final Pattern PHONE_PATTERN = Pattern.compile("^0\\d{9,10}$");
-    private static final Pattern CCCD_PATTERN = Pattern.compile("^\\d{12}$");
-
     private final List<BenhNhan> danhSach = new ArrayList<>();
-    private final BenhNhanDAO benhNhanDAO = new BenhNhanDAO();
+    private final BenhNhanService benhNhanService = new BenhNhanService();
     private final DefaultTableModel tableModel = new DefaultTableModel(
             new String[] { "Mã BN", "Họ tên", "Giới tính", "Ngày sinh", "Số điện thoại", "Dị ứng" }, 0) {
         @Override
@@ -116,7 +110,7 @@ public class DanhMucQuanLyBenhNhanPanel extends JPanel {
     private SQLException loadData() {
         try {
             danhSach.clear();
-            danhSach.addAll(benhNhanDAO.layTatCa());
+            danhSach.addAll(benhNhanService.layTatCa());
             return null;
         } catch (SQLException ex) {
             danhSach.clear();
@@ -133,25 +127,8 @@ public class DanhMucQuanLyBenhNhanPanel extends JPanel {
         return null;
     }
 
-    /** Sinh mã BN### tiếp theo dựa trên mã lớn nhất hiện có. */
-    private String nextId() {
-        int max = 0;
-        for (BenhNhan bn : danhSach) {
-            try {
-                max = Math.max(max, Integer.parseInt(bn.getMaBenhNhan().substring(2)));
-            } catch (RuntimeException ignored) {
-                // Bỏ qua mã không theo định dạng BN###.
-            }
-        }
-        return String.format("BN%03d", max + 1);
-    }
-
     private static String nullToEmpty(String value) {
         return value == null ? "" : value;
-    }
-
-    private static String emptyToNull(String value) {
-        return value == null || value.isEmpty() ? null : value;
     }
 
     // ---------------------------- Giao diện ----------------------------
@@ -435,7 +412,7 @@ public class DanhMucQuanLyBenhNhanPanel extends JPanel {
 
     private void clearForm() {
         table.clearSelection();
-        txtMa.setText(nextId());
+        txtMa.setText(benhNhanService.sinhMa(danhSach));
         txtHoTen.setText("");
         cbGioiTinh.setSelectedIndex(0);
         GiaoDienUtil.datNgayDuocChon(chonNgaySinh, null);
@@ -460,10 +437,7 @@ public class DanhMucQuanLyBenhNhanPanel extends JPanel {
     private void onAdd() {
         try {
             BenhNhan bn = readForm(txtMa.getText().trim());
-            if (findById(bn.getMaBenhNhan()) != null) {
-                throw new IllegalArgumentException("Mã bệnh nhân đã tồn tại.");
-            }
-            if (!benhNhanDAO.them(bn)) {
+            if (!benhNhanService.them(bn)) {
                 showDatabaseMessage("Không thể thêm bệnh nhân vì dữ liệu chưa được lưu.");
                 return;
             }
@@ -482,11 +456,7 @@ public class DanhMucQuanLyBenhNhanPanel extends JPanel {
     private void onUpdate() {
         try {
             BenhNhan updated = readForm(txtMa.getText().trim());
-            BenhNhan current = findById(updated.getMaBenhNhan());
-            if (current == null) {
-                throw new IllegalArgumentException("Không tìm thấy bệnh nhân cần cập nhật.");
-            }
-            if (!benhNhanDAO.capNhat(updated)) {
+            if (!benhNhanService.capNhat(updated)) {
                 showDatabaseMessage("Không tìm thấy bệnh nhân để cập nhật. Danh sách sẽ được tải lại.");
                 SQLException refreshError = loadData();
                 refreshTable();
@@ -519,7 +489,7 @@ public class DanhMucQuanLyBenhNhanPanel extends JPanel {
                 "Xác nhận xóa", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
         if (choice == JOptionPane.YES_OPTION) {
             try {
-                if (!benhNhanDAO.xoa(bn.getMaBenhNhan())) {
+                if (!benhNhanService.xoa(bn.getMaBenhNhan())) {
                     showDatabaseMessage("Không tìm thấy bệnh nhân để xóa. Danh sách sẽ được tải lại.");
                     SQLException refreshError = loadData();
                     refreshTable();
@@ -566,60 +536,10 @@ public class DanhMucQuanLyBenhNhanPanel extends JPanel {
     // ---------------------------- Kiểm tra dữ liệu ----------------------------
 
     private BenhNhan readForm(String ma) {
-        String hoTen = txtHoTen.getText().trim();
-        if (hoTen.isEmpty()) {
-            txtHoTen.requestFocusInWindow();
-            throw new IllegalArgumentException("Họ tên không được để trống.");
-        }
-        if (hoTen.length() > 100) {
-            throw new IllegalArgumentException("Họ tên tối đa 100 ký tự.");
-        }
-
-        LocalDate ngaySinh = GiaoDienUtil.layNgayDaChon(chonNgaySinh);
-        if (ngaySinh != null && ngaySinh.isAfter(LocalDate.now())) {
-            chonNgaySinh.requestFocusInWindow();
-            throw new IllegalArgumentException("Ngày sinh không được sau ngày hiện tại.");
-        }
-
-        String sdt = txtSdt.getText().trim();
-        if (!PHONE_PATTERN.matcher(sdt).matches()) {
-            txtSdt.requestFocusInWindow();
-            throw new IllegalArgumentException("Số điện thoại phải bắt đầu bằng 0 và có 10-11 chữ số.");
-        }
-
-        String cccd = txtCccd.getText().trim();
-        if (!cccd.isEmpty() && !CCCD_PATTERN.matcher(cccd).matches()) {
-            txtCccd.requestFocusInWindow();
-            throw new IllegalArgumentException("Số CCCD phải gồm đúng 12 chữ số.");
-        }
-
-        String diaChi = txtDiaChi.getText().trim();
-        if (diaChi.length() > 200) {
-            throw new IllegalArgumentException("Địa chỉ tối đa 200 ký tự.");
-        }
-
-        String nguoiBaoHo = txtNguoiBaoHo.getText().trim();
-        if (ngaySinh != null && Period.between(ngaySinh, LocalDate.now()).getYears() < 18
-                && nguoiBaoHo.isEmpty()) {
-            txtNguoiBaoHo.requestFocusInWindow();
-            throw new IllegalArgumentException("Bệnh nhân dưới 18 tuổi bắt buộc nhập người bảo hộ.");
-        }
-        if (nguoiBaoHo.length() > 100) {
-            throw new IllegalArgumentException("Người bảo hộ tối đa 100 ký tự.");
-        }
-
-        String tienSu = txtTienSu.getText().trim();
-        if (tienSu.length() > 1000) {
-            throw new IllegalArgumentException("Tiền sử bệnh lý tối đa 1000 ký tự.");
-        }
-        String diUng = txtDiUng.getText().trim();
-        if (diUng.length() > 500) {
-            throw new IllegalArgumentException("Thông tin dị ứng tối đa 500 ký tự.");
-        }
-
-        return new BenhNhan(ma, hoTen, ngaySinh, (String) cbGioiTinh.getSelectedItem(), sdt,
-                emptyToNull(diaChi), emptyToNull(cccd), emptyToNull(tienSu), emptyToNull(diUng),
-                emptyToNull(nguoiBaoHo));
+        return benhNhanService.taoBenhNhan(ma, txtHoTen.getText(),
+                GiaoDienUtil.layNgayDaChon(chonNgaySinh), (String) cbGioiTinh.getSelectedItem(),
+                txtSdt.getText(), txtCccd.getText(), txtDiaChi.getText(), txtNguoiBaoHo.getText(),
+                txtTienSu.getText(), txtDiUng.getText());
     }
 
     // ---------------------------- Renderer ----------------------------

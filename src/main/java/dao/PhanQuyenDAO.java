@@ -41,6 +41,37 @@ public class PhanQuyenDAO {
                     statement.executeBatch();
                 }
             }
+
+            Set<String> validMenus = new LinkedHashSet<>();
+            for (List<String> functions : PhanQuyenMenu.nhomMenu().values()) {
+                validMenus.addAll(functions);
+            }
+            Set<String> adminPermissions = new LinkedHashSet<>();
+            try (PreparedStatement statement = connection
+                    .prepareStatement("SELECT TenChucNang FROM QuyenVaiTro WHERE MaVaiTro = ?")) {
+                statement.setString(1, PhanQuyenMenu.QUAN_TRI);
+                try (ResultSet result = statement.executeQuery()) {
+                    while (result.next()) {
+                        adminPermissions.add(result.getString("TenChucNang"));
+                    }
+                }
+            }
+            if (Collections.disjoint(adminPermissions, validMenus)) {
+                try (PreparedStatement delete = connection
+                        .prepareStatement("DELETE FROM QuyenVaiTro WHERE MaVaiTro = ?")) {
+                    delete.setString(1, PhanQuyenMenu.QUAN_TRI);
+                    delete.executeUpdate();
+                }
+                String sql = "INSERT INTO QuyenVaiTro (MaVaiTro, TenChucNang) VALUES (?, ?)";
+                try (PreparedStatement insert = connection.prepareStatement(sql)) {
+                    for (String function : PhanQuyenMenu.quyenMacDinhTheoVaiTro().get(PhanQuyenMenu.QUAN_TRI)) {
+                        insert.setString(1, PhanQuyenMenu.QUAN_TRI);
+                        insert.setString(2, function);
+                        insert.addBatch();
+                    }
+                    insert.executeBatch();
+                }
+            }
             connection.commit();
         } catch (SQLException exception) {
             rollback(connection, exception);

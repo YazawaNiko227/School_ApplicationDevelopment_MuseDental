@@ -1,6 +1,8 @@
 package dao;
 
 import connectDB.ConnectDB;
+import entity.LichHenDieuPhoi;
+import entity.PhongKham;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -13,79 +15,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class DieuPhoiPhongKhamDAO {
-    public static final class LichHenDieuPhoi {
-        private final String maLichHen;
-        private final LocalDateTime thoiGianHen;
-        private final String tenBenhNhan;
-        private final String nhaSi;
-        private final String maPhong;
-        private final String trangThai;
-        private final LocalDateTime thoiGianCheckIn;
-
-        private LichHenDieuPhoi(String maLichHen, LocalDateTime thoiGianHen, String tenBenhNhan,
-                String nhaSi, String maPhong, String trangThai, LocalDateTime thoiGianCheckIn) {
-            this.maLichHen = maLichHen;
-            this.thoiGianHen = thoiGianHen;
-            this.tenBenhNhan = tenBenhNhan;
-            this.nhaSi = nhaSi;
-            this.maPhong = maPhong;
-            this.trangThai = trangThai;
-            this.thoiGianCheckIn = thoiGianCheckIn;
-        }
-
-        public String getMaLichHen() {
-            return maLichHen;
-        }
-
-        public LocalDateTime getThoiGianHen() {
-            return thoiGianHen;
-        }
-
-        public String getTenBenhNhan() {
-            return tenBenhNhan;
-        }
-
-        public String getNhaSi() {
-            return nhaSi;
-        }
-
-        public String getMaPhong() {
-            return maPhong;
-        }
-
-        public String getTrangThai() {
-            return trangThai;
-        }
-
-        public LocalDateTime getThoiGianCheckIn() {
-            return thoiGianCheckIn;
-        }
-    }
-
-    public static final class PhongDieuPhoi {
-        private final String maPhong;
-        private final String tenPhong;
-        private final String trangThai;
-
-        private PhongDieuPhoi(String maPhong, String tenPhong, String trangThai) {
-            this.maPhong = maPhong;
-            this.tenPhong = tenPhong;
-            this.trangThai = trangThai;
-        }
-
-        public String getMaPhong() {
-            return maPhong;
-        }
-
-        public String getTenPhong() {
-            return tenPhong;
-        }
-
-        public String getTrangThai() {
-            return trangThai;
-        }
-    }
-
     public List<LichHenDieuPhoi> layLichHomNay() throws SQLException {
         return layLichTheoNgay(LocalDate.now());
     }
@@ -123,13 +52,13 @@ public class DieuPhoiPhongKhamDAO {
         return danhSach;
     }
 
-    public List<PhongDieuPhoi> layTatCaPhong() throws SQLException {
+    public List<PhongKham> layTatCaPhong() throws SQLException {
         String sql = "SELECT MaPhong, TenPhong, TrangThai FROM PhongKham ORDER BY MaPhong";
-        List<PhongDieuPhoi> danhSach = new ArrayList<>();
+        List<PhongKham> danhSach = new ArrayList<>();
         try (PreparedStatement statement = getConnection().prepareStatement(sql);
                 ResultSet result = statement.executeQuery()) {
             while (result.next()) {
-                danhSach.add(new PhongDieuPhoi(
+                danhSach.add(new PhongKham(
                         result.getString("MaPhong"),
                         result.getString("TenPhong"),
                         result.getString("TrangThai")));

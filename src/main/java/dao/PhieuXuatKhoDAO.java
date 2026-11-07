@@ -3,10 +3,14 @@ package dao;
 import connectDB.ConnectDB;
 import entity.ChiTietXuatKho;
 import entity.PhieuXuatKho;
+import dto.ChiTietXuatInfo;
+import dto.PhieuXuatTraCuuInfo;
 import java.sql.Connection;
+import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -31,17 +35,17 @@ public class PhieuXuatKhoDAO {
                     "INSERT INTO PhieuXuatKho (MaPhieuXuat, NgayXuat, MaNhanVien, MaLichHen) VALUES (?, ?, ?, ?)")) {
                 ps.setString(1, phieu.getMaPhieuXuat());
                 ps.setDate(2, java.sql.Date.valueOf(phieu.getNgayXuat()));
-                ps.setString(3, phieu.getMaNhanVien());
-                ps.setString(4, phieu.getMaLichHen());
+                ps.setString(3, phieu.getMaNhanVienId());
+                ps.setString(4, phieu.getMaLichHenId());
                 ps.executeUpdate();
             }
 
             try (PreparedStatement ps = con.prepareStatement(
                     "INSERT INTO ChiTietXuatKho (MaPhieuXuat, MaVatTu, SoLuongSuDung) VALUES (?, ?, ?)")) {
                 for (ChiTietXuatKho dong : chiTiet) {
-                    vatTuDAO.truTon(con, dong.getMaVatTu(), dong.getSoLuongSuDung());
+                    vatTuDAO.truTon(con, dong.getMaVatTuId(), dong.getSoLuongSuDung());
                     ps.setString(1, phieu.getMaPhieuXuat());
-                    ps.setString(2, dong.getMaVatTu());
+                    ps.setString(2, dong.getMaVatTuId());
                     ps.setInt(3, dong.getSoLuongSuDung());
                     ps.executeUpdate();
                 }
@@ -85,24 +89,75 @@ public class PhieuXuatKhoDAO {
         }
     }
 
-    /**
-     * Lịch sử chi tiết vật tư đã xuất (kèm tên và đơn vị tính) để hiển thị lên bảng giao diện.
-     */
-    public List<dto.ChiTietXuatInfo> layLichSuXuatTheoLichHen(String maLichHen) throws SQLException {
-        String sql = "SELECT CT.MaPhieuXuat, CT.MaVatTu, VT.TenVatTu, VT.DonViTinh, CT.SoLuongSuDung "
-                + "FROM PhieuXuatKho PX "
-                + "JOIN ChiTietXuatKho CT ON CT.MaPhieuXuat = PX.MaPhieuXuat "
-                + "JOIN VatTu VT ON VT.MaVatTu = CT.MaVatTu WHERE "
-                + (maLichHen == null ? "PX.MaLichHen IS NULL" : "PX.MaLichHen = ?") + " "
-                + "ORDER BY PX.NgayXuat DESC, PX.MaPhieuXuat DESC, CT.MaVatTu";
-        try (PreparedStatement ps = ConnectDB.getConnection().prepareStatement(sql)) {
-            if (maLichHen != null) {
-                ps.setString(1, maLichHen);
+    /** Tra cứu phiếu xuất theo từ khóa và khoảng ngày xuất. */
+    public List<PhieuXuatTraCuuInfo> timKiemPhieuXuat(String tuKhoa, LocalDate tuNgay, LocalDate denNgay)
+            throws SQLException {
+        StringBuilder sql = new StringBuilder(
+                "SELECT PX.MaPhieuXuat, PX.NgayXuat, PX.MaLichHen, LH.MaBenhNhan, BN.HoTen, "
+                        + "COUNT(CT.MaVatTu) AS SoLoaiVatTu, SUM(CT.SoLuongSuDung) AS TongSoLuong "
+                        + "FROM PhieuXuatKho PX "
+                        + "JOIN ChiTietXuatKho CT ON CT.MaPhieuXuat = PX.MaPhieuXuat "
+                        + "LEFT JOIN LichHen LH ON LH.MaLichHen = PX.MaLichHen "
+                        + "LEFT JOIN BenhNhan BN ON BN.MaBenhNhan = LH.MaBenhNhan "
+                        + "WHERE 1 = 1 ");
+        boolean coTuKhoa = tuKhoa != null && !tuKhoa.trim().isEmpty();
+        if (coTuKhoa) {
+            sql.append("AND (PX.MaPhieuXuat LIKE ? OR PX.MaLichHen LIKE ? OR BN.MaBenhNhan LIKE ? "
+                    + "OR BN.HoTen LIKE ? OR EXISTS (SELECT 1 FROM ChiTietXuatKho CT2 "
+                    + "JOIN VatTu VT ON VT.MaVatTu = CT2.MaVatTu WHERE CT2.MaPhieuXuat = PX.MaPhieuXuat "
+                    + "AND (VT.MaVatTu LIKE ? OR VT.TenVatTu LIKE ?))) ");
+        }
+        if (tuNgay != null) {
+            sql.append("AND PX.NgayXuat >= ? ");
+        }
+        if (denNgay != null) {
+            sql.append("AND PX.NgayXuat <= ? ");
+        }
+        sql.append("GROUP BY PX.MaPhieuXuat, PX.NgayXuat, PX.MaLichHen, LH.MaBenhNhan, BN.HoTen "
+                + "ORDER BY PX.NgayXuat DESC, PX.MaPhieuXuat DESC");
+
+        try (PreparedStatement ps = ConnectDB.getConnection().prepareStatement(sql.toString())) {
+            int parameter = 1;
+            if (coTuKhoa) {
+                String pattern = "%" + tuKhoa.trim() + "%";
+                for (int i = 0; i < 6; i++) {
+                    ps.setString(parameter++, pattern);
+                }
+            }
+            if (tuNgay != null) {
+                ps.setDate(parameter++, Date.valueOf(tuNgay));
+            }
+            if (denNgay != null) {
+                ps.setDate(parameter, Date.valueOf(denNgay));
             }
             try (ResultSet rs = ps.executeQuery()) {
-                List<dto.ChiTietXuatInfo> ketQua = new ArrayList<>();
+                List<PhieuXuatTraCuuInfo> ketQua = new ArrayList<>();
                 while (rs.next()) {
-                    ketQua.add(new dto.ChiTietXuatInfo(
+                    ketQua.add(new PhieuXuatTraCuuInfo(
+                            rs.getString("MaPhieuXuat"),
+                            rs.getDate("NgayXuat").toLocalDate(),
+                            rs.getString("MaLichHen"),
+                            rs.getString("MaBenhNhan"),
+                            rs.getString("HoTen"),
+                            rs.getInt("SoLoaiVatTu"),
+                            rs.getInt("TongSoLuong")));
+                }
+                return ketQua;
+            }
+        }
+    }
+
+    /** Chi tiết vật tư của một phiếu xuất cụ thể. */
+    public List<ChiTietXuatInfo> layChiTietPhieuXuat(String maPhieuXuat) throws SQLException {
+        String sql = "SELECT CT.MaPhieuXuat, CT.MaVatTu, VT.TenVatTu, VT.DonViTinh, CT.SoLuongSuDung "
+                + "FROM ChiTietXuatKho CT JOIN VatTu VT ON VT.MaVatTu = CT.MaVatTu "
+                + "WHERE CT.MaPhieuXuat = ? ORDER BY CT.MaVatTu";
+        try (PreparedStatement ps = ConnectDB.getConnection().prepareStatement(sql)) {
+            ps.setString(1, maPhieuXuat);
+            try (ResultSet rs = ps.executeQuery()) {
+                List<ChiTietXuatInfo> ketQua = new ArrayList<>();
+                while (rs.next()) {
+                    ketQua.add(new ChiTietXuatInfo(
                             rs.getString("MaPhieuXuat"),
                             rs.getString("MaVatTu"),
                             rs.getString("TenVatTu"),

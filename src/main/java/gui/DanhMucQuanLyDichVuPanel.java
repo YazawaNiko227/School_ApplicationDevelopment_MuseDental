@@ -1,7 +1,7 @@
 package gui;
 
-import dao.DichVuDAO;
 import entity.DichVu;
+import service.DichVuService;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -46,7 +46,7 @@ import javax.swing.table.TableRowSorter;
  * Bên trái: bảng giá + tìm kiếm (bấm tiêu đề cột để sắp xếp, ví dụ theo đơn
  * giá).
  * Bên phải: form thêm / sửa / xóa.
- * Dữ liệu được đọc và lưu qua DichVuDAO.
+ * Dữ liệu được đọc và lưu qua DichVuService.
  */
 public class DanhMucQuanLyDichVuPanel extends JPanel {
     private static final Color INK = new Color(32, 53, 68);
@@ -59,7 +59,7 @@ public class DanhMucQuanLyDichVuPanel extends JPanel {
     private static final NumberFormat MONEY_FMT = NumberFormat.getIntegerInstance(Locale.forLanguageTag("vi-VN"));
 
     private final List<DichVu> danhSach = new ArrayList<>();
-    private final DichVuDAO dichVuDAO = new DichVuDAO();
+    private final DichVuService dichVuService = new DichVuService();
     private final DefaultTableModel tableModel = new DefaultTableModel(
             new String[] { "Mã dịch vụ", "Tên dịch vụ", "Đơn giá", "Bảo hành", "Mô tả" }, 0) {
         @Override
@@ -114,7 +114,7 @@ public class DanhMucQuanLyDichVuPanel extends JPanel {
     private SQLException loadData() {
         try {
             danhSach.clear();
-            danhSach.addAll(dichVuDAO.getAllDichVu());
+            danhSach.addAll(dichVuService.layTatCa());
             return null;
         } catch (SQLException ex) {
             danhSach.clear();
@@ -131,17 +131,8 @@ public class DanhMucQuanLyDichVuPanel extends JPanel {
         return null;
     }
 
-    /** Sinh mã DV### tiếp theo dựa trên mã lớn nhất hiện có. */
     private String nextId() {
-        int max = 0;
-        for (DichVu dv : danhSach) {
-            try {
-                max = Math.max(max, Integer.parseInt(dv.getMaDichVu().substring(2)));
-            } catch (RuntimeException ignored) {
-                // Bỏ qua mã không theo định dạng DV###.
-            }
-        }
-        return String.format("DV%03d", max + 1);
+        return dichVuService.sinhMa(danhSach);
     }
 
     private int warrantyOf(DichVu dv) {
@@ -396,10 +387,7 @@ public class DanhMucQuanLyDichVuPanel extends JPanel {
     private void onAdd() {
         try {
             DichVu dv = readForm(txtMa.getText().trim());
-            if (findById(dv.getMaDichVu()) != null) {
-                throw new IllegalArgumentException("Mã dịch vụ đã tồn tại.");
-            }
-            if (!dichVuDAO.insertDichVu(dv)) {
+            if (!dichVuService.them(dv)) {
                 showDatabaseMessage("Không thể thêm dịch vụ vì dữ liệu chưa được lưu.");
                 return;
             }
@@ -418,11 +406,7 @@ public class DanhMucQuanLyDichVuPanel extends JPanel {
     private void onUpdate() {
         try {
             DichVu updated = readForm(txtMa.getText().trim());
-            DichVu current = findById(updated.getMaDichVu());
-            if (current == null) {
-                throw new IllegalArgumentException("Không tìm thấy dịch vụ cần cập nhật.");
-            }
-            if (!dichVuDAO.updateDichVu(updated)) {
+            if (!dichVuService.capNhat(updated)) {
                 showDatabaseMessage("Không tìm thấy dịch vụ để cập nhật. Danh sách sẽ được tải lại.");
                 SQLException refreshError = loadData();
                 refreshTable();
@@ -454,7 +438,7 @@ public class DanhMucQuanLyDichVuPanel extends JPanel {
                 "Xác nhận xóa", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
         if (choice == JOptionPane.YES_OPTION) {
             try {
-                if (!dichVuDAO.deleteDichVu(dv.getMaDichVu())) {
+                if (!dichVuService.xoa(dv.getMaDichVu())) {
                     showDatabaseMessage("Không tìm thấy dịch vụ để xóa. Danh sách sẽ được tải lại.");
                     SQLException refreshError = loadData();
                     refreshTable();
@@ -500,40 +484,8 @@ public class DanhMucQuanLyDichVuPanel extends JPanel {
     // ---------------------------- Kiểm tra dữ liệu ----------------------------
 
     private DichVu readForm(String ma) {
-        String ten = txtTen.getText().trim();
-        if (ten.isEmpty()) {
-            txtTen.requestFocusInWindow();
-            throw new IllegalArgumentException("Tên dịch vụ không được để trống.");
-        }
-        if (ten.length() > 150) {
-            throw new IllegalArgumentException("Tên dịch vụ tối đa 150 ký tự.");
-        }
-
-        // Bỏ dấu chấm, phẩy, khoảng trắng, chữ "đ"... chỉ giữ lại chữ số.
-        String digits = txtDonGia.getText().replaceAll("[^0-9]", "");
-        if (digits.isEmpty()) {
-            txtDonGia.requestFocusInWindow();
-            throw new IllegalArgumentException("Vui lòng nhập đơn giá hợp lệ (số tiền không âm).");
-        }
-        double donGia = Double.parseDouble(digits);
-
-        int baoHanh;
-        String baoHanhText = txtBaoHanh.getText().trim();
-        try {
-            baoHanh = baoHanhText.isEmpty() ? 0 : Integer.parseInt(baoHanhText);
-            if (baoHanh < 0) {
-                throw new NumberFormatException();
-            }
-        } catch (NumberFormatException ex) {
-            txtBaoHanh.requestFocusInWindow();
-            throw new IllegalArgumentException("Thời gian bảo hành phải là số tháng không âm.");
-        }
-
-        String moTa = txtMoTa.getText().trim();
-        if (moTa.length() > 500) {
-            throw new IllegalArgumentException("Mô tả tối đa 500 ký tự.");
-        }
-        return new DichVu(ma, ten, donGia, baoHanh, moTa.isEmpty() ? null : moTa);
+        return dichVuService.taoDichVu(ma, txtTen.getText(), txtDonGia.getText(),
+                txtBaoHanh.getText(), txtMoTa.getText());
     }
 
     // ---------------------------- Renderer ----------------------------

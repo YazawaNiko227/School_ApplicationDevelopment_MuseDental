@@ -1,7 +1,11 @@
 package gui;
 
 import com.toedter.calendar.JDateChooser;
-import dao.HoaDonDAO;
+import dto.HoaDonTraCuuView;
+import entity.DongTinhTien;
+import entity.DotHoaDon;
+import entity.HoaDonTraCuu;
+import service.InvoiceSearchService;
 import util.GiaoDienUtil;
 import util.QrCodeUtil;
 import java.awt.BorderLayout;
@@ -53,7 +57,7 @@ import javax.swing.table.DefaultTableModel;
  * dịch vụ (ChiTietHoaDon), thuốc (ChiTietHoaDonThuoc) và các đợt thanh toán
  * (DotThanhToan, chỉ có với hóa đơn trả góp).
  *
- * Danh sách và chi tiết hóa đơn được tải từ CSDL qua HoaDonDAO.
+ * Danh sách và chi tiết hóa đơn được tải từ CSDL qua service.
  */
 public class TimKiemTraCuuHoaDonPanel extends JPanel {
     private static final Color INK = new Color(32, 53, 68);
@@ -81,65 +85,9 @@ public class TimKiemTraCuuHoaDonPanel extends JPanel {
     private static final String DA_THANH_TOAN = "Đã thanh toán";
     private static final String DANG_TRA_GOP = "Đang trả góp";
 
-    /** Một hóa đơn kèm các dòng chi tiết (dịch vụ, thuốc, đợt trả góp). */
-    private static final class HoaDon {
-        final String ma;
-        final LocalDate ngayLap;
-        final String maBenhNhan;
-        final String tenBenhNhan;
-        final String maNhanVien;
-        final String tenNhanVien;
-        final String phuongThuc; // null nếu chưa thanh toán
-        final String trangThai;
-        final double tongTienDb;
-        // {maDichVu, tenDichVu, donGia (Double), soLuong (Integer)}
-        final Object[][] dichVu;
-        // {maVatTu, tenVatTu, donGia (Double), soLuong (Integer)}
-        final Object[][] thuoc;
-        // {maDot, ngayDenHan, soTien (Double), trangThai, ngayThu}
-        final Object[][] dots;
-
-        HoaDon(String ma, LocalDate ngayLap, String maBenhNhan, String tenBenhNhan, String maNhanVien,
-                String tenNhanVien, String phuongThuc, String trangThai, Object[][] dichVu, Object[][] thuoc,
-                Object[][] dots, double tongTienDb) {
-            this.ma = ma;
-            this.ngayLap = ngayLap;
-            this.maBenhNhan = maBenhNhan;
-            this.tenBenhNhan = tenBenhNhan;
-            this.maNhanVien = maNhanVien;
-            this.tenNhanVien = tenNhanVien;
-            this.phuongThuc = phuongThuc;
-            this.trangThai = trangThai;
-            this.dichVu = dichVu;
-            this.thuoc = thuoc;
-            this.dots = dots;
-            this.tongTienDb = tongTienDb;
-        }
-
-        double tienDichVu() {
-            return tong(dichVu);
-        }
-
-        double tienThuoc() {
-            return tong(thuoc);
-        }
-
-        double tongTien() {
-            return tongTienDb;
-        }
-
-        private static double tong(Object[][] dong) {
-            double tong = 0;
-            for (Object[] d : dong) {
-                tong += (Double) d[2] * (Integer) d[3];
-            }
-            return tong;
-        }
-    }
-
-    private final HoaDonDAO hoaDonDAO = new HoaDonDAO();
+    private final InvoiceSearchService invoiceSearchService = new InvoiceSearchService();
     // Các hóa đơn đang hiển thị trong bảng (cùng thứ tự với dòng bảng).
-    private final List<HoaDon> dangHienThi = new ArrayList<>();
+    private final List<HoaDonTraCuuView> dangHienThi = new ArrayList<>();
 
     // ----- Bộ lọc -----
     private final JTextField txtTuKhoa = new JTextField();
@@ -280,8 +228,9 @@ public class TimKiemTraCuuHoaDonPanel extends JPanel {
     private void timKiem() {
         LocalDate tuNgay = toLocalDate(dtTuNgay.getDate());
         LocalDate denNgay = toLocalDate(dtDenNgay.getDate());
-        if (tuNgay != null && denNgay != null && tuNgay.isAfter(denNgay)) {
-            JOptionPane.showMessageDialog(this, "Ngày bắt đầu không được sau ngày kết thúc.",
+        String validationError = invoiceSearchService.validateDateRange(tuNgay, denNgay);
+        if (validationError != null) {
+            JOptionPane.showMessageDialog(this, validationError,
                     "Khoảng ngày không hợp lệ", JOptionPane.WARNING_MESSAGE);
             return;
         }
@@ -293,10 +242,10 @@ public class TimKiemTraCuuHoaDonPanel extends JPanel {
         dangHienThi.clear();
         tableModel.setRowCount(0);
         try {
-            List<HoaDonDAO.HoaDonTraCuu> ketQua = hoaDonDAO.timKiemHoaDon(
+            List<HoaDonTraCuu> ketQua = invoiceSearchService.timKiemHoaDon(
                     tuKhoa, giaTriPhuongThucDb(phuongThuc), giaTriTrangThaiDb(trangThai), tuNgay, denNgay);
-            for (HoaDonDAO.HoaDonTraCuu dong : ketQua) {
-                HoaDon hd = new HoaDon(dong.maHoaDon(), dong.ngayLap(), dong.maBenhNhan(),
+            for (HoaDonTraCuu dong : ketQua) {
+                HoaDonTraCuuView hd = new HoaDonTraCuuView(dong.maHoaDon(), dong.ngayLap(), dong.maBenhNhan(),
                         dong.tenBenhNhan(), dong.maNhanVien(), dong.tenNhanVien(),
                         hienThiPhuongThuc(dong.phuongThuc()), hienThiTrangThai(dong.trangThai()),
                         new Object[0][0], new Object[0][0], new Object[0][0], dong.tongTien());
@@ -334,13 +283,13 @@ public class TimKiemTraCuuHoaDonPanel extends JPanel {
                     "Thông báo", JOptionPane.INFORMATION_MESSAGE);
             return;
         }
-        HoaDon summary = dangHienThi.get(row);
-        HoaDon hd;
+        HoaDonTraCuuView summary = dangHienThi.get(row);
+        HoaDonTraCuuView hd;
         try {
-            List<HoaDonDAO.DongTinhTien> dichVu = hoaDonDAO.layChiTietDichVuHoaDon(summary.ma);
-            List<HoaDonDAO.DongTinhTien> thuoc = hoaDonDAO.layChiTietThuocHoaDon(summary.ma);
-            List<HoaDonDAO.DotHoaDonTraCuu> dots = hoaDonDAO.layDotThanhToanHoaDon(summary.ma);
-            hd = new HoaDon(summary.ma, summary.ngayLap, summary.maBenhNhan, summary.tenBenhNhan,
+            List<DongTinhTien> dichVu = invoiceSearchService.layChiTietDichVuHoaDon(summary.ma);
+            List<DongTinhTien> thuoc = invoiceSearchService.layChiTietThuocHoaDon(summary.ma);
+            List<DotHoaDon> dots = invoiceSearchService.layDotThanhToanHoaDon(summary.ma);
+            hd = new HoaDonTraCuuView(summary.ma, summary.ngayLap, summary.maBenhNhan, summary.tenBenhNhan,
                     summary.maNhanVien, summary.tenNhanVien, summary.phuongThuc, summary.trangThai,
                     chuyenDoiDong(dichVu), chuyenDoiDong(thuoc), chuyenDoiDot(dots), summary.tongTienDb);
         } catch (java.sql.SQLException exception) {
@@ -489,21 +438,21 @@ public class TimKiemTraCuuHoaDonPanel extends JPanel {
         return trangThai;
     }
 
-    private static Object[][] chuyenDoiDong(List<HoaDonDAO.DongTinhTien> dong) {
+    private static Object[][] chuyenDoiDong(List<DongTinhTien> dong) {
         Object[][] ketQua = new Object[dong.size()][4];
         for (int i = 0; i < dong.size(); i++) {
-            HoaDonDAO.DongTinhTien ct = dong.get(i);
+            DongTinhTien ct = dong.get(i);
             ketQua[i] = new Object[] { ct.ma(), ct.ten(), ct.donGia(), ct.soLuong() };
         }
         return ketQua;
     }
 
-    private static Object[][] chuyenDoiDot(List<HoaDonDAO.DotHoaDonTraCuu> dots) {
+    private static Object[][] chuyenDoiDot(List<DotHoaDon> dots) {
         Object[][] ketQua = new Object[dots.size()][5];
         for (int i = 0; i < dots.size(); i++) {
-            HoaDonDAO.DotHoaDonTraCuu dot = dots.get(i);
+            DotHoaDon dot = dots.get(i);
             ketQua[i] = new Object[] {
-                    dot.maDot(),
+                    dot.ma(),
                     dot.ngayDenHan().format(NGAY),
                     dot.soTien(),
                     hienThiTrangThai(dot.trangThai()),

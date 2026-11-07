@@ -12,14 +12,14 @@ import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.sql.SQLException;
-import java.text.DecimalFormat;
+
 import java.text.NumberFormat;
 import java.util.Date;
 import java.util.Locale;
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
-import javax.swing.JComponent;
+
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
@@ -34,11 +34,11 @@ import javax.swing.border.EmptyBorder;
 public final class GiaoDienUtil {
 
     // ---- Màu chủ đạo của ứng dụng ----
-    public static final Color INK = new Color(32, 53, 68);          // chữ chính
-    public static final Color MUTED = new Color(119, 139, 151);     // chữ phụ
-    public static final Color TEAL = new Color(26, 151, 151);       // xanh nhấn
-    public static final Color LINE = new Color(226, 234, 237);      // đường viền
-    public static final Color CANVAS = new Color(244, 248, 249);    // nền vùng làm việc
+    public static final Color INK = new Color(32, 53, 68); // chữ chính
+    public static final Color MUTED = new Color(119, 139, 151); // chữ phụ
+    public static final Color TEAL = new Color(26, 151, 151); // xanh nhấn
+    public static final Color LINE = new Color(226, 234, 237); // đường viền
+    public static final Color CANVAS = new Color(244, 248, 249); // nền vùng làm việc
     public static final Color NEN_O_CHON = new Color(231, 246, 245); // nền ô được chọn
     public static final Color DANGER = new Color(214, 69, 80);
     public static final Color RED = new Color(200, 70, 70);

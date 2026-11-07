@@ -18,7 +18,7 @@ public class NhanVien {
     private String diaChi;
     private LocalDate ngayVaoLam;
     private String trangThaiLamViec;
-    private String chuyenMon;
+    private ChuyenMon chuyenMon;
     private String soChungChiHanhNghe;
 
     public NhanVien() {
@@ -26,7 +26,7 @@ public class NhanVien {
 
     public NhanVien(String maNhanVien, String hoTen, LocalDate ngaySinh, String gioiTinh,
             String soDienThoai, String email, String diaChi, LocalDate ngayVaoLam,
-            String trangThaiLamViec, String chuyenMon, String soChungChiHanhNghe) {
+            String trangThaiLamViec, ChuyenMon chuyenMon, String soChungChiHanhNghe) {
         this.maNhanVien = maNhanVien;
         this.hoTen = hoTen;
         this.ngaySinh = ngaySinh;
@@ -112,11 +112,11 @@ public class NhanVien {
         this.trangThaiLamViec = trangThaiLamViec;
     }
 
-    public String getChuyenMon() {
+    public ChuyenMon getChuyenMon() {
         return chuyenMon;
     }
 
-    public void setChuyenMon(String chuyenMon) {
+    public void setChuyenMon(ChuyenMon chuyenMon) {
         this.chuyenMon = chuyenMon;
     }
 

@@ -5,8 +5,8 @@
 
 package gui;
 
-import dao.PhanQuyenDAO;
 import entity.VaiTro;
+import service.PhanQuyenRbacService;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
@@ -51,7 +51,7 @@ public final class HeThongPhanQuyenRbacPanel extends JPanel {
     private static final int COT_CHUC_NANG = 1;
     private static final int COT_VAI_TRO_DAU = 2;
 
-    private final PhanQuyenDAO phanQuyenDAO = new PhanQuyenDAO();
+    private final PhanQuyenRbacService phanQuyenService = new PhanQuyenRbacService();
     /** Mã vai trò của tài khoản đang đăng nhập, dùng để chặn thao tác lưu. */
     private final String maVaiTro;
     private List<VaiTro> vaiTros;
@@ -70,8 +70,8 @@ public final class HeThongPhanQuyenRbacPanel extends JPanel {
         setLayout(new BorderLayout(0, 16));
         setOpaque(false);
         try {
-            phanQuyenDAO.khoiTaoQuyenMacDinhNeuChuaCo();
-            vaiTros = phanQuyenDAO.layDanhSachVaiTro();
+            phanQuyenService.khoiTaoQuyenMacDinhNeuChuaCo();
+            vaiTros = phanQuyenService.layDanhSachVaiTro();
             permissionModel = new PermissionTableModel();
             permissionTable = new JTable(permissionModel);
             loadMatrix();
@@ -190,7 +190,7 @@ public final class HeThongPhanQuyenRbacPanel extends JPanel {
     }
 
     private void loadMatrix() throws SQLException {
-        Map<String, Set<String>> storedPermissions = phanQuyenDAO.layTatCaQuyen();
+        Map<String, Set<String>> storedPermissions = phanQuyenService.layTatCaQuyen();
         List<QuyenRow> rows = new ArrayList<>();
         for (Map.Entry<String, List<String>> group : PhanQuyenMenu.nhomMenu().entrySet()) {
             for (String item : group.getValue()) {
@@ -245,7 +245,7 @@ public final class HeThongPhanQuyenRbacPanel extends JPanel {
 
     /** Chỉ quản trị viên mới được phép thay đổi phân quyền. */
     private boolean coQuyenLuuPhanQuyen() {
-        return maVaiTro == null || PhanQuyenMenu.QUAN_TRI.equalsIgnoreCase(maVaiTro);
+        return phanQuyenService.coQuyenCapNhat(maVaiTro);
     }
 
     private void updateSaveButtonState() {
@@ -350,7 +350,7 @@ public final class HeThongPhanQuyenRbacPanel extends JPanel {
         }
 
         try {
-            phanQuyenDAO.capNhatTatCaQuyen(permissions);
+            phanQuyenService.capNhatTatCaQuyen(permissions);
         } catch (SQLException | RuntimeException exception) {
             LOGGER.log(Level.SEVERE, "Không thể lưu phân quyền RBAC.", exception);
             showMessage("Không thể lưu phân quyền:\n" + moTaLoi(exception),

@@ -10,7 +10,7 @@ public class DonThuoc {
     private String maDonThuoc;
     private LocalDate ngayKe;
     private String loiDanChamSoc;
-    private String maChanDoan;
+    private ChanDoan maChanDoan;
 
     public DonThuoc() {
     }
@@ -54,15 +54,33 @@ public class DonThuoc {
         this.loiDanChamSoc = loiDanChamSoc;
     }
 
-    public String getMaChanDoan() {
+    public ChanDoan getMaChanDoan() {
         return maChanDoan;
     }
+
+    public String getMaChanDoanId() {
+        return maChanDoan == null ? null : maChanDoan.getMaChanDoan();
+    }
+
+    public ChanDoan getChanDoan() {
+        return maChanDoan;
+    }
+
+    public void setChanDoan(ChanDoan chanDoan) {
+        if (chanDoan == null)
+            throw new IllegalArgumentException("ChanDoan không được null.");
+        this.maChanDoan = chanDoan;
+    }
+
+    public void setMaChanDoan(ChanDoan chanDoan) { setChanDoan(chanDoan); }
 
     public void setMaChanDoan(String maChanDoan) {
         if (maChanDoan == null)
             throw new IllegalArgumentException("MaChanDoan không được null.");
         if (maChanDoan.length() > 20)
             throw new IllegalArgumentException("MaChanDoan tối đa 20 ký tự.");
-        this.maChanDoan = maChanDoan;
+        ChanDoan chanDoan = new ChanDoan();
+        chanDoan.setMaChanDoan(maChanDoan);
+        this.maChanDoan = chanDoan;
     }
 }

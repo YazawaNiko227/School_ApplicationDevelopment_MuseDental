@@ -43,9 +43,9 @@ import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import javax.swing.border.EmptyBorder;
 
-import dao.DashboardDAO;
 import entity.LichHenTongQuan;
 import entity.ThongKeTongQuan;
+import service.DashboardService;
 import util.GiaoDienUtil;
 
 /**
@@ -78,7 +78,7 @@ public final class ManHinhChinhFrame extends JFrame {
     private final String tenDangNhap;
     private final Set<String> menuDuocXem;
     private final String maVaiTro;
-    private final DashboardDAO dashboardDAO = new DashboardDAO();
+    private final DashboardService dashboardService = new DashboardService();
     // Các thành phần này được giữ lại để cập nhật trang khi người dùng chọn menu.
     private final JPanel contentPanel = new JPanel(new BorderLayout());
     private final JLabel pageTitle = new JLabel("Tổng quan");
@@ -179,6 +179,7 @@ public final class ManHinhChinhFrame extends JFrame {
                 "Quản lý bệnh nhân",
                 "Quản lý thuốc",
                 "Quản lý vật tư y tế",
+                "Quản lý chuyên môn",
                 "Quản lý dịch vụ và bảng giá"
         });
         addCollapsibleSection(navigation, "CẬP NHẬT", new String[] {
@@ -190,6 +191,9 @@ public final class ManHinhChinhFrame extends JFrame {
         addCollapsibleSection(navigation, "TÌM KIẾM", new String[] {
                 "Tìm hồ sơ bệnh án EMR",
                 "Tra cứu hóa đơn / giao dịch",
+                "Tra cứu lịch sử vật tư",
+                "Danh sách phác đồ đã lưu",
+                "Danh sách đơn thuốc đã lưu",
                 "Lịch làm việc cá nhân"
         });
         addCollapsibleSection(navigation, "XỬ LÝ", new String[] {
@@ -279,7 +283,12 @@ public final class ManHinhChinhFrame extends JFrame {
     private void addCollapsibleSection(JPanel navigation, String title, String[] items) {
         java.util.List<String> visibleItems = new ArrayList<>();
         for (String item : items) {
-            if (menuDuocXem.contains(item)) {
+            if (menuDuocXem.contains(item)
+                    || ("Danh sách phác đồ đã lưu".equals(item)
+                            && (menuDuocXem.contains("Phác đồ điều trị và dự toán chi phí")
+                                    || menuDuocXem.contains("Lập kế hoạch điều trị")))
+                    || ("Danh sách đơn thuốc đã lưu".equals(item)
+                            && menuDuocXem.contains("Kê đơn thuốc điện tử"))) {
                 visibleItems.add(item);
             }
         }
@@ -325,6 +334,8 @@ public final class ManHinhChinhFrame extends JFrame {
                     showMedicineInventory(item);
                 } else if ("Quản lý vật tư y tế".equals(item)) {
                     showVatTuYTe();
+                } else if ("Quản lý chuyên môn".equals(item)) {
+                    showQuanLyChuyenMon();
                 } else if ("Quản lý dịch vụ và bảng giá".equals(item)) {
                     showServiceManagement();
                 } else if ("Hồ sơ bệnh án điện tử EMR".equals(item)) {
@@ -334,6 +345,10 @@ public final class ManHinhChinhFrame extends JFrame {
                     showPrescriptionPanel();
                 } else if ("Phác đồ điều trị và dự toán chi phí".equals(item)) {
                     showTreatmentPlanPanel();
+                } else if ("Danh sách phác đồ đã lưu".equals(item)) {
+                    showSavedTreatmentPlans();
+                } else if ("Danh sách đơn thuốc đã lưu".equals(item)) {
+                    showSavedPrescriptions();
 
                 } else if ("Ghi nhận vật tư tiêu hao".equals(item)) {
                     showGhiNhanVatTu();
@@ -344,6 +359,8 @@ public final class ManHinhChinhFrame extends JFrame {
                     showEMRSearch();
                 } else if ("Tra cứu hóa đơn / giao dịch".equals(item)) {
                     showInvoiceLookup();
+                } else if ("Tra cứu lịch sử vật tư".equals(item)) {
+                    showLichSuVatTu();
                 } else if ("Dashboard điều phối phòng khám".equals(item)) {
                     showClinicDashboard(item);
                 } else if ("Lịch làm việc cá nhân".equals(item)) {
@@ -522,8 +539,8 @@ public final class ManHinhChinhFrame extends JFrame {
         pageTitle.setText("Tổng quan");
         contentPanel.removeAll();
         try {
-            ThongKeTongQuan stats = dashboardDAO.layThongKeHomNay();
-            java.util.List<LichHenTongQuan> appointments = dashboardDAO.layLichHenSapToi(4);
+            ThongKeTongQuan stats = dashboardService.layThongKeHomNay();
+            java.util.List<LichHenTongQuan> appointments = dashboardService.layLichHenSapToi();
             pageDescription.setText("Số liệu thực tế từ cơ sở dữ liệu · Cập nhật " +
                     LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm")));
             contentPanel.add(createDashboardContent(stats, appointments), BorderLayout.CENTER);
@@ -605,6 +622,13 @@ public final class ManHinhChinhFrame extends JFrame {
                 new DanhMucQuanLyDichVuPanel());
     }
 
+    private void showQuanLyChuyenMon() {
+        showContentPanel(
+                "Quản lý chuyên môn",
+                "Thêm, sửa, xóa và tra cứu danh mục chuyên môn",
+                new DanhMucQuanLyChuyenMonPanel());
+    }
+
     // CẬP NHẬT
     // Hiển thị bảng theo dõi tiếp đón, hàng chờ và trạng thái các phòng khám.
     private void showClinicDashboard(String menuTitle) {
@@ -638,6 +662,20 @@ public final class ManHinhChinhFrame extends JFrame {
                 new CapNhatPhacDoDieuTriVaDuToanChiPhiPanel());
     }
 
+    private void showSavedTreatmentPlans() {
+        showContentPanel(
+                "Danh sách phác đồ đã lưu",
+                "Tra cứu phác đồ điều trị, thông tin bệnh nhân và dịch vụ dự toán",
+                new TimKiemPhacDoDaLuuPanel());
+    }
+
+    private void showSavedPrescriptions() {
+        showContentPanel(
+                "Danh sách đơn thuốc đã lưu",
+                "Tra cứu đơn thuốc, thông tin bệnh nhân và thuốc đã kê",
+                new TimKiemDonThuocDaLuuPanel());
+    }
+
     /* trinhKiet */
     private void showGhiNhanVatTu() {
         showContentPanel(
@@ -660,6 +698,13 @@ public final class ManHinhChinhFrame extends JFrame {
                 "Tra cứu hóa đơn / giao dịch",
                 "Tìm kiếm hóa đơn và xem thông tin giao dịch",
                 new TimKiemTraCuuHoaDonPanel());
+    }
+
+    private void showLichSuVatTu() {
+        showContentPanel(
+                "Tra cứu lịch sử vật tư",
+                "Tìm kiếm phiếu xuất vật tư và xem chi tiết từng lần xuất",
+                new TimKiemLichSuVatTuPanel());
     }
 
     // XỬ LÝ
@@ -917,7 +962,8 @@ public final class ManHinhChinhFrame extends JFrame {
             for (LichHenTongQuan appointment : appointments) {
                 Color statusBackground = "Da xac nhan".equals(appointment.getTrangThai())
                         || "Da check-in".equals(appointment.getTrangThai())
-                        ? new Color(231, 246, 245) : new Color(255, 246, 232);
+                                ? new Color(231, 246, 245)
+                                : new Color(255, 246, 232);
                 appointmentList.add(createAppointmentRow(
                         appointment.getThoiGianHen().format(DateTimeFormatter.ofPattern("dd/MM HH:mm")),
                         appointment.getTenBenhNhan(),

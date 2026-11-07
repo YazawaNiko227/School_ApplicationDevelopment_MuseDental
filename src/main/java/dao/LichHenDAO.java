@@ -2,12 +2,12 @@ package dao;
 
 import connectDB.ConnectDB;
 import dto.LichHenInfo;
+import entity.LichHenKhamInfo;
 import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -18,13 +18,6 @@ import java.util.List;
  *   xuất kho.
  */
 public class LichHenDAO {
-
-    /** Appointment and patient/room details required by the clinical examination screen. */
-    public record LichHenKhamInfo(String maLichHen, LocalDateTime thoiGianHen, String trangThai,
-            String maBenhNhan, String hoTen, String gioiTinh, LocalDate ngaySinh, String tienSuBenhLy,
-            String thongTinDiUng, String nguoiBaoHo, String maHoSo, String maNhaSi, String tenNhaSi,
-            String maPhong, String trangThaiPhong, LocalDateTime thoiGianCheckIn) {
-    }
 
     /** Eligible appointments for today's clinical examination queue. */
     public List<LichHenKhamInfo> layChoKhamHomNay(LocalDate ngay) throws SQLException {
@@ -100,8 +93,9 @@ public class LichHenDAO {
                 + "BN.HoTen, LH.MaPhong, CD.MaChanDoan "
                 + "FROM LichHen LH JOIN BenhNhan BN ON BN.MaBenhNhan = LH.MaBenhNhan "
                 + "LEFT JOIN ChanDoan CD ON CD.MaLichHen = LH.MaLichHen "
-                + "WHERE LH.TrangThai IN (N'Dang kham', N'Hoan thanh') "
-                + "OR CD.TrangThai = N'Nhap' "
+                + "WHERE (LH.TrangThai IN (N'Dang kham', N'Hoan thanh') "
+                + "OR CD.TrangThai = N'Nhap') "
+                + "AND NOT EXISTS (SELECT 1 FROM PhieuXuatKho PX WHERE PX.MaLichHen = LH.MaLichHen) "
                 + "ORDER BY LH.ThoiGianHen DESC, LH.MaLichHen DESC";
         try (PreparedStatement ps = ConnectDB.getConnection().prepareStatement(sql);
                 ResultSet rs = ps.executeQuery()) {

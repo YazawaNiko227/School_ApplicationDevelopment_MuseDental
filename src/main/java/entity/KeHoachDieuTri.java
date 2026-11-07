@@ -8,8 +8,8 @@ public class KeHoachDieuTri {
     private String tenPhacDo;
     private Integer thoiGianDuKien;
     private String trangThai;
-    private String maChanDoan;
-    private String maBenhNhan;
+    private ChanDoan maChanDoan;
+    private BenhNhan maBenhNhan;
 
     public KeHoachDieuTri() {
         this.trangThai = "Dang thuc hien";
@@ -67,28 +67,64 @@ public class KeHoachDieuTri {
         this.trangThai = trangThai;
     }
 
-    public String getMaChanDoan() {
+    public ChanDoan getMaChanDoan() {
         return maChanDoan;
     }
+
+    public String getMaChanDoanId() {
+        return maChanDoan == null ? null : maChanDoan.getMaChanDoan();
+    }
+
+    public ChanDoan getChanDoan() {
+        return maChanDoan;
+    }
+
+    public void setChanDoan(ChanDoan chanDoan) {
+        if (chanDoan == null)
+            throw new IllegalArgumentException("ChanDoan không được null.");
+        this.maChanDoan = chanDoan;
+    }
+
+    public void setMaChanDoan(ChanDoan chanDoan) { setChanDoan(chanDoan); }
 
     public void setMaChanDoan(String maChanDoan) {
         if (maChanDoan == null)
             throw new IllegalArgumentException("MaChanDoan không được null.");
         if (maChanDoan != null && maChanDoan.length() > 20)
             throw new IllegalArgumentException("MaChanDoan tối đa 20 ký tự.");
-        this.maChanDoan = maChanDoan;
+        ChanDoan chanDoan = new ChanDoan();
+        chanDoan.setMaChanDoan(maChanDoan);
+        this.maChanDoan = chanDoan;
     }
 
-    public String getMaBenhNhan() {
+    public BenhNhan getMaBenhNhan() {
         return maBenhNhan;
     }
+
+    public String getMaBenhNhanId() {
+        return maBenhNhan == null ? null : maBenhNhan.getMaBenhNhan();
+    }
+
+    public BenhNhan getBenhNhan() {
+        return maBenhNhan;
+    }
+
+    public void setBenhNhan(BenhNhan benhNhan) {
+        if (benhNhan == null)
+            throw new IllegalArgumentException("BenhNhan không được null.");
+        this.maBenhNhan = benhNhan;
+    }
+
+    public void setMaBenhNhan(BenhNhan benhNhan) { setBenhNhan(benhNhan); }
 
     public void setMaBenhNhan(String maBenhNhan) {
         if (maBenhNhan == null)
             throw new IllegalArgumentException("MaBenhNhan không được null.");
         if (maBenhNhan != null && maBenhNhan.length() > 20)
             throw new IllegalArgumentException("MaBenhNhan tối đa 20 ký tự.");
-        this.maBenhNhan = maBenhNhan;
+        BenhNhan benhNhan = new BenhNhan();
+        benhNhan.setMaBenhNhan(maBenhNhan);
+        this.maBenhNhan = benhNhan;
     }
 
 }

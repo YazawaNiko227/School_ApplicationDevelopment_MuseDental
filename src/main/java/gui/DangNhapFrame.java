@@ -39,9 +39,8 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.text.JTextComponent;
 
 import connectDB.ConnectDB;
-import dao.DangNhapDAO;
-import dao.PhanQuyenDAO;
 import entity.TaiKhoan;
+import service.LoginService;
 
 /**
  * DangNhapFrame là màn hình đăng nhập của ứng dụng Muse Dental.
@@ -66,8 +65,7 @@ public final class DangNhapFrame extends JFrame {
     private final JTextField usernameField = new JTextField();
     private final JPasswordField passwordField = new JPasswordField();
     private final JCheckBox rememberCheckBox = new JCheckBox("Ghi nhớ đăng nhập");
-    private final DangNhapDAO dangNhapDAO = new DangNhapDAO();
-    private final PhanQuyenDAO phanQuyenDAO = new PhanQuyenDAO();
+    private final LoginService loginService = new LoginService();
 
     public DangNhapFrame() {
         super("Nha khoa Muse | Đăng nhập");
@@ -311,7 +309,7 @@ public final class DangNhapFrame extends JFrame {
 
     /**
      * Xử lý sự kiện đăng nhập khi người dùng bấm nút hoặc nhấn Enter.
-     * Thông tin được xác thực qua DAO; quyền menu được tải từ CSDL trước khi mở
+     * Thông tin được xác thực qua service; quyền menu được tải từ CSDL trước khi mở
      * màn hình chính.
      */
     private void submitLogin(ActionEvent event) {
@@ -319,16 +317,18 @@ public final class DangNhapFrame extends JFrame {
         char[] password = passwordField.getPassword();
 
         try {
-            if (username.isEmpty()) {
+            LoginService.ValidationError validationError =
+                    loginService.validateCredentials(username, password);
+            if (validationError == LoginService.ValidationError.USERNAME_REQUIRED) {
                 showValidationMessage("Vui lòng nhập tên đăng nhập.", usernameField);
                 return;
             }
-            if (password.length == 0) {
+            if (validationError == LoginService.ValidationError.PASSWORD_REQUIRED) {
                 showValidationMessage("Vui lòng nhập mật khẩu.", passwordField);
                 return;
             }
 
-            TaiKhoan account = dangNhapDAO.dangNhap(username, password);
+            TaiKhoan account = loginService.dangNhap(username, password);
             if (account == null) {
                 JOptionPane.showMessageDialog(
                         this,
@@ -341,9 +341,7 @@ public final class DangNhapFrame extends JFrame {
             }
 
             luuTenDangNhapDaGhiNho(username);
-            phanQuyenDAO.khoiTaoQuyenMacDinhNeuChuaCo();
-            java.util.Set<String> allowedMenus = phanQuyenDAO
-                    .layChucNangDuocXem(account.getVaiTro().getMaVaiTro());
+            java.util.Set<String> allowedMenus = loginService.layChucNangDuocXem(account);
             String displayName = account.getNhanVien() == null
                     ? account.getTenDangNhap()
                     : account.getNhanVien().getHoTen();

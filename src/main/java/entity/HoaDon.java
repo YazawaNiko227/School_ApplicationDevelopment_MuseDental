@@ -11,9 +11,9 @@ public class HoaDon {
     private LocalDate ngayLap;
     private String trangThaiThanhToan;
     private String phuongThucThanhToan;
-    private String maNhanVien;
-    private String maBenhNhan;
-    private String maChanDoan;
+    private NhanVien maNhanVien;
+    private BenhNhan maBenhNhan;
+    private ChanDoan maChanDoan;
 
     public HoaDon() {
         this.trangThaiThanhToan = CHUA_THANH_TOAN;
@@ -62,27 +62,69 @@ public class HoaDon {
         this.phuongThucThanhToan = phuongThucThanhToan;
     }
 
-    public String getMaNhanVien() { return maNhanVien; }
+    public NhanVien getMaNhanVien() { return maNhanVien; }
+
+    public String getMaNhanVienId() { return maNhanVien == null ? null : maNhanVien.getMaNhanVien(); }
+
+    public NhanVien getNhanVien() { return maNhanVien; }
+
+    public void setNhanVien(NhanVien nhanVien) {
+        if (nhanVien == null) throw new IllegalArgumentException("nhanVien không được null");
+        this.maNhanVien = nhanVien;
+    }
+
+    public void setMaNhanVien(NhanVien nhanVien) { setNhanVien(nhanVien); }
 
     public void setMaNhanVien(String maNhanVien) {
         if (maNhanVien == null || maNhanVien.trim().isEmpty()) throw new IllegalArgumentException("maNhanVien không được để trống");
         if (maNhanVien.trim().length() > 20) throw new IllegalArgumentException("maNhanVien tối đa 20 ký tự");
-        this.maNhanVien = maNhanVien.trim();
+        NhanVien nhanVien = new NhanVien();
+        nhanVien.setMaNhanVien(maNhanVien.trim());
+        this.maNhanVien = nhanVien;
     }
 
-    public String getMaBenhNhan() { return maBenhNhan; }
+    public BenhNhan getMaBenhNhan() { return maBenhNhan; }
+
+    public String getMaBenhNhanId() { return maBenhNhan == null ? null : maBenhNhan.getMaBenhNhan(); }
+
+    public BenhNhan getBenhNhan() { return maBenhNhan; }
+
+    public void setBenhNhan(BenhNhan benhNhan) {
+        if (benhNhan == null) throw new IllegalArgumentException("benhNhan không được null");
+        this.maBenhNhan = benhNhan;
+    }
+
+    public void setMaBenhNhan(BenhNhan benhNhan) { setBenhNhan(benhNhan); }
 
     public void setMaBenhNhan(String maBenhNhan) {
         if (maBenhNhan == null || maBenhNhan.trim().isEmpty()) throw new IllegalArgumentException("maBenhNhan không được để trống");
         if (maBenhNhan.trim().length() > 20) throw new IllegalArgumentException("maBenhNhan tối đa 20 ký tự");
-        this.maBenhNhan = maBenhNhan.trim();
+        BenhNhan benhNhan = new BenhNhan();
+        benhNhan.setMaBenhNhan(maBenhNhan.trim());
+        this.maBenhNhan = benhNhan;
     }
 
-    public String getMaChanDoan() { return maChanDoan; }
+    public ChanDoan getMaChanDoan() { return maChanDoan; }
+
+    public String getMaChanDoanId() { return maChanDoan == null ? null : maChanDoan.getMaChanDoan(); }
+
+    public ChanDoan getChanDoan() { return maChanDoan; }
+
+    public void setChanDoan(ChanDoan chanDoan) {
+        this.maChanDoan = chanDoan;
+    }
+
+    public void setMaChanDoan(ChanDoan chanDoan) { setChanDoan(chanDoan); }
 
     public void setMaChanDoan(String maChanDoan) {
         String v = (maChanDoan == null || maChanDoan.trim().isEmpty()) ? null : maChanDoan.trim();
         if (v != null && v.length() > 20) throw new IllegalArgumentException("maChanDoan tối đa 20 ký tự");
-        this.maChanDoan = v;
+        if (v == null) {
+            this.maChanDoan = null;
+        } else {
+            ChanDoan chanDoan = new ChanDoan();
+            chanDoan.setMaChanDoan(v);
+            this.maChanDoan = chanDoan;
+        }
     }
 }

@@ -1,9 +1,9 @@
 package gui;
 
 import com.toedter.calendar.JDateChooser;
-import dao.DieuPhoiPhongKhamDAO;
-import dao.DieuPhoiPhongKhamDAO.LichHenDieuPhoi;
-import dao.DieuPhoiPhongKhamDAO.PhongDieuPhoi;
+import entity.LichHenDieuPhoi;
+import entity.PhongKham;
+import service.DieuPhoiPhongKhamService;
 import util.GiaoDienUtil;
 
 import java.awt.BorderLayout;
@@ -49,7 +49,7 @@ import javax.swing.table.DefaultTableModel;
  * Việc chuyển sang "Đang khám" do nha sĩ làm ở màn hình khám lâm sàng,
  * nên panel này KHÔNG đổi trạng thái phòng.
  *
- * Lịch hẹn và tình trạng phòng được đọc, cập nhật qua DieuPhoiPhongKhamDAO.
+ * Lịch hẹn và tình trạng phòng được đọc, cập nhật qua service điều phối.
  */
 public class XuLyDieuPhoiPhongKhamPanel extends JPanel {
     private static final Color INK = new Color(32, 53, 68);
@@ -63,19 +63,19 @@ public class XuLyDieuPhoiPhongKhamPanel extends JPanel {
     private static final DateTimeFormatter GIO = DateTimeFormatter.ofPattern("HH:mm");
 
     // Trạng thái lịch hẹn (hiển thị có dấu, DB lưu không dấu).
-    private static final String CHO_XAC_NHAN = "Chờ xác nhận";
-    private static final String DA_XAC_NHAN = "Đã xác nhận";
-    private static final String DA_CHECK_IN = "Đã check-in";
-    private static final String DANG_KHAM = "Đang khám";
-    private static final String HOAN_THANH = "Hoàn thành";
-    private static final String HUY = "Hủy";
-    private static final String VANG = "Vắng";
+    private static final String CHO_XAC_NHAN = DieuPhoiPhongKhamService.CHO_XAC_NHAN;
+    private static final String DA_XAC_NHAN = DieuPhoiPhongKhamService.DA_XAC_NHAN;
+    private static final String DA_CHECK_IN = DieuPhoiPhongKhamService.DA_CHECK_IN;
+    private static final String DANG_KHAM = DieuPhoiPhongKhamService.DANG_KHAM;
+    private static final String HOAN_THANH = DieuPhoiPhongKhamService.HOAN_THANH;
+    private static final String HUY = DieuPhoiPhongKhamService.HUY;
+    private static final String VANG = DieuPhoiPhongKhamService.VANG;
     private static final String TAT_CA = "Tất cả";
 
     // Trạng thái phòng.
-    private static final String SAN_SANG = "Sẵn sàng";
-    private static final String CAN_VE_SINH = "Cần vệ sinh";
-    private static final String BAO_TRI = "Bảo trì";
+    private static final String SAN_SANG = DieuPhoiPhongKhamService.SAN_SANG;
+    private static final String CAN_VE_SINH = DieuPhoiPhongKhamService.CAN_VE_SINH;
+    private static final String BAO_TRI = DieuPhoiPhongKhamService.BAO_TRI;
 
     // Chỉ số cột trong mỗi dòng lịch hẹn (Object[]).
     private static final int C_MA = 0;
@@ -88,7 +88,7 @@ public class XuLyDieuPhoiPhongKhamPanel extends JPanel {
 
     private final List<Object[]> dsLichHen = new ArrayList<>();
     private final List<Object[]> dsPhong = new ArrayList<>(); // {mã, tên, trạng thái}
-    private final DieuPhoiPhongKhamDAO dieuPhoiDAO = new DieuPhoiPhongKhamDAO();
+    private final DieuPhoiPhongKhamService dieuPhoiService = new DieuPhoiPhongKhamService();
 
     private final DefaultTableModel lichModel = new DefaultTableModel(
             new String[] { "Mã lịch", "Giờ hẹn", "Bệnh nhân", "Nha sĩ", "Phòng", "Trạng thái", "Check-in lúc",
@@ -266,18 +266,10 @@ public class XuLyDieuPhoiPhongKhamPanel extends JPanel {
         if (lich == null) {
             return;
         }
-        if (CHO_XAC_NHAN.equals(lich[C_TRANG_THAI])) {
-            showMessage("Lịch này chưa được xác nhận. Hãy xác nhận ở màn hình Đặt lịch hẹn khám trước.");
-            return;
-        }
-        if (!DA_XAC_NHAN.equals(lich[C_TRANG_THAI])) {
-            showMessage("Chỉ check-in được lịch đang ở trạng thái \"Đã xác nhận\".");
-            return;
-        }
         String maLichHen = (String) lich[C_MA];
         String maPhong = (String) lich[C_PHONG];
         try {
-            if (!dieuPhoiDAO.checkIn(maLichHen)) {
+            if (!dieuPhoiService.checkIn(maLichHen, (String) lich[C_TRANG_THAI])) {
                 showMessage("Lịch hẹn đã được cập nhật ở nơi khác. Danh sách sẽ được tải lại.");
                 lamMoi();
                 return;
@@ -286,6 +278,9 @@ public class XuLyDieuPhoiPhongKhamPanel extends JPanel {
             chonLaiDong(maLichHen);
         } catch (SQLException ex) {
             showDatabaseError("Không thể check-in lịch hẹn.", ex);
+            return;
+        } catch (IllegalArgumentException ex) {
+            showMessage(ex.getMessage());
             return;
         }
 
@@ -303,11 +298,6 @@ public class XuLyDieuPhoiPhongKhamPanel extends JPanel {
         if (lich == null) {
             return;
         }
-        if (!DA_CHECK_IN.equals(lich[C_TRANG_THAI])) {
-            showMessage("Chỉ điều phối được bệnh nhân đang ở trạng thái \"Đã check-in\".");
-            return;
-        }
-
         List<String> phongTrong = new ArrayList<>();
         for (Object[] phong : dsPhong) {
             if (SAN_SANG.equals(phong[2])) {
@@ -330,7 +320,7 @@ public class XuLyDieuPhoiPhongKhamPanel extends JPanel {
         String maLichHen = (String) lich[C_MA];
         String tenBenhNhan = (String) lich[C_BENH_NHAN];
         try {
-            dieuPhoiDAO.doiPhong(maLichHen, maPhong);
+            dieuPhoiService.doiPhong(maLichHen, (String) lich[C_TRANG_THAI], maPhong);
             lamMoi();
             chonLaiDong(maLichHen);
             showMessage("Đã điều phối " + tenBenhNhan + " vào phòng " + maPhong
@@ -338,6 +328,8 @@ public class XuLyDieuPhoiPhongKhamPanel extends JPanel {
         } catch (SQLException ex) {
             showDatabaseError("Không thể điều phối lịch hẹn vào phòng.", ex);
             lamMoi();
+        } catch (IllegalArgumentException ex) {
+            showMessage(ex.getMessage());
         }
     }
 
@@ -347,24 +339,19 @@ public class XuLyDieuPhoiPhongKhamPanel extends JPanel {
         if (lich == null) {
             return;
         }
-        if (!DA_XAC_NHAN.equals(lich[C_TRANG_THAI]) && !CHO_XAC_NHAN.equals(lich[C_TRANG_THAI])) {
-            showMessage("Chỉ đánh dấu vắng được lịch chưa check-in.");
-            return;
-        }
         int choice = JOptionPane.showConfirmDialog(this,
                 "Đánh dấu bệnh nhân " + lich[C_BENH_NHAN] + " vắng mặt?",
                 "Xác nhận", JOptionPane.YES_NO_OPTION);
         if (choice == JOptionPane.YES_OPTION) {
-            String trangThaiHienTai = CHO_XAC_NHAN.equals(lich[C_TRANG_THAI])
-                    ? "Cho xac nhan"
-                    : "Da xac nhan";
             try {
-                if (!dieuPhoiDAO.danhDauVang((String) lich[C_MA], trangThaiHienTai)) {
+                if (!dieuPhoiService.danhDauVang((String) lich[C_MA], (String) lich[C_TRANG_THAI])) {
                     showMessage("Lịch hẹn đã được cập nhật ở nơi khác. Danh sách sẽ được tải lại.");
                 }
                 lamMoi();
             } catch (SQLException ex) {
                 showDatabaseError("Không thể đánh dấu vắng lịch hẹn.", ex);
+            } catch (IllegalArgumentException ex) {
+                showMessage(ex.getMessage());
             }
         }
     }
@@ -385,8 +372,8 @@ public class XuLyDieuPhoiPhongKhamPanel extends JPanel {
                 showMessage("Vui lòng chọn ngày cần điều phối.");
                 return;
             }
-            List<LichHenDieuPhoi> lichTrongNgay = dieuPhoiDAO.layLichTheoNgay(ngayChon);
-            List<PhongDieuPhoi> phongKhamList = dieuPhoiDAO.layTatCaPhong();
+            List<LichHenDieuPhoi> lichTrongNgay = dieuPhoiService.layLichTheoNgay(ngayChon);
+            List<PhongKham> phongKhamList = dieuPhoiService.layTatCaPhong();
             dsLichHen.clear();
             for (LichHenDieuPhoi lich : lichTrongNgay) {
                 dsLichHen.add(new Object[] {
@@ -395,16 +382,16 @@ public class XuLyDieuPhoiPhongKhamPanel extends JPanel {
                         lich.getTenBenhNhan(),
                         lich.getNhaSi(),
                         lich.getMaPhong(),
-                        trangThaiHienThi(lich.getTrangThai()),
+                        dieuPhoiService.trangThaiLichHienThi(lich.getTrangThai()),
                         lich.getThoiGianCheckIn()
                 });
             }
             dsPhong.clear();
-            for (PhongDieuPhoi phong : phongKhamList) {
+            for (PhongKham phong : phongKhamList) {
                 dsPhong.add(new Object[] {
                         phong.getMaPhong(),
                         phong.getTenPhong(),
-                        trangThaiPhongHienThi(phong.getTrangThai())
+                        dieuPhoiService.trangThaiPhongHienThi(phong.getTrangThai())
                 });
             }
         } catch (SQLException ex) {
@@ -504,42 +491,6 @@ public class XuLyDieuPhoiPhongKhamPanel extends JPanel {
             }
         }
         return "";
-    }
-
-    private String trangThaiHienThi(String trangThai) {
-        switch (trangThai) {
-            case "Cho xac nhan":
-                return CHO_XAC_NHAN;
-            case "Da xac nhan":
-                return DA_XAC_NHAN;
-            case "Da check-in":
-                return DA_CHECK_IN;
-            case "Dang kham":
-                return DANG_KHAM;
-            case "Hoan thanh":
-                return HOAN_THANH;
-            case "Huy":
-                return HUY;
-            case "Vang":
-                return VANG;
-            default:
-                throw new IllegalArgumentException("Trạng thái lịch hẹn không hợp lệ: " + trangThai);
-        }
-    }
-
-    private String trangThaiPhongHienThi(String trangThai) {
-        switch (trangThai) {
-            case "San sang":
-                return SAN_SANG;
-            case "Dang kham":
-                return "Đang khám";
-            case "Can ve sinh":
-                return CAN_VE_SINH;
-            case "Bao tri":
-                return BAO_TRI;
-            default:
-                throw new IllegalArgumentException("Trạng thái phòng không hợp lệ: " + trangThai);
-        }
     }
 
     private void showDatabaseError(String message, SQLException ex) {

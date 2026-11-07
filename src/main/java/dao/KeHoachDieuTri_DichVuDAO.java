@@ -28,8 +28,8 @@ public class KeHoachDieuTri_DichVuDAO {
     public boolean them(ChiTietKeHoachDieuTriDichVu ct) throws SQLException {
         try (PreparedStatement ps = ConnectDB.getConnection().prepareStatement(
                 "INSERT INTO KeHoachDieuTri_DichVu (MaKeHoach, MaDichVu, SoLuong) VALUES (?,?,?)")) {
-            ps.setString(1, ct.getMaKeHoach());
-            ps.setString(2, ct.getMaDichVu());
+            ps.setString(1, ct.getMaKeHoachId());
+            ps.setString(2, ct.getMaDichVuId());
             ps.setInt(3, ct.getSoLuong());
             return ps.executeUpdate() == 1;
         }

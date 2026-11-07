@@ -1,5 +1,6 @@
 package gui;
 
+import dto.CaKhamView;
 import java.awt.BasicStroke;
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -17,7 +18,7 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.sql.SQLException;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
+
 import java.time.Period;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -26,7 +27,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.function.IntConsumer;
-import dao.ChanDoanDAO;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
@@ -48,10 +48,9 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 
-import dao.KhamLamSangDAO;
-import dao.SoDoRangDAO;
 import entity.ChanDoan;
 import entity.SoDoRang;
+import service.KhamLamSangService;
 
 /**
  * Panel "Khám lâm sàng và sơ đồ răng" (bước 5 và bước 8 trong luồng khám bệnh
@@ -69,7 +68,7 @@ import entity.SoDoRang;
  * Phác đồ điều trị, kê đơn thuốc, ghi nhận vật tư làm ở các menu riêng
  * (chỉ cần MaChanDoan), nên nha sĩ nên làm xong các việc đó trước khi hoàn tất.
  *
- * Hàng chờ, chẩn đoán và sơ đồ răng được đọc/ghi trực tiếp qua DAO.
+ * Hàng chờ, chẩn đoán và sơ đồ răng được xử lý qua service khám lâm sàng.
  */
 public class XuLyKhamLamSangVaSoDoRangPanel extends JPanel {
     private static final Color INK = new Color(32, 53, 68);
@@ -100,65 +99,12 @@ public class XuLyKhamLamSangVaSoDoRangPanel extends JPanel {
     // Bệnh nhân dưới ngưỡng tuổi này tự động hiển thị sơ đồ răng sữa.
     private static final int TUOI_RANG_SUA = 13;
 
-    /** Một ca khám = một lịch hẹn + lần khám (ChanDoan) sinh ra từ lịch đó. */
-    private static final class CaKham {
-        final String maLich;
-        final LocalDateTime gioHen;
-        final String maBenhNhan;
-        final String hoTen;
-        final String gioiTinh;
-        final LocalDate ngaySinh;
-        final String tienSu;
-        final String diUng;
-        final String nguoiBaoHo;
-        final String maHoSo;
-        final String maNhaSi;
-        final String nhaSi;
-        String maPhong;
-        String trangThaiPhong;
-        String trangThai;
-        // Phần chẩn đoán (có sau khi bấm "Vào khám").
-        String maChanDoan;
-        String lyDo = "";
-        String trieuChung = "";
-        String ketLuan = "";
-        boolean daChot;
-
-        CaKham(String maLich, LocalDateTime gioHen, String maBenhNhan, String hoTen, String gioiTinh,
-                LocalDate ngaySinh, String tienSu, String diUng, String nguoiBaoHo, String maHoSo,
-                String maNhaSi, String nhaSi, String maPhong, String trangThaiPhong, String trangThai,
-                String maChanDoan, String lyDo, String trieuChung, String ketLuan, String trangThaiChanDoan) {
-            this.maLich = maLich;
-            this.gioHen = gioHen;
-            this.maBenhNhan = maBenhNhan;
-            this.hoTen = hoTen;
-            this.gioiTinh = gioiTinh;
-            this.ngaySinh = ngaySinh;
-            this.tienSu = tienSu;
-            this.diUng = diUng;
-            this.nguoiBaoHo = nguoiBaoHo;
-            this.maHoSo = maHoSo;
-            this.maNhaSi = maNhaSi;
-            this.nhaSi = nhaSi;
-            this.maPhong = maPhong;
-            this.trangThaiPhong = trangThaiPhong;
-            this.trangThai = trangThai;
-            this.maChanDoan = maChanDoan;
-            this.lyDo = lyDo == null ? "" : lyDo;
-            this.trieuChung = trieuChung == null ? "" : trieuChung;
-            this.ketLuan = ketLuan == null ? "" : ketLuan;
-            this.daChot = "Da chot".equals(trangThaiChanDoan);
-        }
-    }
-
-    private final KhamLamSangDAO khamLamSangDAO = new KhamLamSangDAO();
-    private final ChanDoanDAO chanDoanDAO = new ChanDoanDAO();
-    private final SoDoRangDAO soDoRangDAO = new SoDoRangDAO();
-    private final List<CaKham> dsCa = new ArrayList<>();
+    private final KhamLamSangService khamLamSangService = new KhamLamSangService();
+    private final List<CaKhamView> dsCa = new ArrayList<>();
     // maHoSo -> (maRang -> {tình trạng, ghi chú})
     private final Map<String, Map<Integer, String[]>> soDoRang = new HashMap<>();
 
-    private CaKham caHienTai;
+    private CaKhamView caHienTai;
     private boolean dangNapBang;
 
     // ----- Hàng chờ -----
@@ -471,28 +417,22 @@ public class XuLyKhamLamSangVaSoDoRangPanel extends JPanel {
      * Nha sĩ bấm "Vào khám": tạo ChanDoan nháp, lịch và phòng chuyển "Đang khám".
      */
     private void vaoKham() {
-        CaKham ca = layCaDangChon();
+        CaKhamView ca = layCaDangChon();
         if (ca == null) {
             showMessage("Vui lòng chọn một bệnh nhân trong hàng chờ.");
             return;
         }
-        if (!DA_CHECK_IN.equals(ca.trangThai)) {
-            showMessage("Chỉ vào khám được bệnh nhân đang ở trạng thái \"" + DA_CHECK_IN + "\".");
-            return;
-        }
-        if (ca.maHoSo == null) {
-            showWarning("Bệnh nhân chưa có hồ sơ bệnh án nên chưa thể vào khám.");
-            return;
-        }
         try {
-            ChanDoan chanDoan = chanDoanDAO.taoNhap(chanDoanDAO.sinhMa(), LocalDate.now(),
-                    ca.maLich, ca.maHoSo, ca.maNhaSi, ca.maPhong);
+            ChanDoan chanDoan = khamLamSangService.vaoKham(
+                    ca.maLich, ca.trangThai, ca.maHoSo, ca.maNhaSi, ca.maPhong);
             if (chanDoan == null) {
                 throw new SQLException("Không tải lại được chẩn đoán vừa tạo.");
             }
             lamMoi(ca.maLich);
             showMessage("Đã mở chẩn đoán nháp " + chanDoan.getMaChanDoan()
                     + " cho bệnh nhân " + ca.hoTen + ".");
+        } catch (IllegalArgumentException ex) {
+            showWarning(ex.getMessage());
         } catch (SQLException | IllegalStateException ex) {
             showError("Không thể vào khám", ex);
         }
@@ -503,18 +443,15 @@ public class XuLyKhamLamSangVaSoDoRangPanel extends JPanel {
         if (!dangKham(caHienTai)) {
             return;
         }
-        try {
-            kiemTraForm();
-        } catch (IllegalArgumentException ex) {
-            showWarning(ex.getMessage());
-            return;
-        }
         ghiFormVaoCa(caHienTai);
         try {
-            if (!chanDoanDAO.capNhatNhap(taoChanDoan(caHienTai))) {
+            if (!khamLamSangService.luuNhap(taoChanDoan(caHienTai))) {
                 showWarning("Không tìm thấy chẩn đoán nháp để lưu. Hãy tải lại hàng chờ.");
                 return;
             }
+        } catch (IllegalArgumentException ex) {
+            showWarning(ex.getMessage());
+            return;
         } catch (SQLException | IllegalStateException ex) {
             showError("Không thể lưu nháp chẩn đoán", ex);
             return;
@@ -530,11 +467,8 @@ public class XuLyKhamLamSangVaSoDoRangPanel extends JPanel {
             return;
         }
         try {
-            kiemTraForm();
-            if (txtKetLuan.getText().trim().isEmpty()) {
-                txtKetLuan.requestFocusInWindow();
-                throw new IllegalArgumentException("Kết luận chẩn đoán không được để trống khi hoàn tất khám.");
-            }
+            khamLamSangService.kiemTraNoiDungChanDoan(
+                    txtLyDo.getText(), txtTrieuChung.getText(), txtKetLuan.getText(), true);
         } catch (IllegalArgumentException ex) {
             showWarning(ex.getMessage());
             return;
@@ -549,12 +483,15 @@ public class XuLyKhamLamSangVaSoDoRangPanel extends JPanel {
         }
 
         ghiFormVaoCa(caHienTai);
-        CaKham ca = caHienTai;
+        CaKhamView ca = caHienTai;
         try {
-            if (!chanDoanDAO.chot(taoChanDoan(ca), ca.maLich, ca.maPhong)) {
+            if (!khamLamSangService.hoanTat(taoChanDoan(ca), ca.maLich, ca.maPhong)) {
                 showWarning("Không thể chốt chẩn đoán. Hãy tải lại hàng chờ.");
                 return;
             }
+        } catch (IllegalArgumentException ex) {
+            showWarning(ex.getMessage());
+            return;
         } catch (SQLException | IllegalStateException ex) {
             showError("Không thể hoàn tất khám", ex);
             return;
@@ -578,26 +515,21 @@ public class XuLyKhamLamSangVaSoDoRangPanel extends JPanel {
         if (!dangKham(caHienTai) || maRang == null) {
             return;
         }
-        String ghiChu = txtGhiChuRang.getText().trim();
-        if (ghiChu.length() > 500) {
-            showWarning("Ghi chú răng tối đa 500 ký tự.");
-            return;
-        }
         String tinhTrang = (String) cboTinhTrang.getSelectedItem();
-        if (caHienTai.maHoSo == null) {
-            showWarning("Bệnh nhân chưa có hồ sơ bệnh án.");
-            return;
-        }
         try {
-            SoDoRang rang = new SoDoRang(caHienTai.maHoSo, maRang, loaiRang(maRang), tinhTrang, ghiChu);
-            if (!soDoRangDAO.luuHoacCapNhat(rang)) {
+            String ghiChu = txtGhiChuRang.getText().trim();
+            if (!khamLamSangService.luuRang(caHienTai.maHoSo, maRang, tinhTrang, ghiChu)) {
                 showWarning("Không lưu được ghi nhận răng. Vui lòng thử lại.");
                 return;
             }
+        } catch (IllegalArgumentException ex) {
+            showWarning(ex.getMessage());
+            return;
         } catch (SQLException | IllegalStateException ex) {
             showError("Không thể lưu sơ đồ răng", ex);
             return;
         }
+        String ghiChu = txtGhiChuRang.getText().trim();
         layDuLieuRang().put(maRang, new String[] { tinhTrang, ghiChu });
         chart.repaint();
         capNhatEditorRang();
@@ -615,11 +547,14 @@ public class XuLyKhamLamSangVaSoDoRangPanel extends JPanel {
                 "Xác nhận xóa", JOptionPane.YES_NO_OPTION);
         if (choice == JOptionPane.YES_OPTION) {
             try {
-                if (!soDoRangDAO.xoa(caHienTai.maHoSo, maRang)) {
+                if (!khamLamSangService.xoaRang(caHienTai.maHoSo, maRang)) {
                     showWarning("Không tìm thấy ghi nhận răng cần xóa. Hãy tải lại hồ sơ.");
                     napSoDoRang(caHienTai);
                     return;
                 }
+            } catch (IllegalArgumentException ex) {
+                showWarning(ex.getMessage());
+                return;
             } catch (SQLException | IllegalStateException ex) {
                 showError("Không thể xóa ghi nhận răng", ex);
                 return;
@@ -631,33 +566,12 @@ public class XuLyKhamLamSangVaSoDoRangPanel extends JPanel {
         }
     }
 
-    /**
-     * Răng 1-2: cửa, 3: nanh, 4-5: hàm nhỏ, 6-7: hàm, 8: khôn; số 5x-8x là răng
-     * sữa.
-     */
-    private static String loaiRang(int maRang) {
-        if (maRang >= 50) {
-            return "Răng sữa";
-        }
-        int viTri = maRang % 10;
-        if (viTri <= 2) {
-            return "Răng cửa";
-        } else if (viTri == 3) {
-            return "Răng nanh";
-        } else if (viTri <= 5) {
-            return "Răng hàm nhỏ";
-        } else if (viTri <= 7) {
-            return "Răng hàm";
-        }
-        return "Răng khôn";
-    }
-
     // =====================================================================
     // ĐỒNG BỘ GIAO DIỆN
     // =====================================================================
 
     // Chuyển sang ca khác: lưu tạm nội dung đang gõ của ca cũ (nếu còn đang khám).
-    private void chuyenCa(CaKham caMoi) {
+    private void chuyenCa(CaKhamView caMoi) {
         if (dangKham(caHienTai)) {
             ghiFormVaoCa(caHienTai);
         }
@@ -677,8 +591,8 @@ public class XuLyKhamLamSangVaSoDoRangPanel extends JPanel {
         if (dangKham(caHienTai)) {
             ghiFormVaoCa(caHienTai);
         }
-        Map<String, CaKham> caCu = new HashMap<>();
-        for (CaKham ca : dsCa) {
+        Map<String, CaKhamView> caCu = new HashMap<>();
+        for (CaKhamView ca : dsCa) {
             caCu.put(ca.maLich, ca);
         }
 
@@ -686,8 +600,8 @@ public class XuLyKhamLamSangVaSoDoRangPanel extends JPanel {
         lichModel.setRowCount(0);
         dsCa.clear();
         try {
-            for (KhamLamSangDAO.CaKham ca : khamLamSangDAO.layHangCho()) {
-                CaKham caMoi = new CaKham(
+            for (entity.CaKham ca : khamLamSangService.layHangCho()) {
+                CaKhamView caMoi = new CaKhamView(
                         ca.getMaLichHen(),
                         ca.getThoiGianHen(),
                         ca.getMaBenhNhan(),
@@ -708,7 +622,7 @@ public class XuLyKhamLamSangVaSoDoRangPanel extends JPanel {
                         ca.getTrieuChung(),
                         ca.getKetLuanChanDoan(),
                         ca.getTrangThaiChanDoan());
-                CaKham banCu = caCu.get(caMoi.maLich);
+                CaKhamView banCu = caCu.get(caMoi.maLich);
                 if (banCu != null && java.util.Objects.equals(caMoi.maChanDoan, banCu.maChanDoan)) {
                     caMoi.lyDo = banCu.lyDo;
                     caMoi.trieuChung = banCu.trieuChung;
@@ -720,7 +634,7 @@ public class XuLyKhamLamSangVaSoDoRangPanel extends JPanel {
             int choKham = 0;
             int dangKhamDem = 0;
             int hoanThanh = 0;
-            for (CaKham ca : dsCa) {
+            for (CaKhamView ca : dsCa) {
                 if (DA_CHECK_IN.equals(ca.trangThai)) {
                     choKham++;
                 } else if (DANG_KHAM.equals(ca.trangThai)) {
@@ -765,13 +679,13 @@ public class XuLyKhamLamSangVaSoDoRangPanel extends JPanel {
         hienThiCa();
     }
 
-    private void napSoDoRang(CaKham ca) {
+    private void napSoDoRang(CaKhamView ca) {
         if (ca.maHoSo == null) {
             return;
         }
         Map<Integer, String[]> rangs = new TreeMap<>();
         try {
-            for (SoDoRang rang : soDoRangDAO.layTheoHoSo(ca.maHoSo)) {
+            for (SoDoRang rang : khamLamSangService.laySoDoRang(ca.maHoSo)) {
                 rangs.put(rang.getMaRang(),
                         new String[] { rang.getTinhTrangBenhLy(), rang.getGhiChu() == null ? "" : rang.getGhiChu() });
             }
@@ -783,23 +697,30 @@ public class XuLyKhamLamSangVaSoDoRangPanel extends JPanel {
     }
 
     private static String hienThiTrangThaiLich(String trangThai) {
-        if ("Da check-in".equals(trangThai)) return DA_CHECK_IN;
-        if ("Dang kham".equals(trangThai)) return DANG_KHAM;
-        if ("Hoan thanh".equals(trangThai)) return HOAN_THANH;
+        if ("Da check-in".equals(trangThai))
+            return DA_CHECK_IN;
+        if ("Dang kham".equals(trangThai))
+            return DANG_KHAM;
+        if ("Hoan thanh".equals(trangThai))
+            return HOAN_THANH;
         return trangThai;
     }
 
     private static String hienThiTrangThaiPhong(String trangThai) {
-        if ("San sang".equals(trangThai)) return SAN_SANG;
-        if ("Can ve sinh".equals(trangThai)) return CAN_VE_SINH;
-        if ("Bao tri".equals(trangThai)) return "Bảo trì";
-        if ("Dang kham".equals(trangThai)) return DANG_KHAM;
+        if ("San sang".equals(trangThai))
+            return SAN_SANG;
+        if ("Can ve sinh".equals(trangThai))
+            return CAN_VE_SINH;
+        if ("Bao tri".equals(trangThai))
+            return "Bảo trì";
+        if ("Dang kham".equals(trangThai))
+            return DANG_KHAM;
         return trangThai;
     }
 
     // Đổ dữ liệu của ca đang chọn lên form và bật/tắt các nút theo trạng thái.
     private void hienThiCa() {
-        CaKham ca = caHienTai;
+        CaKhamView ca = caHienTai;
         boolean choPhepSua = dangKham(ca);
 
         if (ca == null) {
@@ -860,7 +781,7 @@ public class XuLyKhamLamSangVaSoDoRangPanel extends JPanel {
         capNhatTomTatRang();
     }
 
-    private String moTaTrangThai(CaKham ca) {
+    private String moTaTrangThai(CaKhamView ca) {
         if (ca.daChot) {
             return "Lần khám " + ca.maChanDoan + " đã được chốt (chỉ xem).";
         }
@@ -891,7 +812,7 @@ public class XuLyKhamLamSangVaSoDoRangPanel extends JPanel {
             return;
         }
         String[] banGhi = layDuLieuRang().get(maRang);
-        lblRangChon.setText("Răng " + maRang + "  ·  " + loaiRang(maRang)
+        lblRangChon.setText("Răng " + maRang + "  ·  " + khamLamSangService.loaiRang(maRang)
                 + (banGhi == null ? "  ·  chưa ghi nhận" : ""));
         cboTinhTrang.setSelectedItem(banGhi == null ? TINH_TRANG[0] : banGhi[0]);
         txtGhiChuRang.setText(banGhi == null ? "" : banGhi[1]);
@@ -924,7 +845,7 @@ public class XuLyKhamLamSangVaSoDoRangPanel extends JPanel {
     // HÀM HỖ TRỢ
     // =====================================================================
 
-    private boolean dangKham(CaKham ca) {
+    private boolean dangKham(CaKhamView ca) {
         return ca != null && DANG_KHAM.equals(ca.trangThai) && ca.maChanDoan != null && !ca.daChot;
     }
 
@@ -932,20 +853,20 @@ public class XuLyKhamLamSangVaSoDoRangPanel extends JPanel {
         return layDuLieuRang(caHienTai);
     }
 
-    private Map<Integer, String[]> layDuLieuRang(CaKham ca) {
+    private Map<Integer, String[]> layDuLieuRang(CaKhamView ca) {
         if (ca == null || ca.maHoSo == null) {
             return new TreeMap<>();
         }
         return soDoRang.computeIfAbsent(ca.maHoSo, k -> new TreeMap<>());
     }
 
-    private CaKham layCaDangChon() {
+    private CaKhamView layCaDangChon() {
         int row = lichTable.getSelectedRow();
         if (row < 0 || row >= lichTable.getRowCount()) {
             return null;
         }
         String ma = (String) lichModel.getValueAt(lichTable.convertRowIndexToModel(row), 0);
-        for (CaKham ca : dsCa) {
+        for (CaKhamView ca : dsCa) {
             if (ca.maLich.equals(ma)) {
                 return ca;
             }
@@ -953,31 +874,15 @@ public class XuLyKhamLamSangVaSoDoRangPanel extends JPanel {
         return null;
     }
 
-    private void ghiFormVaoCa(CaKham ca) {
+    private void ghiFormVaoCa(CaKhamView ca) {
         ca.lyDo = txtLyDo.getText().trim();
         ca.trieuChung = txtTrieuChung.getText().trim();
         ca.ketLuan = txtKetLuan.getText().trim();
     }
 
-    private ChanDoan taoChanDoan(CaKham ca) {
+    private ChanDoan taoChanDoan(CaKhamView ca) {
         return new ChanDoan(ca.maChanDoan, LocalDate.now(), ca.lyDo, ca.trieuChung, ca.ketLuan,
                 "Nhap", ca.maLich, ca.maHoSo, ca.maNhaSi);
-    }
-
-    // Kiểm tra độ dài theo các cột của bảng ChanDoan.
-    private void kiemTraForm() {
-        if (txtLyDo.getText().trim().length() > 500) {
-            txtLyDo.requestFocusInWindow();
-            throw new IllegalArgumentException("Lý do khám tối đa 500 ký tự.");
-        }
-        if (txtTrieuChung.getText().trim().length() > 1000) {
-            txtTrieuChung.requestFocusInWindow();
-            throw new IllegalArgumentException("Triệu chứng tối đa 1000 ký tự.");
-        }
-        if (txtKetLuan.getText().trim().length() > 1000) {
-            txtKetLuan.requestFocusInWindow();
-            throw new IllegalArgumentException("Kết luận chẩn đoán tối đa 1000 ký tự.");
-        }
     }
 
     private void showMessage(String message) {

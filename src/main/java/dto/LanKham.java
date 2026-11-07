@@ -2,7 +2,7 @@ package dto;
 
 /**
  * Một lần khám (ChanDoan) đang mở, kèm thông tin bệnh nhân.
- * Dùng chung cho kê đơn thuốc và lập phác đồ điều trị.
+ * Dùng chung cho kê đơn thuốc, lập phác đồ điều trị và lập hóa đơn.
  *
  * @param maChanDoan     mã lần khám
  * @param maBenhNhan     mã bệnh nhân
@@ -12,6 +12,10 @@ package dto;
  */
 public record LanKham(String maChanDoan, String maBenhNhan, String hoTen,
         String ketLuan, String thongTinDiUng) {
+
+    public LanKham(String maChanDoan, String maBenhNhan, String hoTen, String ketLuan) {
+        this(maChanDoan, maBenhNhan, hoTen, ketLuan, null);
+    }
 
     public String diUngHienThi() {
         return thongTinDiUng == null || thongTinDiUng.trim().isEmpty() ? "không ghi nhận" : thongTinDiUng;

@@ -27,7 +27,7 @@ import java.util.Set;
  * phối.
  * - Thu ngân: lập hóa đơn, công nợ trả góp.
  * - Nhân viên kho: thuốc, vật tư, ghi nhận vật tư tiêu hao.
- * - Bước 11 (tra cứu EMR/hóa đơn, báo cáo) chỉ đọc: mọi vai trò đều thấy.
+ * - Bước 11 (tra cứu EMR/hóa đơn/vật tư, báo cáo) chỉ đọc: mọi vai trò đều thấy.
  */
 public final class PhanQuyenMenu {
     public static final String QUAN_TRI = "QUAN_TRI";
@@ -47,6 +47,7 @@ public final class PhanQuyenMenu {
     private static final String QL_BENH_NHAN = "Quản lý bệnh nhân";
     private static final String QL_THUOC = "Quản lý thuốc";
     private static final String QL_VAT_TU = "Quản lý vật tư y tế";
+    private static final String QL_CHUYEN_MON = "Quản lý chuyên môn";
     private static final String QL_DICH_VU = "Quản lý dịch vụ và bảng giá";
     private static final String KE_DON = "Kê đơn thuốc điện tử";
     private static final String PHAC_DO = "Phác đồ điều trị và dự toán chi phí";
@@ -54,6 +55,7 @@ public final class PhanQuyenMenu {
     private static final String CONG_NO = "Công nợ và trả góp theo đợt";
     private static final String TIM_EMR = "Tìm hồ sơ bệnh án EMR";
     private static final String TRA_CUU_HOA_DON = "Tra cứu hóa đơn / giao dịch";
+    private static final String TRA_CUU_VAT_TU = "Tra cứu lịch sử vật tư";
     private static final String LICH_CA_NHAN = "Lịch làm việc cá nhân";
     private static final String DASHBOARD_DIEU_PHOI = "Dashboard điều phối phòng khám";
     private static final String DAT_LICH = "Đặt lịch hẹn khám";
@@ -80,9 +82,10 @@ public final class PhanQuyenMenu {
         VAI_TRO.put(THU_KHO, "Nhân viên kho");
 
         NHOM_MENU.put("HỆ THỐNG", Arrays.asList(DOI_MAT_KHAU, PHAN_QUYEN));
-        NHOM_MENU.put("DANH MỤC", Arrays.asList(QL_NHAN_VIEN, QL_BENH_NHAN, QL_THUOC, QL_VAT_TU, QL_DICH_VU));
+        NHOM_MENU.put("DANH MỤC", Arrays.asList(QL_NHAN_VIEN, QL_BENH_NHAN, QL_THUOC, QL_VAT_TU,
+                QL_CHUYEN_MON, QL_DICH_VU));
         NHOM_MENU.put("CẬP NHẬT", Arrays.asList(KE_DON, PHAC_DO, GHI_NHAN_VAT_TU, CONG_NO));
-        NHOM_MENU.put("TÌM KIẾM", Arrays.asList(TIM_EMR, TRA_CUU_HOA_DON, LICH_CA_NHAN));
+        NHOM_MENU.put("TÌM KIẾM", Arrays.asList(TIM_EMR, TRA_CUU_HOA_DON, TRA_CUU_VAT_TU, LICH_CA_NHAN));
         NHOM_MENU.put("XỬ LÝ", Arrays.asList(DASHBOARD_DIEU_PHOI, DAT_LICH, CHUAN_BI_PHONG, PHAN_CONG_CA,
                 KHAM_LAM_SANG, LAP_HOA_DON));
         NHOM_MENU.put("THỐNG KÊ", Arrays.asList(BAO_CAO));
@@ -96,15 +99,15 @@ public final class PhanQuyenMenu {
 
         // Mục chỉ đọc + đổi mật khẩu mà ai cũng cần (luồng bước 11).
         MENU_THEO_VAI_TRO.put(BAC_SI, tap(DOI_MAT_KHAU, DASHBOARD_DIEU_PHOI, KHAM_LAM_SANG, PHAC_DO, KE_DON,
-                TIM_EMR, TRA_CUU_HOA_DON, LICH_CA_NHAN, BAO_CAO));
+                TIM_EMR, TRA_CUU_HOA_DON, TRA_CUU_VAT_TU, LICH_CA_NHAN, BAO_CAO));
         MENU_THEO_VAI_TRO.put(Y_TA, tap(DOI_MAT_KHAU, DASHBOARD_DIEU_PHOI, CHUAN_BI_PHONG, GHI_NHAN_VAT_TU,
-                TIM_EMR, TRA_CUU_HOA_DON, LICH_CA_NHAN, BAO_CAO));
+                TIM_EMR, TRA_CUU_HOA_DON, TRA_CUU_VAT_TU, LICH_CA_NHAN, BAO_CAO));
         MENU_THEO_VAI_TRO.put(LE_TAN, tap(DOI_MAT_KHAU, QL_BENH_NHAN, DAT_LICH, DASHBOARD_DIEU_PHOI,
-                TIM_EMR, TRA_CUU_HOA_DON, LICH_CA_NHAN, BAO_CAO));
+                TIM_EMR, TRA_CUU_HOA_DON, TRA_CUU_VAT_TU, LICH_CA_NHAN, BAO_CAO));
         MENU_THEO_VAI_TRO.put(THU_NGAN, tap(DOI_MAT_KHAU, LAP_HOA_DON, CONG_NO,
-                TIM_EMR, TRA_CUU_HOA_DON, LICH_CA_NHAN, BAO_CAO));
+                TIM_EMR, TRA_CUU_HOA_DON, TRA_CUU_VAT_TU, LICH_CA_NHAN, BAO_CAO));
         MENU_THEO_VAI_TRO.put(THU_KHO, tap(DOI_MAT_KHAU, QL_THUOC, QL_VAT_TU, GHI_NHAN_VAT_TU,
-                TIM_EMR, TRA_CUU_HOA_DON, LICH_CA_NHAN, BAO_CAO));
+                TIM_EMR, TRA_CUU_HOA_DON, TRA_CUU_VAT_TU, LICH_CA_NHAN, BAO_CAO));
     }
 
     private PhanQuyenMenu() {

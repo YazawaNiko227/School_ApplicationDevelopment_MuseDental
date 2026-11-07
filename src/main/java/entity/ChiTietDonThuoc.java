@@ -5,8 +5,8 @@ package entity;
  * (khóa chính (MaDonThuoc, MaVatTu)).
  */
 public class ChiTietDonThuoc {
-    private String maDonThuoc;
-    private String maVatTu;
+    private DonThuoc maDonThuoc;
+    private VatTu maVatTu;
     private String lieuDung;
     private String duongDung;
     private int soLuong;
@@ -22,28 +22,64 @@ public class ChiTietDonThuoc {
         setSoLuong(soLuong);
     }
 
-    public String getMaDonThuoc() {
+    public DonThuoc getMaDonThuoc() {
         return maDonThuoc;
     }
+
+    public String getMaDonThuocId() {
+        return maDonThuoc == null ? null : maDonThuoc.getMaDonThuoc();
+    }
+
+    public DonThuoc getDonThuoc() {
+        return maDonThuoc;
+    }
+
+    public void setDonThuoc(DonThuoc donThuoc) {
+        if (donThuoc == null)
+            throw new IllegalArgumentException("DonThuoc không được null.");
+        this.maDonThuoc = donThuoc;
+    }
+
+    public void setMaDonThuoc(DonThuoc donThuoc) { setDonThuoc(donThuoc); }
 
     public void setMaDonThuoc(String maDonThuoc) {
         if (maDonThuoc == null)
             throw new IllegalArgumentException("MaDonThuoc không được null.");
         if (maDonThuoc.length() > 20)
             throw new IllegalArgumentException("MaDonThuoc tối đa 20 ký tự.");
-        this.maDonThuoc = maDonThuoc;
+        DonThuoc donThuoc = new DonThuoc();
+        donThuoc.setMaDonThuoc(maDonThuoc);
+        this.maDonThuoc = donThuoc;
     }
 
-    public String getMaVatTu() {
+    public VatTu getMaVatTu() {
         return maVatTu;
     }
+
+    public String getMaVatTuId() {
+        return maVatTu == null ? null : maVatTu.getMaVatTu();
+    }
+
+    public VatTu getVatTu() {
+        return maVatTu;
+    }
+
+    public void setVatTu(VatTu vatTu) {
+        if (vatTu == null)
+            throw new IllegalArgumentException("VatTu không được null.");
+        this.maVatTu = vatTu;
+    }
+
+    public void setMaVatTu(VatTu vatTu) { setVatTu(vatTu); }
 
     public void setMaVatTu(String maVatTu) {
         if (maVatTu == null)
             throw new IllegalArgumentException("MaVatTu không được null.");
         if (maVatTu.length() > 20)
             throw new IllegalArgumentException("MaVatTu tối đa 20 ký tự.");
-        this.maVatTu = maVatTu;
+        VatTu vatTu = new VatTu();
+        vatTu.setMaVatTu(maVatTu);
+        this.maVatTu = vatTu;
     }
 
     public String getLieuDung() {

@@ -1,10 +1,10 @@
 package gui;
 
-import dao.CaTrucDAO;
 import entity.CaTruc;
 import entity.NhanVien;
 import entity.PhongKham;
 import com.toedter.calendar.JDateChooser;
+import service.CaTrucService;
 import util.GiaoDienUtil;
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -60,7 +60,7 @@ import javax.swing.table.DefaultTableModel;
  * - Một phòng được phép có nhiều nhân viên cùng ca (dữ liệu mẫu SQL có CA001
  * và CA003 cùng phòng P01 trùng giờ).
  *
- * Dữ liệu được đọc và cập nhật trực tiếp qua CaTrucDAO.
+ * Dữ liệu và quy tắc phân ca được xử lý qua CaTrucService.
  */
 public class XuLyBangPhanCongCaTrucYTaPanel extends JPanel {
     private static final Color INK = new Color(32, 53, 68);
@@ -90,7 +90,7 @@ public class XuLyBangPhanCongCaTrucYTaPanel extends JPanel {
     private static final String[] THU = { "Thứ hai", "Thứ ba", "Thứ tư", "Thứ năm", "Thứ sáu", "Thứ bảy",
             "Chủ nhật" };
 
-    private final CaTrucDAO caTrucDAO = new CaTrucDAO();
+    private final CaTrucService caTrucService = new CaTrucService();
     private final List<CaTruc> dsCa = new ArrayList<>();
     private final List<NhanVien> dsNhanVien = new ArrayList<>();
     private final List<PhongKham> dsPhong = new ArrayList<>();
@@ -165,9 +165,9 @@ public class XuLyBangPhanCongCaTrucYTaPanel extends JPanel {
     // Nạp các combo (phải làm trước khi gắn listener).
     private void napCombo() throws SQLException {
         dsNhanVien.clear();
-        dsNhanVien.addAll(caTrucDAO.layTatCaNhanVien());
+        dsNhanVien.addAll(caTrucService.layTatCaNhanVien());
         dsPhong.clear();
-        dsPhong.addAll(caTrucDAO.layTatCaPhong());
+        dsPhong.addAll(caTrucService.layTatCaPhong());
 
         cboLocNhanVien.addItem(TAT_CA);
         for (NhanVien nv : dsNhanVien) {
@@ -175,7 +175,7 @@ public class XuLyBangPhanCongCaTrucYTaPanel extends JPanel {
             // Chỉ nhân viên đang làm việc mới được phân ca mới.
             if (NV_DANG_LAM.equals(nv.getTrangThaiLamViec())) {
                 cboNhanVien.addItem(nv.getMaNhanVien() + " - " + nv.getHoTen() + " ("
-                        + (nv.getChuyenMon() == null ? "" : nv.getChuyenMon()) + ")");
+                        + (nv.getChuyenMon() == null ? "" : nv.getChuyenMon().getTenChuyenMon()) + ")");
             }
         }
         cboLocPhong.addItem(TAT_CA);
@@ -402,12 +402,10 @@ public class XuLyBangPhanCongCaTrucYTaPanel extends JPanel {
             return;
         }
         try {
-            String loi = kiemTra(moi, null);
-            if (loi != null) {
-                showWarning(loi);
-                return;
-            }
-            caTrucDAO.them(moi);
+            caTrucService.themCa(moi);
+        } catch (IllegalArgumentException ex) {
+            showWarning(ex.getMessage());
+            return;
         } catch (SQLException ex) {
             showDatabaseError("Không thể thêm ca trực.", ex);
             return;
@@ -416,7 +414,7 @@ public class XuLyBangPhanCongCaTrucYTaPanel extends JPanel {
         // Chuyển sang tuần chứa ca vừa thêm để người dùng thấy ngay.
         dauTuan = moi.getNgay().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
         lamMoiBang(moi.getMaCa());
-        showMessage("Đã thêm ca " + moi.getMaCa() + " cho " + tenNhanVien(moi.getMaNhanVien()) + " ngày "
+        showMessage("Đã thêm ca " + moi.getMaCa() + " cho " + tenNhanVien(moi.getMaNhanVienId()) + " ngày "
                 + moi.getNgay().format(NGAY) + ".");
     }
 
@@ -427,25 +425,18 @@ public class XuLyBangPhanCongCaTrucYTaPanel extends JPanel {
             showMessage("Vui lòng chọn một ca trong bảng.");
             return;
         }
-        if (ca.getNgay().isBefore(LocalDate.now())) {
-            showWarning("Ca của ngày đã qua không được sửa.");
-            return;
-        }
         CaTruc moi = docForm();
         if (moi == null) {
             return;
         }
         try {
-            String loi = kiemTra(moi, ca);
-            if (loi != null) {
-                showWarning(loi);
-                return;
-            }
-            moi.setMaCa(ca.getMaCa());
-            if (!caTrucDAO.capNhat(moi)) {
+            if (!caTrucService.capNhatCa(ca, moi)) {
                 showWarning("Không tìm thấy ca trực trong cơ sở dữ liệu để cập nhật.");
                 return;
             }
+        } catch (IllegalArgumentException ex) {
+            showWarning(ex.getMessage());
+            return;
         } catch (SQLException ex) {
             showDatabaseError("Không thể cập nhật ca trực.", ex);
             return;
@@ -463,62 +454,27 @@ public class XuLyBangPhanCongCaTrucYTaPanel extends JPanel {
             showMessage("Vui lòng chọn một ca trong bảng.");
             return;
         }
-        if (ca.getNgay().isBefore(LocalDate.now())) {
-            showWarning("Ca của ngày đã qua không được xóa.");
-            return;
-        }
         int choice = JOptionPane.showConfirmDialog(this,
-                "Xóa ca " + ca.getMaCa() + " của " + tenNhanVien(ca.getMaNhanVien()) + " ngày "
+                "Xóa ca " + ca.getMaCa() + " của " + tenNhanVien(ca.getMaNhanVienId()) + " ngày "
                         + ca.getNgay().format(NGAY) + "?",
                 "Xác nhận xóa", JOptionPane.YES_NO_OPTION);
         if (choice != JOptionPane.YES_OPTION) {
             return;
         }
         try {
-            if (!caTrucDAO.xoa(ca.getMaCa())) {
+            if (!caTrucService.xoaCa(ca)) {
                 showWarning("Không tìm thấy ca trực trong cơ sở dữ liệu để xóa.");
                 return;
             }
+        } catch (IllegalArgumentException ex) {
+            showWarning(ex.getMessage());
+            return;
         } catch (SQLException ex) {
             showDatabaseError("Không thể xóa ca trực.", ex);
             return;
         }
         lamMoiBang();
         lamMoiForm();
-    }
-
-    // =====================================================================
-    // KIỂM TRA DỮ LIỆU
-    // =====================================================================
-
-    /**
-     * Trả về thông báo lỗi, hoặc null nếu hợp lệ. boQua là ca đang sửa (không tính
-     * trùng với chính nó).
-     */
-    private String kiemTra(CaTruc moi, CaTruc boQua) throws SQLException {
-        if (moi.getMaNhanVien() == null) {
-            return "Vui lòng chọn nhân viên.";
-        }
-        if (moi.getMaPhong() == null) {
-            return "Vui lòng chọn phòng.";
-        }
-        if (moi.getNgay().isBefore(LocalDate.now())) {
-            return "Không thể phân ca cho ngày đã qua.";
-        }
-        if (!moi.getGioKetThuc().isAfter(moi.getGioBatDau())) {
-            return "Giờ kết thúc phải sau giờ bắt đầu.";
-        }
-        dsPhong.clear();
-        dsPhong.addAll(caTrucDAO.layTatCaPhong());
-        String trangThaiPhong = trangThaiPhong(moi.getMaPhong());
-        if (PHONG_BAO_TRI.equals(trangThaiPhong)) {
-            return "Phòng " + moi.getMaPhong() + " đang bảo trì, không thể phân ca vào phòng này.";
-        }
-        if (caTrucDAO.coCaTrung(moi, boQua == null ? null : boQua.getMaCa())) {
-            return tenNhanVien(moi.getMaNhanVien())
-                    + " đã có ca trùng giờ trong ngày này.";
-        }
-        return null;
     }
 
     // =====================================================================
@@ -536,7 +492,7 @@ public class XuLyBangPhanCongCaTrucYTaPanel extends JPanel {
         LocalDate cuoiTuan = dauTuan.plusDays(6);
 
         try {
-            List<CaTruc> caTrucMoi = caTrucDAO.layTatCa();
+            List<CaTruc> caTrucMoi = caTrucService.layTatCaCaTruc();
             dsCa.clear();
             dsCa.addAll(caTrucMoi);
         } catch (SQLException ex) {
@@ -555,14 +511,14 @@ public class XuLyBangPhanCongCaTrucYTaPanel extends JPanel {
             }
         }
         for (CaTruc ca : trongTuan) {
-            if (maNhanVienLoc != null && !maNhanVienLoc.equals(ca.getMaNhanVien())) {
+            if (maNhanVienLoc != null && !maNhanVienLoc.equals(ca.getMaNhanVienId())) {
                 continue;
             }
-            if (maPhongLoc != null && !maPhongLoc.equals(ca.getMaPhong())) {
+            if (maPhongLoc != null && !maPhongLoc.equals(ca.getMaPhongId())) {
                 continue;
             }
             dangHienThi.add(ca);
-            NhanVien nv = timNhanVien(ca.getMaNhanVien());
+            NhanVien nv = timNhanVien(ca.getMaNhanVienId());
             tableModel.addRow(new Object[] {
                     ca.getMaCa(),
                     ca.getNgay().format(NGAY),
@@ -570,9 +526,9 @@ public class XuLyBangPhanCongCaTrucYTaPanel extends JPanel {
                     ca.getGioBatDau().format(GIO),
                     ca.getGioKetThuc().format(GIO),
                     ca.getLoaiCa(),
-                    nv == null ? ca.getMaNhanVien() : nv.getHoTen(),
-                    nv == null || nv.getChuyenMon() == null ? "" : nv.getChuyenMon(),
-                    ca.getMaPhong() });
+                    nv == null ? ca.getMaNhanVienId() : nv.getHoTen(),
+                    nv == null || nv.getChuyenMon() == null ? "" : nv.getChuyenMon().getTenChuyenMon(),
+                    ca.getMaPhongId() });
         }
 
         lblTuan.setText("Tuần " + dauTuan.format(NGAY) + " - " + cuoiTuan.format(NGAY) + "  ·  "
@@ -582,7 +538,7 @@ public class XuLyBangPhanCongCaTrucYTaPanel extends JPanel {
         int homNay = 0;
         Set<String> nhanVienCoCa = new HashSet<>();
         for (CaTruc ca : trongTuan) {
-            nhanVienCoCa.add(ca.getMaNhanVien());
+            nhanVienCoCa.add(ca.getMaNhanVienId());
         }
         for (CaTruc ca : dsCa) {
             if (ca.getNgay().equals(LocalDate.now())) {
@@ -636,8 +592,8 @@ public class XuLyBangPhanCongCaTrucYTaPanel extends JPanel {
         cboLoai.setSelectedItem(ca.getLoaiCa());
         datGio(spnBatDau, ca.getGioBatDau());
         datGio(spnKetThuc, ca.getGioKetThuc());
-        chonTheoMa(cboNhanVien, ca.getMaNhanVien());
-        chonTheoMa(cboPhong, ca.getMaPhong());
+        chonTheoMa(cboNhanVien, ca.getMaNhanVienId());
+        chonTheoMa(cboPhong, ca.getMaPhongId());
         dangNap = false;
     }
 
@@ -746,15 +702,6 @@ public class XuLyBangPhanCongCaTrucYTaPanel extends JPanel {
     private String tenNhanVien(String maNhanVien) {
         NhanVien nv = timNhanVien(maNhanVien);
         return nv == null ? maNhanVien : nv.getHoTen();
-    }
-
-    private String trangThaiPhong(String maPhong) {
-        for (PhongKham phong : dsPhong) {
-            if (phong.getMaPhong().equals(maPhong)) {
-                return phong.getTrangThai();
-            }
-        }
-        return "";
     }
 
     private String trangThaiPhongHienThi(String trangThai) {

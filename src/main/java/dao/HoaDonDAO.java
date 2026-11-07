@@ -1,8 +1,15 @@
 package dao;
 
 import connectDB.ConnectDB;
+import dto.LanKham;
+import entity.ChiTietHoaDonTraCuu;
 import entity.DichVu;
+import entity.DotHoaDon;
+import entity.DongTinhTien;
+import entity.HoaDonTraCuu;
 import entity.HoaDon;
+import entity.NhanVienHoaDon;
+import entity.CongNoHoaDon;
 import java.sql.Date;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -15,164 +22,6 @@ import java.util.List;
 import java.util.Map;
 
 public class HoaDonDAO {
-    public static final class LanKhamHoaDon {
-        private final String maChanDoan;
-        private final String maBenhNhan;
-        private final String hoTen;
-        private final String ketLuan;
-
-        public LanKhamHoaDon(String maChanDoan, String maBenhNhan, String hoTen, String ketLuan) {
-            this.maChanDoan = maChanDoan;
-            this.maBenhNhan = maBenhNhan;
-            this.hoTen = hoTen;
-            this.ketLuan = ketLuan;
-        }
-
-        public String maChanDoan() {
-            return maChanDoan;
-        }
-
-        public String maBenhNhan() {
-            return maBenhNhan;
-        }
-
-        public String hoTen() {
-            return hoTen;
-        }
-
-        public String ketLuan() {
-            return ketLuan;
-        }
-    }
-
-    public static final class DongTinhTien {
-        private final String ma;
-        private final String ten;
-        private final int soLuong;
-        private final double donGia;
-
-        public DongTinhTien(String ma, String ten, int soLuong, double donGia) {
-            this.ma = ma;
-            this.ten = ten;
-            this.soLuong = soLuong;
-            this.donGia = donGia;
-        }
-
-        public String ma() {
-            return ma;
-        }
-
-        public String ten() {
-            return ten;
-        }
-
-        public int soLuong() {
-            return soLuong;
-        }
-
-        public double donGia() {
-            return donGia;
-        }
-    }
-
-    public static final class HoaDonTraCuu {
-        private final String maHoaDon;
-        private final LocalDate ngayLap;
-        private final String maBenhNhan;
-        private final String tenBenhNhan;
-        private final String maNhanVien;
-        private final String tenNhanVien;
-        private final String phuongThuc;
-        private final String trangThai;
-        private final double tongTien;
-
-        public HoaDonTraCuu(String maHoaDon, LocalDate ngayLap, String maBenhNhan, String tenBenhNhan,
-                String maNhanVien, String tenNhanVien, String phuongThuc, String trangThai, double tongTien) {
-            this.maHoaDon = maHoaDon;
-            this.ngayLap = ngayLap;
-            this.maBenhNhan = maBenhNhan;
-            this.tenBenhNhan = tenBenhNhan;
-            this.maNhanVien = maNhanVien;
-            this.tenNhanVien = tenNhanVien;
-            this.phuongThuc = phuongThuc;
-            this.trangThai = trangThai;
-            this.tongTien = tongTien;
-        }
-
-        public String maHoaDon() {
-            return maHoaDon;
-        }
-
-        public LocalDate ngayLap() {
-            return ngayLap;
-        }
-
-        public String maBenhNhan() {
-            return maBenhNhan;
-        }
-
-        public String tenBenhNhan() {
-            return tenBenhNhan;
-        }
-
-        public String maNhanVien() {
-            return maNhanVien;
-        }
-
-        public String tenNhanVien() {
-            return tenNhanVien;
-        }
-
-        public String phuongThuc() {
-            return phuongThuc;
-        }
-
-        public String trangThai() {
-            return trangThai;
-        }
-
-        public double tongTien() {
-            return tongTien;
-        }
-    }
-
-    public static final class DotHoaDonTraCuu {
-        private final String maDot;
-        private final LocalDate ngayDenHan;
-        private final double soTien;
-        private final String trangThai;
-        private final LocalDate ngayThanhToan;
-
-        public DotHoaDonTraCuu(String maDot, LocalDate ngayDenHan, double soTien,
-                String trangThai, LocalDate ngayThanhToan) {
-            this.maDot = maDot;
-            this.ngayDenHan = ngayDenHan;
-            this.soTien = soTien;
-            this.trangThai = trangThai;
-            this.ngayThanhToan = ngayThanhToan;
-        }
-
-        public String maDot() {
-            return maDot;
-        }
-
-        public LocalDate ngayDenHan() {
-            return ngayDenHan;
-        }
-
-        public double soTien() {
-            return soTien;
-        }
-
-        public String trangThai() {
-            return trangThai;
-        }
-
-        public LocalDate ngayThanhToan() {
-            return ngayThanhToan;
-        }
-    }
-
     /** Tra cứu hóa đơn theo từ khóa, trạng thái, phương thức và khoảng ngày. */
     public List<HoaDonTraCuu> timKiemHoaDon(String tuKhoa, String phuongThuc,
             String trangThai, LocalDate tuNgay, LocalDate denNgay) throws SQLException {
@@ -264,17 +113,17 @@ public class HoaDonDAO {
         return ds;
     }
 
-    public List<DotHoaDonTraCuu> layDotThanhToanHoaDon(String maHoaDon) throws SQLException {
+    public List<DotHoaDon> layDotThanhToanHoaDon(String maHoaDon) throws SQLException {
         String sql = "SELECT dt.MaDot, dt.NgayDenHan, dt.SoTienDot, dt.TrangThai, dt.NgayThanhToanThucTe "
                 + "FROM CongNoTraGop cn JOIN DotThanhToan dt ON dt.MaCongNo = cn.MaCongNo "
                 + "WHERE cn.MaHoaDon = ? ORDER BY dt.NgayDenHan, dt.MaDot";
-        List<DotHoaDonTraCuu> ds = new ArrayList<>();
+        List<DotHoaDon> ds = new ArrayList<>();
         try (PreparedStatement ps = ConnectDB.getConnection().prepareStatement(sql)) {
             ps.setString(1, maHoaDon);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     Date ngayThu = rs.getDate("NgayThanhToanThucTe");
-                    ds.add(new DotHoaDonTraCuu(
+                    ds.add(new DotHoaDon(
                             rs.getString("MaDot"), rs.getDate("NgayDenHan").toLocalDate(),
                             rs.getDouble("SoTienDot"), rs.getString("TrangThai"),
                             ngayThu == null ? null : ngayThu.toLocalDate()));
@@ -285,7 +134,7 @@ public class HoaDonDAO {
     }
 
     /** Lần khám đã chốt, chưa có hóa đơn, kèm thông tin bệnh nhân. */
-    public List<LanKhamHoaDon> layLanKhamChuaLapHoaDon() throws SQLException {
+    public List<LanKham> layLanKhamChuaLapHoaDon() throws SQLException {
         String sql = "SELECT cd.MaChanDoan, bn.MaBenhNhan, bn.HoTen, cd.KetLuanChanDoan "
                 + "FROM ChanDoan cd "
                 + "JOIN HoSoBenhAn hs ON hs.MaHoSo = cd.MaHoSo "
@@ -293,11 +142,11 @@ public class HoaDonDAO {
                 + "WHERE cd.TrangThai = N'Da chot' "
                 + "AND NOT EXISTS (SELECT 1 FROM HoaDon hd WHERE hd.MaChanDoan = cd.MaChanDoan) "
                 + "ORDER BY cd.NgayKham DESC, cd.MaChanDoan DESC";
-        List<LanKhamHoaDon> ds = new ArrayList<>();
+        List<LanKham> ds = new ArrayList<>();
         try (PreparedStatement ps = ConnectDB.getConnection().prepareStatement(sql);
                 ResultSet rs = ps.executeQuery()) {
             while (rs.next()) {
-                ds.add(new LanKhamHoaDon(rs.getString("MaChanDoan"), rs.getString("MaBenhNhan"),
+                ds.add(new LanKham(rs.getString("MaChanDoan"), rs.getString("MaBenhNhan"),
                         rs.getString("HoTen"), rs.getString("KetLuanChanDoan")));
             }
         }
@@ -548,116 +397,6 @@ public class HoaDonDAO {
         }
     }
 
-    public static final class NhanVienHoaDon {
-        public final String ma;
-        public final String ten;
-
-        NhanVienHoaDon(String ma, String ten) {
-            this.ma = ma;
-            this.ten = ten;
-        }
-
-        @Override
-        public String toString() {
-            return ma + " - " + ten;
-        }
-    }
-
-    public static final class DongHoaDon {
-        public final String ma;
-        public final String ten;
-        public final int soLuong;
-        public final double donGia;
-
-        DongHoaDon(String ma, String ten, int soLuong, double donGia) {
-            this.ma = ma;
-            this.ten = ten;
-            this.soLuong = soLuong;
-            this.donGia = donGia;
-        }
-
-        public double thanhTien() {
-            return soLuong * donGia;
-        }
-    }
-
-    public static final class HoaDonTimKiem {
-        public final String ma;
-        public final LocalDate ngayLap;
-        public final String maBenhNhan;
-        public final String tenBenhNhan;
-        public final String maNhanVien;
-        public final String tenNhanVien;
-        public final String phuongThuc;
-        public final String trangThai;
-        public final double tongTien;
-
-        HoaDonTimKiem(ResultSet rs) throws SQLException {
-            ma = rs.getString("MaHoaDon");
-            ngayLap = rs.getDate("NgayLap").toLocalDate();
-            maBenhNhan = rs.getString("MaBenhNhan");
-            tenBenhNhan = rs.getString("TenBenhNhan");
-            maNhanVien = rs.getString("MaNhanVien");
-            tenNhanVien = rs.getString("TenNhanVien");
-            phuongThuc = rs.getString("PhuongThucThanhToan");
-            trangThai = rs.getString("TrangThaiThanhToan");
-            tongTien = rs.getDouble("TongTien");
-        }
-    }
-
-    public static final class DotHoaDon {
-        public final String ma;
-        public final LocalDate ngayDenHan;
-        public final double soTien;
-        public final String trangThai;
-        public final LocalDate ngayThanhToan;
-
-        DotHoaDon(ResultSet rs) throws SQLException {
-            ma = rs.getString("MaDot");
-            ngayDenHan = rs.getDate("NgayDenHan").toLocalDate();
-            soTien = rs.getDouble("SoTienDot");
-            trangThai = rs.getString("TrangThai");
-            Date ngay = rs.getDate("NgayThanhToanThucTe");
-            ngayThanhToan = ngay == null ? null : ngay.toLocalDate();
-        }
-    }
-
-    public static final class ChiTietHoaDon {
-        public final HoaDonTimKiem hoaDon;
-        public final String maChanDoan;
-        public final String ketLuan;
-        public final List<DongHoaDon> dichVu = new ArrayList<>();
-        public final List<DongHoaDon> thuoc = new ArrayList<>();
-        public final List<DotHoaDon> dots = new ArrayList<>();
-
-        ChiTietHoaDon(HoaDonTimKiem hoaDon, String maChanDoan, String ketLuan) {
-            this.hoaDon = hoaDon;
-            this.maChanDoan = maChanDoan;
-            this.ketLuan = ketLuan;
-        }
-    }
-
-    public static final class CongNoHoaDon {
-        public final String maCongNo;
-        public final String maHoaDon;
-        public final String maBenhNhan;
-        public final String tenBenhNhan;
-        public final String soDienThoai;
-        public final double tongTien;
-        public final int soDotConLai;
-        public final List<DotHoaDon> dots = new ArrayList<>();
-
-        CongNoHoaDon(ResultSet rs) throws SQLException {
-            maCongNo = rs.getString("MaCongNo");
-            maHoaDon = rs.getString("MaHoaDon");
-            maBenhNhan = rs.getString("MaBenhNhan");
-            tenBenhNhan = rs.getString("TenBenhNhan");
-            soDienThoai = rs.getString("SoDienThoai");
-            tongTien = rs.getDouble("TongSoTien");
-            soDotConLai = rs.getInt("SoDotConLai");
-        }
-    }
-
     public List<NhanVienHoaDon> layNhanVienDangLamViec() throws SQLException {
         List<NhanVienHoaDon> ds = new ArrayList<>();
         String sql = "SELECT MaNhanVien, HoTen FROM NhanVien "
@@ -671,8 +410,8 @@ public class HoaDonDAO {
         return ds;
     }
 
-    public List<LanKhamHoaDon> layLanKhamChoLapHoaDon() throws SQLException {
-        List<LanKhamHoaDon> ds = new ArrayList<>();
+    public List<LanKham> layLanKhamChoLapHoaDon() throws SQLException {
+        List<LanKham> ds = new ArrayList<>();
         String sql = "SELECT cd.MaChanDoan, bn.MaBenhNhan, bn.HoTen, cd.KetLuanChanDoan "
                 + "FROM ChanDoan cd JOIN HoSoBenhAn hs ON hs.MaHoSo = cd.MaHoSo "
                 + "JOIN BenhNhan bn ON bn.MaBenhNhan = hs.MaBenhNhan "
@@ -682,15 +421,15 @@ public class HoaDonDAO {
         try (PreparedStatement ps = ConnectDB.getConnection().prepareStatement(sql);
                 ResultSet rs = ps.executeQuery()) {
             while (rs.next()) {
-                ds.add(new LanKhamHoaDon(rs.getString("MaChanDoan"), rs.getString("MaBenhNhan"),
+                ds.add(new LanKham(rs.getString("MaChanDoan"), rs.getString("MaBenhNhan"),
                         rs.getString("HoTen"), rs.getString("KetLuanChanDoan")));
             }
         }
         return ds;
     }
 
-    public List<DongHoaDon> layDichVuHoaDonTheoChanDoan(String maChanDoan) throws SQLException {
-        List<DongHoaDon> ds = new ArrayList<>();
+    public List<DongTinhTien> layDichVuHoaDonTheoChanDoan(String maChanDoan) throws SQLException {
+        List<DongTinhTien> ds = new ArrayList<>();
         Map<String, DichVu> dichVuTheoMa = new HashMap<>();
         for (DichVu dichVu : new DichVuDAO().getAllDichVu()) {
             dichVuTheoMa.put(dichVu.getMaDichVu(), dichVu);
@@ -707,7 +446,7 @@ public class HoaDonDAO {
                     if (dichVu == null) {
                         throw new SQLException("Không tìm thấy dịch vụ trong danh mục: " + maDichVu);
                     }
-                    ds.add(new DongHoaDon(maDichVu, dichVu.getTenDichVu(),
+                    ds.add(new DongTinhTien(maDichVu, dichVu.getTenDichVu(),
                             rs.getInt("SoLuong"), dichVu.getDonGia()));
                 }
             }
@@ -715,8 +454,8 @@ public class HoaDonDAO {
         return ds;
     }
 
-    public List<DongHoaDon> layThuocHoaDonTheoChanDoan(String maChanDoan) throws SQLException {
-        List<DongHoaDon> ds = new ArrayList<>();
+    public List<DongTinhTien> layThuocHoaDonTheoChanDoan(String maChanDoan) throws SQLException {
+        List<DongTinhTien> ds = new ArrayList<>();
         String sql = "SELECT vt.MaVatTu, vt.TenVatTu, ct.SoLuong, vt.DonGiaBan "
                 + "FROM DonThuoc dt JOIN ChiTietDonThuoc ct ON ct.MaDonThuoc = dt.MaDonThuoc "
                 + "JOIN VatTu vt ON vt.MaVatTu = ct.MaVatTu WHERE dt.MaChanDoan = ? "
@@ -725,7 +464,7 @@ public class HoaDonDAO {
             ps.setString(1, maChanDoan);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    ds.add(new DongHoaDon(rs.getString("MaVatTu"), rs.getString("TenVatTu"),
+                    ds.add(new DongTinhTien(rs.getString("MaVatTu"), rs.getString("TenVatTu"),
                             rs.getInt("SoLuong"), rs.getDouble("DonGiaBan")));
                 }
             }
@@ -733,9 +472,9 @@ public class HoaDonDAO {
         return ds;
     }
 
-    public List<HoaDonTimKiem> traCuuHoaDon(String tuKhoa, String phuongThuc,
+    public List<HoaDonTraCuu> traCuuHoaDon(String tuKhoa, String phuongThuc,
             String trangThai, LocalDate tuNgay, LocalDate denNgay) throws SQLException {
-        List<HoaDonTimKiem> ds = new ArrayList<>();
+        List<HoaDonTraCuu> ds = new ArrayList<>();
         String sql = "SELECT hd.MaHoaDon, hd.NgayLap, bn.MaBenhNhan, bn.HoTen AS TenBenhNhan, "
                 + "nv.MaNhanVien, nv.HoTen AS TenNhanVien, hd.PhuongThucThanhToan, "
                 + "hd.TrangThaiThanhToan, "
@@ -777,14 +516,18 @@ public class HoaDonDAO {
             }
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    ds.add(new HoaDonTimKiem(rs));
+                    ds.add(new HoaDonTraCuu(rs.getString("MaHoaDon"), rs.getDate("NgayLap").toLocalDate(),
+                            rs.getString("MaBenhNhan"), rs.getString("TenBenhNhan"),
+                            rs.getString("MaNhanVien"), rs.getString("TenNhanVien"),
+                            rs.getString("PhuongThucThanhToan"), rs.getString("TrangThaiThanhToan"),
+                            rs.getDouble("TongTien")));
                 }
             }
         }
         return ds;
     }
 
-    public ChiTietHoaDon layChiTietHoaDon(String maHoaDon) throws SQLException {
+    public ChiTietHoaDonTraCuu layChiTietHoaDon(String maHoaDon) throws SQLException {
         String sql = "SELECT hd.MaHoaDon, hd.NgayLap, bn.MaBenhNhan, bn.HoTen AS TenBenhNhan, "
                 + "nv.MaNhanVien, nv.HoTen AS TenNhanVien, hd.PhuongThucThanhToan, "
                 + "hd.TrangThaiThanhToan, hd.MaChanDoan, cd.KetLuanChanDoan, "
@@ -795,15 +538,20 @@ public class HoaDonDAO {
                 + "FROM HoaDon hd JOIN BenhNhan bn ON bn.MaBenhNhan = hd.MaBenhNhan "
                 + "JOIN NhanVien nv ON nv.MaNhanVien = hd.MaNhanVien "
                 + "LEFT JOIN ChanDoan cd ON cd.MaChanDoan = hd.MaChanDoan WHERE hd.MaHoaDon = ?";
-        ChiTietHoaDon detail;
+        ChiTietHoaDonTraCuu detail;
         try (PreparedStatement ps = ConnectDB.getConnection().prepareStatement(sql)) {
             ps.setString(1, maHoaDon);
             try (ResultSet rs = ps.executeQuery()) {
                 if (!rs.next()) {
                     return null;
                 }
-                HoaDonTimKiem header = new HoaDonTimKiem(rs);
-                detail = new ChiTietHoaDon(header, rs.getString("MaChanDoan"),
+                HoaDonTraCuu header = new HoaDonTraCuu(
+                        rs.getString("MaHoaDon"), rs.getDate("NgayLap").toLocalDate(),
+                        rs.getString("MaBenhNhan"), rs.getString("TenBenhNhan"),
+                        rs.getString("MaNhanVien"), rs.getString("TenNhanVien"),
+                        rs.getString("PhuongThucThanhToan"), rs.getString("TrangThaiThanhToan"),
+                        rs.getDouble("TongTien"));
+                detail = new ChiTietHoaDonTraCuu(header, rs.getString("MaChanDoan"),
                         rs.getString("KetLuanChanDoan"));
             }
         }
@@ -821,7 +569,13 @@ public class HoaDonDAO {
             dotPs.setString(1, maHoaDon);
             try (ResultSet dotRs = dotPs.executeQuery()) {
                 while (dotRs.next()) {
-                    detail.dots.add(new DotHoaDon(dotRs));
+                    Date ngayThanhToan = dotRs.getDate("NgayThanhToanThucTe");
+                    detail.dots.add(new DotHoaDon(
+                            dotRs.getString("MaDot"),
+                            dotRs.getDate("NgayDenHan").toLocalDate(),
+                            dotRs.getDouble("SoTienDot"),
+                            dotRs.getString("TrangThai"),
+                            ngayThanhToan == null ? null : ngayThanhToan.toLocalDate()));
                 }
             }
         }
@@ -838,7 +592,11 @@ public class HoaDonDAO {
         try (PreparedStatement ps = ConnectDB.getConnection().prepareStatement(sql);
                 ResultSet rs = ps.executeQuery()) {
             while (rs.next()) {
-                CongNoHoaDon cn = new CongNoHoaDon(rs);
+                CongNoHoaDon cn = new CongNoHoaDon(
+                        rs.getString("MaCongNo"), rs.getString("MaHoaDon"),
+                        rs.getString("MaBenhNhan"), rs.getString("TenBenhNhan"),
+                        rs.getString("SoDienThoai"), rs.getDouble("TongSoTien"),
+                        rs.getInt("SoDotConLai"));
                 ds.add(cn);
             }
         }
@@ -849,7 +607,13 @@ public class HoaDonDAO {
                 ps.setString(1, cn.maCongNo);
                 try (ResultSet rs = ps.executeQuery()) {
                     while (rs.next()) {
-                        cn.dots.add(new DotHoaDon(rs));
+                        Date ngayThanhToan = rs.getDate("NgayThanhToanThucTe");
+                        cn.dots.add(new DotHoaDon(
+                                rs.getString("MaDot"),
+                                rs.getDate("NgayDenHan").toLocalDate(),
+                                rs.getDouble("SoTienDot"),
+                                rs.getString("TrangThai"),
+                                ngayThanhToan == null ? null : ngayThanhToan.toLocalDate()));
                     }
                 }
             }
@@ -857,7 +621,7 @@ public class HoaDonDAO {
         return ds;
     }
 
-    public ChiTietHoaDon taoHoaDon(String maChanDoan, String maNhanVien, String phuongThuc,
+    public ChiTietHoaDonTraCuu taoHoaDon(String maChanDoan, String maNhanVien, String phuongThuc,
             int soDot, LocalDate ngayLap, double tongDaXem) throws SQLException {
         if (maChanDoan == null || maChanDoan.trim().isEmpty()
                 || maNhanVien == null || maNhanVien.trim().isEmpty() || ngayLap == null) {
@@ -894,8 +658,8 @@ public class HoaDonDAO {
                 }
             }
 
-            List<DongHoaDon> dichVu = layDichVuTrongGiaoDich(con, maChanDoan);
-            List<DongHoaDon> thuoc = layThuocTrongGiaoDich(con, maChanDoan);
+            List<DongTinhTien> dichVu = layDichVuTrongGiaoDich(con, maChanDoan);
+            List<DongTinhTien> thuoc = layThuocTrongGiaoDich(con, maChanDoan);
             if (dichVu.isEmpty() && thuoc.isEmpty()) {
                 throw new SQLException("Lần khám chưa có dịch vụ hoặc thuốc để lập hóa đơn.");
             }
@@ -924,18 +688,18 @@ public class HoaDonDAO {
                     PreparedStatement vtPs = con.prepareStatement(
                             "INSERT INTO ChiTietHoaDonThuoc (MaHoaDon, MaVatTu, SoLuong, DonGiaTaiThoiDiem) "
                                     + "VALUES (?, ?, ?, ?)")) {
-                for (DongHoaDon row : dichVu) {
+                for (DongTinhTien row : dichVu) {
                     dvPs.setString(1, maHoaDon);
-                    dvPs.setString(2, row.ma);
-                    dvPs.setInt(3, row.soLuong);
-                    dvPs.setDouble(4, row.donGia);
+                    dvPs.setString(2, row.ma());
+                    dvPs.setInt(3, row.soLuong());
+                    dvPs.setDouble(4, row.donGia());
                     dvPs.addBatch();
                 }
-                for (DongHoaDon row : thuoc) {
+                for (DongTinhTien row : thuoc) {
                     vtPs.setString(1, maHoaDon);
-                    vtPs.setString(2, row.ma);
-                    vtPs.setInt(3, row.soLuong);
-                    vtPs.setDouble(4, row.donGia);
+                    vtPs.setString(2, row.ma());
+                    vtPs.setInt(3, row.soLuong());
+                    vtPs.setDouble(4, row.donGia());
                     vtPs.addBatch();
                 }
                 dvPs.executeBatch();
@@ -979,7 +743,7 @@ public class HoaDonDAO {
                     }
                 }
             }
-            ChiTietHoaDon detail = layChiTietHoaDon(maHoaDon);
+            ChiTietHoaDonTraCuu detail = layChiTietHoaDon(maHoaDon);
             con.commit();
             return detail;
         } catch (SQLException | RuntimeException e) {
@@ -990,8 +754,8 @@ public class HoaDonDAO {
         }
     }
 
-    private List<DongHoaDon> layDichVuTrongGiaoDich(Connection con, String maChanDoan) throws SQLException {
-        List<DongHoaDon> ds = new ArrayList<>();
+    private List<DongTinhTien> layDichVuTrongGiaoDich(Connection con, String maChanDoan) throws SQLException {
+        List<DongTinhTien> ds = new ArrayList<>();
         String sql = "SELECT dv.MaDichVu, dv.TenDichVu, khdv.SoLuong, dv.DonGia "
                 + "FROM KeHoachDieuTri kh WITH (UPDLOCK, HOLDLOCK) "
                 + "JOIN KeHoachDieuTri_DichVu khdv WITH (UPDLOCK, HOLDLOCK) ON khdv.MaKeHoach = kh.MaKeHoach "
@@ -1001,7 +765,7 @@ public class HoaDonDAO {
             ps.setString(1, maChanDoan);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    ds.add(new DongHoaDon(rs.getString("MaDichVu"), rs.getString("TenDichVu"),
+                    ds.add(new DongTinhTien(rs.getString("MaDichVu"), rs.getString("TenDichVu"),
                             rs.getInt("SoLuong"), rs.getDouble("DonGia")));
                 }
             }
@@ -1009,8 +773,8 @@ public class HoaDonDAO {
         return ds;
     }
 
-    private List<DongHoaDon> layThuocTrongGiaoDich(Connection con, String maChanDoan) throws SQLException {
-        List<DongHoaDon> ds = new ArrayList<>();
+    private List<DongTinhTien> layThuocTrongGiaoDich(Connection con, String maChanDoan) throws SQLException {
+        List<DongTinhTien> ds = new ArrayList<>();
         String sql = "SELECT vt.MaVatTu, vt.TenVatTu, ct.SoLuong, vt.DonGiaBan "
                 + "FROM DonThuoc dt WITH (UPDLOCK, HOLDLOCK) "
                 + "JOIN ChiTietDonThuoc ct WITH (UPDLOCK, HOLDLOCK) ON ct.MaDonThuoc = dt.MaDonThuoc "
@@ -1020,7 +784,7 @@ public class HoaDonDAO {
             ps.setString(1, maChanDoan);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    ds.add(new DongHoaDon(rs.getString("MaVatTu"), rs.getString("TenVatTu"),
+                    ds.add(new DongTinhTien(rs.getString("MaVatTu"), rs.getString("TenVatTu"),
                             rs.getInt("SoLuong"), rs.getDouble("DonGiaBan")));
                 }
             }
@@ -1028,9 +792,9 @@ public class HoaDonDAO {
         return ds;
     }
 
-    private static double tong(List<DongHoaDon> ds) {
+    private static double tong(List<DongTinhTien> ds) {
         double sum = 0;
-        for (DongHoaDon row : ds) {
+        for (DongTinhTien row : ds) {
             sum += row.thanhTien();
         }
         return sum;
@@ -1050,13 +814,13 @@ public class HoaDonDAO {
         }
     }
 
-    private static void napDongHoaDon(List<DongHoaDon> target, String sql, String maHoaDon)
+    private static void napDongHoaDon(List<DongTinhTien> target, String sql, String maHoaDon)
             throws SQLException {
         try (PreparedStatement ps = ConnectDB.getConnection().prepareStatement(sql)) {
             ps.setString(1, maHoaDon);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    target.add(new DongHoaDon(rs.getString("Ma"), rs.getString("Ten"),
+                    target.add(new DongTinhTien(rs.getString("Ma"), rs.getString("Ten"),
                             rs.getInt("SoLuong"), rs.getDouble("DonGiaTaiThoiDiem")));
                 }
             }

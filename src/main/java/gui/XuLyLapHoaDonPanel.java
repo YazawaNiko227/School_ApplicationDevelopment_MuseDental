@@ -1,6 +1,8 @@
 package gui;
 
-import dao.HoaDonDAO;
+import entity.ChiTietHoaDonTraCuu;
+import entity.DongTinhTien;
+import dto.LanKham;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
@@ -37,6 +39,7 @@ import javax.swing.table.DefaultTableModel;
 import entity.HoaDon;
 import util.HoaDonPdfExporter;
 import util.QrCodeUtil;
+import service.InvoiceService;
 
 /**
  * Panel "Lập hóa đơn" (bước 9 trong luồng khám bệnh chính).
@@ -52,7 +55,7 @@ import util.QrCodeUtil;
  * HoaDon = 'Dang tra gop'. Đợt 1 thu ngay khi lập hóa đơn.
  * 4. Bấm "Lập hóa đơn".
  *
- * Dữ liệu lần khám, dịch vụ, thuốc và hóa đơn được đọc/ghi trực tiếp qua DAO.
+ * Dữ liệu lần khám, dịch vụ, thuốc và hóa đơn được đọc/ghi qua service.
  */
 public class XuLyLapHoaDonPanel extends JPanel {
     private static final Color INK = new Color(32, 53, 68);
@@ -73,14 +76,14 @@ public class XuLyLapHoaDonPanel extends JPanel {
     private static final String DOT_DA_THANH_TOAN = "Đã thanh toán";
     private static final String DOT_CHUA_DEN_HAN = "Chưa đến hạn";
 
-    private final HoaDonDAO hoaDonDAO = new HoaDonDAO();
+    private final InvoiceService invoiceService = new InvoiceService();
     private final String tenDangNhap;
     private String maNhanVien;
 
     // {MaChanDoan, MaBenhNhan, HoTen, KetLuanChanDoan}
     private final List<String[]> dsLanKham = new ArrayList<>();
-    private List<HoaDonDAO.DongTinhTien> dsDichVuDangChon = new ArrayList<>();
-    private List<HoaDonDAO.DongTinhTien> dsThuocDangChon = new ArrayList<>();
+    private List<DongTinhTien> dsDichVuDangChon = new ArrayList<>();
+    private List<DongTinhTien> dsThuocDangChon = new ArrayList<>();
     private boolean loiTaiDuLieu;
 
     // Tổng tiền của lần khám đang chọn.
@@ -337,15 +340,15 @@ public class XuLyLapHoaDonPanel extends JPanel {
         lblBenhNhan.setText("Bệnh nhân: " + lanKham[2] + "  ·  " + lanKham[1]);
         lblKetLuan.setText("Kết luận chẩn đoán: " + lanKham[3]);
         try {
-            dsDichVuDangChon = hoaDonDAO.layDichVuTheoChanDoan(lanKham[0]);
-            dsThuocDangChon = hoaDonDAO.layThuocTheoChanDoan(lanKham[0]);
-            for (HoaDonDAO.DongTinhTien dong : dsDichVuDangChon) {
+            dsDichVuDangChon = invoiceService.layDichVuTheoChanDoan(lanKham[0]);
+            dsThuocDangChon = invoiceService.layThuocTheoChanDoan(lanKham[0]);
+            for (DongTinhTien dong : dsDichVuDangChon) {
                 double thanhTien = dong.donGia() * dong.soLuong();
                 tienDichVu += thanhTien;
                 dichVuModel.addRow(new Object[] { dong.ma(), dong.ten(), TIEN.format(dong.donGia()),
                         dong.soLuong(), TIEN.format(thanhTien) });
             }
-            for (HoaDonDAO.DongTinhTien dong : dsThuocDangChon) {
+            for (DongTinhTien dong : dsThuocDangChon) {
                 double thanhTien = dong.donGia() * dong.soLuong();
                 tienThuoc += thanhTien;
                 thuocModel.addRow(new Object[] { dong.ma(), dong.ten(), TIEN.format(dong.donGia()),
@@ -403,20 +406,19 @@ public class XuLyLapHoaDonPanel extends JPanel {
             showMessage("Vui lòng chọn lần khám cần lập hóa đơn.");
             return;
         }
-        if (maNhanVien == null) {
-            showWarning("Không xác định được nhân viên đang đăng nhập để ghi nhận người lập hóa đơn.");
-            return;
-        }
         double tong = tienDichVu + tienThuoc;
-        if (tong <= 0) {
-            showWarning("Lần khám này không có khoản nào để tính tiền.");
-            return;
-        }
         String[] lanKham = dsLanKham.get(index);
         boolean traGop = TRA_GOP.equals(cboPhuongThuc.getSelectedItem());
         int soDot = traGop ? (Integer) spnSoDot.getValue() : 0;
         String phuongThucDb = traGop ? "Tra gop"
                 : CHUYEN_KHOAN.equals(cboPhuongThuc.getSelectedItem()) ? "Chuyen khoan" : "Tien mat";
+        String trangThai = traGop ? HoaDon.DANG_TRA_GOP : HoaDon.DA_THANH_TOAN;
+        String validationError = invoiceService.validateDraft(maNhanVien, lanKham[1], lanKham[0],
+                tong, trangThai, phuongThucDb, soDot);
+        if (validationError != null) {
+            showWarning(validationError);
+            return;
+        }
         String xacNhanThu = traGop
                 ? "Xác nhận đã thu đợt đầu " + TIEN.format(Math.floor(tong / soDot)) + " đ."
                 : CHUYEN_KHOAN.equals(cboPhuongThuc.getSelectedItem())
@@ -447,10 +449,9 @@ public class XuLyLapHoaDonPanel extends JPanel {
             return;
         }
 
-        String trangThai = traGop ? HoaDon.DANG_TRA_GOP : HoaDon.DA_THANH_TOAN;
         String maHoaDon;
         try {
-            maHoaDon = hoaDonDAO.lapHoaDon(LocalDate.now(), trangThai, phuongThucDb,
+            maHoaDon = invoiceService.lapHoaDon(LocalDate.now(), trangThai, phuongThucDb,
                     maNhanVien, lanKham[1], lanKham[0], soDot);
         } catch (java.sql.SQLException | IllegalArgumentException exception) {
             JOptionPane.showMessageDialog(this,
@@ -470,7 +471,7 @@ public class XuLyLapHoaDonPanel extends JPanel {
                 "Xuất hóa đơn PDF", JOptionPane.YES_NO_OPTION);
         if (exportChoice == JOptionPane.YES_OPTION) {
             try {
-                HoaDonDAO.ChiTietHoaDon detail = hoaDonDAO.layChiTietHoaDon(maHoaDon);
+                ChiTietHoaDonTraCuu detail = invoiceService.layChiTietHoaDon(maHoaDon);
                 if (detail == null) {
                     showWarning("Không tìm thấy hóa đơn vừa lập để xuất PDF.");
                 } else {
@@ -487,8 +488,8 @@ public class XuLyLapHoaDonPanel extends JPanel {
     // HÀM HỖ TRỢ
     // =====================================================================
 
-    private void xuatHoaDonPdf(HoaDonDAO.ChiTietHoaDon detail) {
-        String maHoaDon = detail.hoaDon.ma;
+    private void xuatHoaDonPdf(ChiTietHoaDonTraCuu detail) {
+        String maHoaDon = detail.hoaDon.maHoaDon();
         JFileChooser fileChooser = new JFileChooser();
         fileChooser.setDialogTitle("Lưu hóa đơn PDF");
         fileChooser.setFileFilter(new FileNameExtensionFilter("Tệp PDF (*.pdf)", "pdf"));
@@ -512,12 +513,12 @@ public class XuLyLapHoaDonPanel extends JPanel {
         }
 
         try {
-            HoaDonPdfExporter.export(selectedFile.toPath(), maHoaDon, detail.hoaDon.ngayLap,
-                    detail.hoaDon.maBenhNhan, detail.hoaDon.tenBenhNhan, detail.maChanDoan,
-                    detail.ketLuan, hienThiPhuongThuc(detail.hoaDon.phuongThuc),
-                    hienThiTrangThai(detail.hoaDon.trangThai),
+            HoaDonPdfExporter.export(selectedFile.toPath(), maHoaDon, detail.hoaDon.ngayLap(),
+                    detail.hoaDon.maBenhNhan(), detail.hoaDon.tenBenhNhan(), detail.maChanDoan,
+                    detail.ketLuan, hienThiPhuongThuc(detail.hoaDon.phuongThuc()),
+                    hienThiTrangThai(detail.hoaDon.trangThai()),
                     layDongHoaDon(detail.dichVu), layDongHoaDon(detail.thuoc),
-                    tong(detail.dichVu), tong(detail.thuoc), detail.hoaDon.tongTien);
+                    tong(detail.dichVu), tong(detail.thuoc), detail.hoaDon.tongTien());
             showMessage("Đã xuất hóa đơn PDF:\n" + selectedFile.getAbsolutePath());
         } catch (IOException | SecurityException exception) {
             JOptionPane.showMessageDialog(this,
@@ -526,18 +527,18 @@ public class XuLyLapHoaDonPanel extends JPanel {
         }
     }
 
-    private List<String[]> layDongHoaDon(List<HoaDonDAO.DongHoaDon> dongHoaDon) {
+    private List<String[]> layDongHoaDon(List<DongTinhTien> dongHoaDon) {
         List<String[]> rows = new ArrayList<>();
-        for (HoaDonDAO.DongHoaDon dong : dongHoaDon) {
-            rows.add(new String[] { dong.ma, dong.ten, TIEN.format(dong.donGia),
-                    String.valueOf(dong.soLuong), TIEN.format(dong.thanhTien()) });
+        for (DongTinhTien dong : dongHoaDon) {
+            rows.add(new String[] { dong.ma(), dong.ten(), TIEN.format(dong.donGia()),
+                    String.valueOf(dong.soLuong()), TIEN.format(dong.thanhTien()) });
         }
         return rows;
     }
 
-    private static double tong(List<HoaDonDAO.DongHoaDon> dongHoaDon) {
+    private static double tong(List<DongTinhTien> dongHoaDon) {
         double tong = 0;
-        for (HoaDonDAO.DongHoaDon dong : dongHoaDon) {
+        for (DongTinhTien dong : dongHoaDon) {
             tong += dong.thanhTien();
         }
         return tong;
@@ -574,9 +575,9 @@ public class XuLyLapHoaDonPanel extends JPanel {
         cboLanKham.removeAllItems();
         dsLanKham.clear();
         try {
-            maNhanVien = hoaDonDAO.layMaNhanVienTheoTenDangNhap(tenDangNhap);
+            maNhanVien = invoiceService.layMaNhanVienTheoTenDangNhap(tenDangNhap);
             loiTaiDuLieu = false;
-            for (HoaDonDAO.LanKhamHoaDon lanKham : hoaDonDAO.layLanKhamChuaLapHoaDon()) {
+            for (LanKham lanKham : invoiceService.layLanKhamChuaLapHoaDon()) {
                 String[] row = { lanKham.maChanDoan(), lanKham.maBenhNhan(),
                         lanKham.hoTen(), lanKham.ketLuan() };
                 dsLanKham.add(row);

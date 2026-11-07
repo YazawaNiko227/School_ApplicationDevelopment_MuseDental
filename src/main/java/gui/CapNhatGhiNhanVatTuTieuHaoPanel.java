@@ -1,13 +1,8 @@
 package gui;
 
-import dao.LichHenDAO;
-import dao.PhieuXuatKhoDAO;
-import dao.VatTuDAO;
-import dto.ChiTietXuatInfo;
 import dto.LichHenInfo;
-import entity.ChiTietXuatKho;
-import entity.PhieuXuatKho;
 import entity.VatTu;
+import service.VatTuTieuHaoService;
 import util.GiaoDienUtil;
 
 import java.awt.BorderLayout;
@@ -16,7 +11,6 @@ import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.sql.SQLException;
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -38,7 +32,7 @@ import javax.swing.table.DefaultTableModel;
 /**
  * Panel "Ghi nhận vật tư tiêu hao" (xuất kho dùng cho lần khám hoặc phòng
  * khám).
- * Kết nối CSDL trực tiếp qua PhieuXuatKhoDAO, VatTuDAO và LichHenDAO.
+ * Dữ liệu và nghiệp vụ xuất kho được xử lý qua VatTuTieuHaoService.
  *
  * Quy tắc nghiệp vụ:
  * - Chọn lịch hẹn đang khám / hoàn thành, hoặc chọn "Xuất dùng chung".
@@ -49,11 +43,7 @@ public class CapNhatGhiNhanVatTuTieuHaoPanel extends JPanel {
 
     private static final String TAT_CA = "Tất cả";
     private static final String XUAT_DUNG_CHUNG = "Xuất dùng chung (không gắn lịch hẹn)";
-    private static final String MA_NHAN_VIEN_XUAT = "NV005"; // Mã thủ kho mặc định
-
-    private final PhieuXuatKhoDAO phieuXuatKhoDAO = new PhieuXuatKhoDAO();
-    private final VatTuDAO vatTuDAO = new VatTuDAO();
-    private final LichHenDAO lichHenDAO = new LichHenDAO();
+    private final VatTuTieuHaoService vatTuTieuHaoService = new VatTuTieuHaoService();
 
     // Danh sách lịch hẹn nạp từ CSDL
     private final List<LichHenInfo> danhSachLichHen = new ArrayList<>();
@@ -81,7 +71,7 @@ public class CapNhatGhiNhanVatTuTieuHaoPanel extends JPanel {
     private final JTable bangVatTu = new JTable(modelVatTu);
     private final JSpinner spnSoLuong = new JSpinner(new SpinnerNumberModel(1, 1, 1000, 1));
 
-    // ----- 3. Thẻ phiếu xuất và lịch sử bên phải -----
+    // ----- 3. Thẻ phiếu xuất bên phải -----
     private final DefaultTableModel modelPhieu = new DefaultTableModel(
             new String[] { "Mã", "Tên vật tư", "ĐVT", "Số lượng dùng" }, 0) {
         @Override
@@ -90,15 +80,6 @@ public class CapNhatGhiNhanVatTuTieuHaoPanel extends JPanel {
         }
     };
     private final JTable bangPhieu = new JTable(modelPhieu);
-
-    private final DefaultTableModel modelLichSu = new DefaultTableModel(
-            new String[] { "Mã phiếu", "Mã VT", "Tên vật tư", "ĐVT", "Số lượng" }, 0) {
-        @Override
-        public boolean isCellEditable(int row, int column) {
-            return false;
-        }
-    };
-    private final JTable bangLichSu = new JTable(modelLichSu);
 
     public CapNhatGhiNhanVatTuTieuHaoPanel() {
         setLayout(new BorderLayout(0, 16));
@@ -109,7 +90,7 @@ public class CapNhatGhiNhanVatTuTieuHaoPanel extends JPanel {
         JPanel vungGiua = new JPanel(new BorderLayout(16, 0));
         vungGiua.setOpaque(false);
         vungGiua.add(taoTheVatTu(), BorderLayout.WEST);
-        vungGiua.add(taoThePhieuVaLichSu(), BorderLayout.CENTER);
+        vungGiua.add(taoThePhieuXuat(), BorderLayout.CENTER);
         add(vungGiua, BorderLayout.CENTER);
 
         // Nạp dữ liệu ban đầu
@@ -208,8 +189,8 @@ public class CapNhatGhiNhanVatTuTieuHaoPanel extends JPanel {
         return the;
     }
 
-    /** Thẻ bên phải: danh sách vật tư trong phiếu đang tạo và lịch sử đã xuất. */
-    private JPanel taoThePhieuVaLichSu() {
+    /** Thẻ bên phải: danh sách vật tư trong phiếu đang tạo. */
+    private JPanel taoThePhieuXuat() {
         JPanel the = new JPanel(new BorderLayout(0, 12));
         GiaoDienUtil.trangTriThe(the);
 
@@ -246,34 +227,19 @@ public class CapNhatGhiNhanVatTuTieuHaoPanel extends JPanel {
         actions.add(btnLuu);
         vungNoiDung.add(actions);
 
-        // 2. Lịch sử đã xuất của lần khám này
-        vungNoiDung.add(Box.createVerticalStrut(10));
-        JLabel lblLichSuTitle = GiaoDienUtil.taoTieuDe("Lịch sử vật tư đã xuất cho lần này");
-        lblLichSuTitle.setAlignmentX(Component.LEFT_ALIGNMENT);
-        vungNoiDung.add(lblLichSuTitle);
-        vungNoiDung.add(Box.createVerticalStrut(8));
-
-        GiaoDienUtil.tuyChinhBang(bangLichSu);
-        JScrollPane cuonLichSu = new JScrollPane(bangLichSu);
-        cuonLichSu.setBorder(BorderFactory.createLineBorder(GiaoDienUtil.LINE));
-        cuonLichSu.getViewport().setBackground(Color.WHITE);
-        cuonLichSu.setPreferredSize(new Dimension(100, 180));
-        cuonLichSu.setAlignmentX(Component.LEFT_ALIGNMENT);
-        vungNoiDung.add(cuonLichSu);
-
         the.add(vungNoiDung, BorderLayout.CENTER);
         return the;
     }
 
     // =========================================================================
-    // 2. TẢI DỮ LIỆU TỪ DAO
+    // 2. TẢI DỮ LIỆU
     // =========================================================================
 
-    /** Nạp các lịch hẹn đang khám hoặc vừa khám xong từ LichHenDAO. */
+    /** Nạp các lịch hẹn đang khám hoặc vừa khám xong. */
     public void taiDanhSachLichHen() {
         try {
             String maLichDangChon = layMaLichHenDangChon();
-            List<LichHenInfo> lichHenMoi = lichHenDAO.layChoXuatKho();
+            List<LichHenInfo> lichHenMoi = vatTuTieuHaoService.layLichHenChoXuatKho();
             danhSachLichHen.clear();
             danhSachLichHen.addAll(lichHenMoi);
             dangNapDanhSachLichHen = true;
@@ -308,7 +274,7 @@ public class CapNhatGhiNhanVatTuTieuHaoPanel extends JPanel {
         String loaiLoc = TAT_CA.equals(loai) ? null : loai;
 
         try {
-            List<VatTu> danhSach = vatTuDAO.timKiem(tuKhoa, loaiLoc);
+            List<VatTu> danhSach = vatTuTieuHaoService.timVatTu(tuKhoa, loaiLoc);
             modelVatTu.setRowCount(0);
             for (VatTu vt : danhSach) {
                 mapCacheVatTu.put(vt.getMaVatTu(), vt);
@@ -329,9 +295,7 @@ public class CapNhatGhiNhanVatTuTieuHaoPanel extends JPanel {
     // 3. XỬ LÝ NGHIỆP VỤ XUẤT KHO
     // =========================================================================
 
-    /**
-     * Khi thay đổi lựa chọn lịch hẹn: xóa phiếu đang soạn và tải lại lịch sử xuất.
-     */
+    /** Khi thay đổi lựa chọn lịch hẹn: xóa phiếu đang soạn. */
     private void chonLichHen() {
         int index = cboLichHen.getSelectedIndex();
         if (index < 0)
@@ -352,29 +316,6 @@ public class CapNhatGhiNhanVatTuTieuHaoPanel extends JPanel {
         mapVatTuDangSoan.clear();
         spnSoLuong.setValue(1);
         capNhatBangPhieu();
-        taiLichSuXuat();
-    }
-
-    /** Nạp danh sách vật tư đã xuất của lần khám này từ CSDL. */
-    private void taiLichSuXuat() {
-        int index = cboLichHen.getSelectedIndex();
-        String maLichHen = (index <= 0) ? null : danhSachLichHen.get(index - 1).maLichHen();
-
-        try {
-            List<ChiTietXuatInfo> lichSu = phieuXuatKhoDAO.layLichSuXuatTheoLichHen(maLichHen);
-            modelLichSu.setRowCount(0);
-            for (ChiTietXuatInfo info : lichSu) {
-                modelLichSu.addRow(new Object[] {
-                        info.maPhieuXuat(),
-                        info.maVatTu(),
-                        info.tenVatTu(),
-                        info.donViTinh() == null ? "" : info.donViTinh(),
-                        info.soLuongSuDung()
-                });
-            }
-        } catch (SQLException e) {
-            GiaoDienUtil.baoLoi(this, e);
-        }
     }
 
     private String layMaLichHenDangChon() {
@@ -400,14 +341,9 @@ public class CapNhatGhiNhanVatTuTieuHaoPanel extends JPanel {
         int soLuong = (Integer) spnSoLuong.getValue();
         int daChon = mapVatTuDangSoan.getOrDefault(maVatTu, 0);
 
-        if (daChon + soLuong > vt.getSoLuongTon()) {
-            GiaoDienUtil.canhBao(this, "Tổng số lượng xuất (" + (daChon + soLuong) + ") vượt quá tồn kho hiện có ("
-                    + vt.getSoLuongTon() + ").");
-            return;
-        }
-
-        if (vt.getHanSuDung() != null && vt.getHanSuDung().isBefore(LocalDate.now())) {
-            GiaoDienUtil.canhBao(this, "Vật tư " + vt.getTenVatTu() + " đã hết hạn sử dụng, không thể xuất dùng!");
+        String loi = vatTuTieuHaoService.kiemTraThemVatTu(vt, daChon, soLuong);
+        if (loi != null) {
+            GiaoDienUtil.canhBao(this, loi);
             return;
         }
 
@@ -452,28 +388,13 @@ public class CapNhatGhiNhanVatTuTieuHaoPanel extends JPanel {
         String maLichHen = (index <= 0) ? null : danhSachLichHen.get(index - 1).maLichHen();
 
         try {
-            String maPhieuMoi = phieuXuatKhoDAO.sinhMa();
-            PhieuXuatKho phieu = new PhieuXuatKho(maPhieuMoi, LocalDate.now(), MA_NHAN_VIEN_XUAT, maLichHen);
+            VatTuTieuHaoService.KetQuaLuuPhieu ketQua =
+                    vatTuTieuHaoService.luuPhieuXuat(mapVatTuDangSoan, maLichHen);
 
-            List<ChiTietXuatKho> chiTietList = new ArrayList<>();
-            for (Map.Entry<String, Integer> entry : mapVatTuDangSoan.entrySet()) {
-                chiTietList.add(new ChiTietXuatKho(maPhieuMoi, entry.getKey(), entry.getValue()));
-            }
-
-            phieuXuatKhoDAO.luuPhieuXuat(phieu, chiTietList);
-
-            // Kiểm tra các vật tư chạm ngưỡng tối thiểu để nhắc nhở
-            List<String> canhBaoTon = new ArrayList<>();
-            for (Map.Entry<String, Integer> entry : mapVatTuDangSoan.entrySet()) {
-                VatTu vt = vatTuDAO.timTheoMa(entry.getKey());
-                if (vt != null && vt.getSoLuongTon() <= vt.getNguongToiThieu()) {
-                    canhBaoTon.add(vt.getTenVatTu() + " (còn " + vt.getSoLuongTon() + " " + vt.getDonViTinh() + ")");
-                }
-            }
-
-            String msg = "Đã lưu phiếu xuất " + maPhieuMoi + " thành công và tự động trừ tồn kho!";
-            if (!canhBaoTon.isEmpty()) {
-                msg += "\n\nLƯU Ý: Các vật tư sau đã chạm ngưỡng tối thiểu:\n- " + String.join("\n- ", canhBaoTon);
+            String msg = "Đã lưu phiếu xuất " + ketQua.getMaPhieu() + " thành công và tự động trừ tồn kho!";
+            if (!ketQua.getCanhBaoTon().isEmpty()) {
+                msg += "\n\nLƯU Ý: Các vật tư sau đã chạm ngưỡng tối thiểu:\n- "
+                        + String.join("\n- ", ketQua.getCanhBaoTon());
             }
             GiaoDienUtil.thongBao(this, msg);
 
@@ -481,7 +402,7 @@ public class CapNhatGhiNhanVatTuTieuHaoPanel extends JPanel {
             mapVatTuDangSoan.clear();
             capNhatBangPhieu();
             taiDanhSachVatTu();
-            taiLichSuXuat();
+            taiDanhSachLichHen();
         } catch (SQLException e) {
             GiaoDienUtil.baoLoi(this, e);
         }

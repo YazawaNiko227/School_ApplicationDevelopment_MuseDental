@@ -4,7 +4,7 @@ public class CongNoTraGop {
     private String maCongNo;
     private double tongSoTien;
     private int soDotConLai;
-    private String maHoaDon;
+    private HoaDon maHoaDon;
 
     public CongNoTraGop() {
         this.soDotConLai = 0;
@@ -45,14 +45,31 @@ public class CongNoTraGop {
         this.soDotConLai = soDotConLai;
     }
 
-    public String getMaHoaDon() {
+    public HoaDon getMaHoaDon() {
         return maHoaDon;
     }
+
+    public String getMaHoaDonId() {
+        return maHoaDon == null ? null : maHoaDon.getMaHoaDon();
+    }
+
+    public HoaDon getHoaDon() {
+        return maHoaDon;
+    }
+
+    public void setHoaDon(HoaDon hoaDon) {
+        if (hoaDon == null) throw new IllegalArgumentException("HoaDon không được null.");
+        this.maHoaDon = hoaDon;
+    }
+
+    public void setMaHoaDon(HoaDon hoaDon) { setHoaDon(hoaDon); }
 
     public void setMaHoaDon(String maHoaDon) {
         if (maHoaDon == null) throw new IllegalArgumentException("MaHoaDon không được null.");
         if (maHoaDon != null && maHoaDon.length() > 20) throw new IllegalArgumentException("MaHoaDon tối đa 20 ký tự.");
-        this.maHoaDon = maHoaDon;
+        HoaDon hoaDon = new HoaDon();
+        hoaDon.setMaHoaDon(maHoaDon);
+        this.maHoaDon = hoaDon;
     }
 
 }

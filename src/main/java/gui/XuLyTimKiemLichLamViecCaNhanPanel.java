@@ -1,11 +1,9 @@
 package gui;
 
-import dao.CaTrucDAO;
-import dao.LichHenDAO;
-import dao.NhanVienDAO;
 import dto.LichHenInfo;
 import entity.CaTruc;
 import entity.NhanVien;
+import service.LichLamViecCaNhanService;
 import util.GiaoDienUtil;
 
 import java.awt.BorderLayout;
@@ -15,7 +13,6 @@ import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
 import java.sql.SQLException;
-import java.text.Normalizer;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -39,7 +36,7 @@ import javax.swing.table.DefaultTableModel;
 /**
  * Panel "Lịch làm việc cá nhân" (phục vụ mục TÌM KIẾM → "Lịch làm việc cá
  * nhân").
- * Kết nối CSDL trực tiếp qua CaTrucDAO, LichHenDAO và NhanVienDAO.
+ * Dữ liệu lịch cá nhân được truy vấn qua service.
  *
  * Chức năng chính:
  * 1. Xem lịch trực cá nhân theo tuần (bảng CaTruc).
@@ -55,9 +52,7 @@ public class XuLyTimKiemLichLamViecCaNhanPanel extends JPanel {
     private static final String[] THU_TRONG_TUAN = { "Thứ hai", "Thứ ba", "Thứ tư", "Thứ năm", "Thứ sáu", "Thứ bảy",
             "Chủ nhật" };
 
-    private final CaTrucDAO caTrucDAO = new CaTrucDAO();
-    private final LichHenDAO lichHenDAO = new LichHenDAO();
-    private final NhanVienDAO nhanVienDAO = new NhanVienDAO();
+    private final LichLamViecCaNhanService lichLamViecService = new LichLamViecCaNhanService();
 
     private String maNhanVien;
     private final String dinhDanhDangNhap;
@@ -262,19 +257,12 @@ public class XuLyTimKiemLichLamViecCaNhanPanel extends JPanel {
             return;
         }
         try {
-            NhanVien nv = nhanVienDAO.timTheoMa(dinhDanhDangNhap);
-            if (nv == null) {
-                nv = nhanVienDAO.timTheoTenDangNhap(dinhDanhDangNhap);
-            }
+            NhanVien nv = lichLamViecService.timNhanVien(dinhDanhDangNhap);
             if (nv != null) {
                 this.maNhanVien = nv.getMaNhanVien();
                 this.hoTen = nv.getHoTen();
-                this.chuyenMon = nv.getChuyenMon() == null ? "" : nv.getChuyenMon();
-                String chuyenMonKhongDau = Normalizer.normalize(chuyenMon, Normalizer.Form.NFD)
-                        .replaceAll("\\p{M}", "")
-                        .toLowerCase(java.util.Locale.ROOT);
-                this.laNhaSi = chuyenMonKhongDau.contains("nha si")
-                        || chuyenMonKhongDau.contains("bac si");
+                this.chuyenMon = nv.getChuyenMon() == null ? "" : nv.getChuyenMon().getTenChuyenMon();
+                this.laNhaSi = lichLamViecService.laNhaSi(nv);
             } else {
                 baoLoiKhongTimThayNhanVien();
             }
@@ -301,9 +289,9 @@ public class XuLyTimKiemLichLamViecCaNhanPanel extends JPanel {
         lblThongTinNhanVien.setText(hoTen + "  ·  " + maNhanVien + " (" + chuyenMon + ")  ·  Tuần "
                 + dauTuan.format(DINH_DANG_NGAY) + " - " + cuoiTuan.format(DINH_DANG_NGAY));
 
-        // 1. Nạp ca trực từ CaTrucDAO
+        // 1. Nạp ca trực
         try {
-            List<CaTruc> caList = caTrucDAO.layTheoTuan(maNhanVien, dauTuan, cuoiTuan);
+            List<CaTruc> caList = lichLamViecService.layCaTrucTuan(maNhanVien, dauTuan, cuoiTuan);
             modelCa.setRowCount(0);
             for (CaTruc ca : caList) {
                 int thuIdx = ca.getNgay().getDayOfWeek().getValue() - 1;
@@ -314,7 +302,7 @@ public class XuLyTimKiemLichLamViecCaNhanPanel extends JPanel {
                         ca.getGioBatDau().format(DINH_DANG_GIO),
                         ca.getGioKetThuc().format(DINH_DANG_GIO),
                         ca.getLoaiCa() == null ? "" : ca.getLoaiCa(),
-                        ca.getMaPhong()
+                        ca.getMaPhongId()
                 });
             }
             lblSoCaTruc.setText(String.valueOf(caList.size()));
@@ -324,11 +312,11 @@ public class XuLyTimKiemLichLamViecCaNhanPanel extends JPanel {
             GiaoDienUtil.baoLoi(this, e);
         }
 
-        // 2. Nạp lịch hẹn từ LichHenDAO (nếu là nha sĩ)
+        // 2. Nạp lịch hẹn (nếu là nha sĩ)
         try {
             danhSachLichTuan.clear();
             if (laNhaSi) {
-                danhSachLichTuan.addAll(lichHenDAO.layTheoNhaSiTrongTuan(maNhanVien, dauTuan, cuoiTuan));
+                danhSachLichTuan.addAll(lichLamViecService.layLichHenTuan(maNhanVien, dauTuan, cuoiTuan));
             }
             lblSoLichHen.setText(String.valueOf(danhSachLichTuan.size()));
             locBangLichHen();

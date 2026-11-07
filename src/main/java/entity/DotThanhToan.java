@@ -11,7 +11,7 @@ public class DotThanhToan {
     private double soTienDot;
     private String trangThai;
     private LocalDate ngayThanhToanThucTe;
-    private String maCongNo;
+    private CongNoTraGop maCongNo;
 
     public DotThanhToan() {
         this.trangThai = "Chua den han";
@@ -79,16 +79,34 @@ public class DotThanhToan {
         this.ngayThanhToanThucTe = ngayThanhToanThucTe;
     }
 
-    public String getMaCongNo() {
+    public CongNoTraGop getMaCongNo() {
         return maCongNo;
     }
+
+    public String getMaCongNoId() {
+        return maCongNo == null ? null : maCongNo.getMaCongNo();
+    }
+
+    public CongNoTraGop getCongNoTraGop() {
+        return maCongNo;
+    }
+
+    public void setCongNoTraGop(CongNoTraGop congNoTraGop) {
+        if (congNoTraGop == null)
+            throw new IllegalArgumentException("CongNoTraGop không được null.");
+        this.maCongNo = congNoTraGop;
+    }
+
+    public void setMaCongNo(CongNoTraGop congNoTraGop) { setCongNoTraGop(congNoTraGop); }
 
     public void setMaCongNo(String maCongNo) {
         if (maCongNo == null)
             throw new IllegalArgumentException("MaCongNo không được null.");
         if (maCongNo != null && maCongNo.length() > 20)
             throw new IllegalArgumentException("MaCongNo tối đa 20 ký tự.");
-        this.maCongNo = maCongNo;
+        CongNoTraGop congNo = new CongNoTraGop();
+        congNo.setMaCongNo(maCongNo);
+        this.maCongNo = congNo;
     }
 
 }

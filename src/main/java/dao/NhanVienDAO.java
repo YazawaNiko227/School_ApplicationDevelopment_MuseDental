@@ -1,6 +1,7 @@
 package dao;
 
 import connectDB.ConnectDB;
+import entity.ChuyenMon;
 import entity.NhanVien;
 import java.sql.Date;
 import java.sql.PreparedStatement;
@@ -16,13 +17,15 @@ import java.util.List;
  */
 public class NhanVienDAO {
     private static final String SQL =
-            "SELECT MaNhanVien, HoTen, NgaySinh, GioiTinh, SoDienThoai, Email, DiaChi, NgayVaoLam, "
-                    + "TrangThaiLamViec, ChuyenMon, SoChungChiHanhNghe FROM NhanVien ";
+            "SELECT NV.MaNhanVien, NV.HoTen, NV.NgaySinh, NV.GioiTinh, NV.SoDienThoai, NV.Email, NV.DiaChi, "
+                    + "NV.NgayVaoLam, NV.TrangThaiLamViec, NV.MaChuyenMon, CM.TenChuyenMon, "
+                    + "NV.SoChungChiHanhNghe FROM NhanVien NV "
+                    + "LEFT JOIN ChuyenMon CM ON CM.MaChuyenMon = NV.MaChuyenMon ";
 
     public List<NhanVien> layTatCa() throws SQLException {
         List<NhanVien> nhanVienList = new ArrayList<>();
         try (PreparedStatement statement = ConnectDB.getConnection()
-                .prepareStatement(SQL + "ORDER BY MaNhanVien");
+                .prepareStatement(SQL + "ORDER BY NV.MaNhanVien");
                 ResultSet result = statement.executeQuery()) {
             while (result.next()) {
                 nhanVienList.add(docBanGhi(result));
@@ -34,7 +37,7 @@ public class NhanVienDAO {
     /** Truy nhân viên theo mã; không tìm thấy trả null. */
     public NhanVien timTheoMa(String maNhanVien) throws SQLException {
         try (PreparedStatement ps = ConnectDB.getConnection().prepareStatement(
-                SQL + " WHERE MaNhanVien = ?")) {
+                SQL + " WHERE NV.MaNhanVien = ?")) {
             ps.setString(1, maNhanVien);
             try (ResultSet rs = ps.executeQuery()) {
                 return rs.next() ? docBanGhi(rs) : null;
@@ -44,7 +47,7 @@ public class NhanVienDAO {
 
     public boolean them(NhanVien nhanVien) throws SQLException {
         String sql = "INSERT INTO NhanVien (MaNhanVien, HoTen, NgaySinh, GioiTinh, SoDienThoai, Email, "
-                + "DiaChi, NgayVaoLam, TrangThaiLamViec, ChuyenMon, SoChungChiHanhNghe) "
+                + "DiaChi, NgayVaoLam, TrangThaiLamViec, MaChuyenMon, SoChungChiHanhNghe) "
                 + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         try (PreparedStatement statement = ConnectDB.getConnection().prepareStatement(sql)) {
             ganDuLieu(statement, nhanVien, true);
@@ -54,7 +57,7 @@ public class NhanVienDAO {
 
     public boolean capNhat(NhanVien nhanVien) throws SQLException {
         String sql = "UPDATE NhanVien SET HoTen = ?, NgaySinh = ?, GioiTinh = ?, SoDienThoai = ?, "
-                + "Email = ?, DiaChi = ?, NgayVaoLam = ?, TrangThaiLamViec = ?, ChuyenMon = ?, "
+                + "Email = ?, DiaChi = ?, NgayVaoLam = ?, TrangThaiLamViec = ?, MaChuyenMon = ?, "
                 + "SoChungChiHanhNghe = ? WHERE MaNhanVien = ?";
         try (PreparedStatement statement = ConnectDB.getConnection().prepareStatement(sql)) {
             ganDuLieu(statement, nhanVien, false);
@@ -82,8 +85,10 @@ public class NhanVienDAO {
     /** Truy nhân viên theo tên đăng nhập (JOIN TaiKhoan); không thấy trả null. */
     public NhanVien timTheoTenDangNhap(String tenDangNhap) throws SQLException {
         String sql = "SELECT NV.MaNhanVien, NV.HoTen, NV.NgaySinh, NV.GioiTinh, NV.SoDienThoai, NV.Email, "
-                + "NV.DiaChi, NV.NgayVaoLam, NV.TrangThaiLamViec, NV.ChuyenMon, NV.SoChungChiHanhNghe "
-                + "FROM NhanVien NV JOIN TaiKhoan TK ON TK.MaNhanVien = NV.MaNhanVien "
+                + "NV.DiaChi, NV.NgayVaoLam, NV.TrangThaiLamViec, NV.MaChuyenMon, CM.TenChuyenMon, "
+                + "NV.SoChungChiHanhNghe FROM NhanVien NV "
+                + "LEFT JOIN ChuyenMon CM ON CM.MaChuyenMon = NV.MaChuyenMon "
+                + "JOIN TaiKhoan TK ON TK.MaNhanVien = NV.MaNhanVien "
                 + "WHERE TK.TenDangNhap = ?";
         try (PreparedStatement ps = ConnectDB.getConnection().prepareStatement(sql)) {
             ps.setString(1, tenDangNhap);
@@ -107,7 +112,8 @@ public class NhanVienDAO {
         ganChuoi(statement, index++, nhanVien.getDiaChi());
         ganNgay(statement, index++, nhanVien.getNgayVaoLam());
         ganChuoi(statement, index++, nhanVien.getTrangThaiLamViec());
-        ganChuoi(statement, index++, nhanVien.getChuyenMon());
+        ChuyenMon chuyenMon = nhanVien.getChuyenMon();
+        ganChuoi(statement, index++, chuyenMon == null ? null : chuyenMon.getMaChuyenMon());
         ganChuoi(statement, index++, nhanVien.getSoChungChiHanhNghe());
         if (!them) {
             statement.setString(index, nhanVien.getMaNhanVien());
@@ -142,7 +148,12 @@ public class NhanVienDAO {
                 rs.getString("DiaChi"),
                 rs.getDate("NgayVaoLam") == null ? null : rs.getDate("NgayVaoLam").toLocalDate(),
                 rs.getString("TrangThaiLamViec"),
-                rs.getString("ChuyenMon"),
+                docChuyenMon(rs),
                 rs.getString("SoChungChiHanhNghe"));
+    }
+
+    private static ChuyenMon docChuyenMon(ResultSet rs) throws SQLException {
+        String maChuyenMon = rs.getString("MaChuyenMon");
+        return maChuyenMon == null ? null : new ChuyenMon(maChuyenMon, rs.getString("TenChuyenMon"));
     }
 }

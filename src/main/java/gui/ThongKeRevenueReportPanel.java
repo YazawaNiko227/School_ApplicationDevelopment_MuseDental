@@ -1,7 +1,9 @@
 package gui;
 
 import com.toedter.calendar.JDateChooser;
-import dao.ThongKeDoanhThuDAO;
+import entity.BaoCaoDoanhThu;
+import entity.NhomDoanhThu;
+import service.RevenueReportService;
 import util.GiaoDienUtil;
 
 import java.awt.BorderLayout;
@@ -41,7 +43,7 @@ import javax.swing.table.DefaultTableModel;
  * Cộng tổng giá trị các hóa đơn "Đã thanh toán" và "Đang trả góp"
  * theo ngày lập; loại "Chưa thanh toán".
  *
- * Báo cáo đọc số liệu đã lưu trong CSDL qua ThongKeDoanhThuDAO.
+ * Báo cáo đọc số liệu đã lưu trong CSDL qua service.
  */
 public class ThongKeRevenueReportPanel extends JPanel {
     private static final Color INK = new Color(32, 53, 68);
@@ -55,11 +57,11 @@ public class ThongKeRevenueReportPanel extends JPanel {
     private static final DecimalFormat PHAN_TRAM = new DecimalFormat("0.0");
 
     // Các cách nhóm báo cáo.
-    private static final String THEO_NGAY = ThongKeDoanhThuDAO.THEO_NGAY;
-    private static final String THEO_THANG = ThongKeDoanhThuDAO.THEO_THANG;
-    private static final String THEO_MUC = ThongKeDoanhThuDAO.THEO_MUC;
-    private static final String THEO_PHUONG_THUC = ThongKeDoanhThuDAO.THEO_PHUONG_THUC;
-    private final ThongKeDoanhThuDAO doanhThuDAO = new ThongKeDoanhThuDAO();
+    private static final String THEO_NGAY = RevenueReportService.THEO_NGAY;
+    private static final String THEO_THANG = RevenueReportService.THEO_THANG;
+    private static final String THEO_MUC = RevenueReportService.THEO_MUC;
+    private static final String THEO_PHUONG_THUC = RevenueReportService.THEO_PHUONG_THUC;
+    private final RevenueReportService doanhThuService = new RevenueReportService();
 
     // ----- Bộ lọc -----
     private final JDateChooser chonTuNgay = new JDateChooser();
@@ -238,18 +240,15 @@ public class ThongKeRevenueReportPanel extends JPanel {
     private void thongKe() {
         LocalDate tuNgay = GiaoDienUtil.layNgayDaChon(chonTuNgay);
         LocalDate denNgay = GiaoDienUtil.layNgayDaChon(chonDenNgay);
-        if (tuNgay == null || denNgay == null) {
-            showWarning("Vui lòng chọn đầy đủ Từ ngày và Đến ngày.");
-            return;
-        }
-        if (tuNgay.isAfter(denNgay)) {
-            showWarning("Từ ngày không được sau Đến ngày.");
+        String validationError = doanhThuService.validateDateRange(tuNgay, denNgay);
+        if (validationError != null) {
+            showWarning(validationError);
             return;
         }
 
-        ThongKeDoanhThuDAO.BaoCaoDoanhThu baoCao;
+        BaoCaoDoanhThu baoCao;
         try {
-            baoCao = doanhThuDAO.thongKe(tuNgay, denNgay, (String) cboNhom.getSelectedItem());
+            baoCao = doanhThuService.thongKe(tuNgay, denNgay, (String) cboNhom.getSelectedItem());
         } catch (java.sql.SQLException | IllegalArgumentException exception) {
             tableModel.setRowCount(0);
             pnlBieuDo.removeAll();
@@ -273,7 +272,7 @@ public class ThongKeRevenueReportPanel extends JPanel {
 
         // Cập nhật bảng kết quả.
         tableModel.setRowCount(0);
-        for (ThongKeDoanhThuDAO.NhomDoanhThu nhom : baoCao.getDsNhom()) {
+        for (NhomDoanhThu nhom : baoCao.getDsNhom()) {
             double tyLe = tong == 0 ? 0 : nhom.getTongDoanhThu() * 100 / tong;
             tableModel.addRow(new Object[] {
                     nhom.getTenNhom(),
@@ -292,9 +291,9 @@ public class ThongKeRevenueReportPanel extends JPanel {
     /**
      * Vẽ biểu đồ: mỗi nhóm một dòng gồm tên nhóm và một thanh ngang theo tỷ lệ %.
      */
-    private void veBieuDo(java.util.List<ThongKeDoanhThuDAO.NhomDoanhThu> dsNhom, double tong) {
+    private void veBieuDo(java.util.List<NhomDoanhThu> dsNhom, double tong) {
         pnlBieuDo.removeAll();
-        for (ThongKeDoanhThuDAO.NhomDoanhThu nhom : dsNhom) {
+        for (NhomDoanhThu nhom : dsNhom) {
             int phanTram = tong == 0 ? 0 : (int) Math.round(nhom.getTongDoanhThu() * 100 / tong);
 
             JLabel lblTen = new JLabel(nhom.getTenNhom());

@@ -1,7 +1,7 @@
 package gui;
 
-import dao.PhongKhamDAO;
 import entity.PhongKham;
+import service.ChuanBiPhongKhamService;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -18,7 +18,6 @@ import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
-import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
@@ -36,11 +35,10 @@ import javax.swing.table.DefaultTableModel;
  * Màn hình "Chuẩn bị dụng cụ và cập nhật trạng thái phòng" (bước 3 và bước 8
  * trong luồng khám bệnh chính).
  *
- * Y tá chọn một phòng, tick danh sách dụng cụ đã chuẩn bị rồi đặt phòng về
- * "Sẵn sàng". Phòng sau khi khám xong ("Cần vệ sinh") cũng được đặt lại
- * "Sẵn sàng" ở đây.
+ * Y tá chọn một phòng và cập nhật trạng thái chuẩn bị. Phòng sau khi khám xong
+ * ("Cần vệ sinh") cũng được đặt lại "Sẵn sàng" ở đây.
  *
- * Dữ liệu phòng và trạng thái được đọc, cập nhật qua PhongKhamDAO.
+ * Dữ liệu phòng và nghiệp vụ trạng thái được xử lý qua ChuanBiPhongKhamService.
  */
 public class XuLyChuanBiPhongKhamPanel extends JPanel {
     // Màu dùng chung với ManHinhChinhFrame.
@@ -51,27 +49,16 @@ public class XuLyChuanBiPhongKhamPanel extends JPanel {
     private static final Color ORANGE = new Color(177, 125, 47);
     private static final Color RED = new Color(200, 70, 70);
     private static final Color BLUE = new Color(51, 91, 177);
-    // Trạng thái hiển thị; PhongKhamDAO lưu các giá trị không dấu theo schema.
+    // Trạng thái hiển thị; các giá trị lưu trữ trong cơ sở dữ liệu không dấu.
     private static final String SAN_SANG = "Sẵn sàng";
     private static final String DANG_KHAM = "Đang khám";
     private static final String CAN_VE_SINH = "Cần vệ sinh";
     private static final String BAO_TRI = "Bảo trì";
     private static final String TAT_CA = "Tất cả";
 
-    // Chỉ liệt kê dụng cụ tái sử dụng và việc chuẩn bị phòng.
-    // Vật tư dùng một lần (găng tay, thuốc tê, vật liệu...) ghi nhận ở màn hình
-    // "Ghi nhận vật tư tiêu hao" để trừ kho.
-    private static final String[] DANH_SACH_DUNG_CU = {
-            "Khay dụng cụ khám (gương, thám trâm, kẹp gắp)",
-            "Dụng cụ đã được tiệt trùng",
-            "Ống hút nước bọt, cốc súc miệng",
-            "Ghế nha khoa và đèn đã kiểm tra",
-            "Lau khử khuẩn bề mặt"
-    };
-
     // Mỗi phần tử: {mã phòng, tên phòng, trạng thái, lịch hẹn kế tiếp}
     private final List<Object[]> danhSachPhong = new ArrayList<>();
-    private final PhongKhamDAO phongKhamDAO = new PhongKhamDAO();
+    private final ChuanBiPhongKhamService chuanBiPhongKhamService = new ChuanBiPhongKhamService();
 
     private final DefaultTableModel tableModel = new DefaultTableModel(
             new String[] { "Mã phòng", "Tên phòng", "Trạng thái", "Lịch hẹn kế tiếp" }, 0) {
@@ -93,7 +80,6 @@ public class XuLyChuanBiPhongKhamPanel extends JPanel {
     private final JLabel lblTrangThai = new JLabel("-");
     private final JLabel lblLichKeTiep = new JLabel("-");
     private final JLabel lblGoiY = new JLabel(" ");
-    private final JCheckBox[] checklist = new JCheckBox[DANH_SACH_DUNG_CU.length];
     private final JTextArea txtGhiChu = new JTextArea(3, 20);
     private final JButton btnXacNhan = new JButton("Xác nhận");
     private final JButton btnCanVeSinh = new JButton("Báo cần vệ sinh");
@@ -119,52 +105,20 @@ public class XuLyChuanBiPhongKhamPanel extends JPanel {
 
     private void napDuLieu() {
         try {
-            List<PhongKham> phongKhamList = phongKhamDAO.layTatCa();
-            Map<String, String> lichHenKeTiep = phongKhamDAO.layLichHenKeTiep();
+            List<PhongKham> phongKhamList = chuanBiPhongKhamService.layTatCaPhong();
+            Map<String, String> lichHenKeTiep = chuanBiPhongKhamService.layLichHenKeTiep();
             danhSachPhong.clear();
             for (PhongKham phong : phongKhamList) {
                 danhSachPhong.add(new Object[] {
                         phong.getMaPhong(),
                         phong.getTenPhong(),
-                        trangThaiHienThi(phong.getTrangThai()),
+                        chuanBiPhongKhamService.trangThaiHienThi(phong.getTrangThai()),
                         lichHenKeTiep.getOrDefault(phong.getMaPhong(), "Không có")
                 });
             }
         } catch (SQLException ex) {
             showDatabaseError("Không thể tải danh sách phòng khám.", ex);
         }
-    }
-
-    private String trangThaiHienThi(String trangThai) {
-        if ("San sang".equals(trangThai)) {
-            return SAN_SANG;
-        }
-        if ("Dang kham".equals(trangThai)) {
-            return DANG_KHAM;
-        }
-        if ("Can ve sinh".equals(trangThai)) {
-            return CAN_VE_SINH;
-        }
-        if ("Bao tri".equals(trangThai)) {
-            return BAO_TRI;
-        }
-        throw new IllegalArgumentException("Trạng thái phòng khám không hợp lệ: " + trangThai);
-    }
-
-    private String trangThaiTrongDb(String trangThai) {
-        if (SAN_SANG.equals(trangThai)) {
-            return "San sang";
-        }
-        if (DANG_KHAM.equals(trangThai)) {
-            return "Dang kham";
-        }
-        if (CAN_VE_SINH.equals(trangThai)) {
-            return "Can ve sinh";
-        }
-        if (BAO_TRI.equals(trangThai)) {
-            return "Bao tri";
-        }
-        throw new IllegalArgumentException("Trạng thái phòng khám không hợp lệ: " + trangThai);
     }
 
     // ===== Thẻ thống kê =====
@@ -252,7 +206,7 @@ public class XuLyChuanBiPhongKhamPanel extends JPanel {
         return panel;
     }
 
-    // ===== Chi tiết phòng + danh sách dụng cụ =====
+    // ===== Chi tiết phòng =====
     private JPanel createDetailPanel() {
         JPanel content = new JPanel();
         content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
@@ -276,24 +230,6 @@ public class XuLyChuanBiPhongKhamPanel extends JPanel {
         lblGoiY.setForeground(MUTED);
         lblGoiY.setAlignmentX(Component.LEFT_ALIGNMENT);
         content.add(lblGoiY);
-        content.add(Box.createVerticalStrut(12));
-
-        JLabel checklistTitle = new JLabel("Dụng cụ đã chuẩn bị (tick mục cần dùng, không bắt buộc)");
-        checklistTitle.setFont(new Font("Arial", Font.BOLD, 12));
-        checklistTitle.setForeground(INK);
-        checklistTitle.setAlignmentX(Component.LEFT_ALIGNMENT);
-        content.add(checklistTitle);
-        content.add(Box.createVerticalStrut(6));
-
-        for (int i = 0; i < DANH_SACH_DUNG_CU.length; i++) {
-            checklist[i] = new JCheckBox(DANH_SACH_DUNG_CU[i]);
-            checklist[i].setFont(new Font("Arial", Font.PLAIN, 12));
-            checklist[i].setForeground(INK);
-            checklist[i].setOpaque(false);
-            checklist[i].setFocusPainted(false);
-            checklist[i].setAlignmentX(Component.LEFT_ALIGNMENT);
-            content.add(checklist[i]);
-        }
         content.add(Box.createVerticalStrut(12));
 
         JLabel noteTitle = new JLabel("Ghi chú");
@@ -425,9 +361,6 @@ public class XuLyChuanBiPhongKhamPanel extends JPanel {
     private void capNhatChiTiet() {
         Object[] phong = layPhongDangChon();
 
-        for (JCheckBox box : checklist) {
-            box.setSelected(false);
-        }
         txtGhiChu.setText("");
 
         if (phong == null) {
@@ -460,17 +393,14 @@ public class XuLyChuanBiPhongKhamPanel extends JPanel {
             btnXacNhan.setText("Hoàn tất bảo trì - đặt Sẵn sàng");
             setChiTietEnabled(true, false, false);
         } else {
-            lblGoiY.setText("Chuẩn bị dụng cụ theo ca khám rồi xác nhận. Không cần tick đủ mọi mục.");
-            btnXacNhan.setText("Xác nhận đã chuẩn bị dụng cụ");
+            lblGoiY.setText("Hoàn tất chuẩn bị phòng rồi xác nhận để chuyển sang trạng thái Sẵn sàng.");
+            btnXacNhan.setText("Xác nhận đã chuẩn bị xong");
             setChiTietEnabled(true, true, true);
         }
     }
 
     // Bật/tắt các thành phần ở phần chi tiết.
     private void setChiTietEnabled(boolean choPhepChuanBi, boolean choPhepBaoTri, boolean choPhepCanVeSinh) {
-        for (JCheckBox box : checklist) {
-            box.setEnabled(choPhepChuanBi);
-        }
         txtGhiChu.setEnabled(choPhepChuanBi);
         btnXacNhan.setEnabled(choPhepChuanBi);
         btnBaoTri.setEnabled(choPhepBaoTri);
@@ -522,7 +452,7 @@ public class XuLyChuanBiPhongKhamPanel extends JPanel {
     private boolean datTrangThai(Object[] phong, String trangThaiMoi) {
         String maPhong = (String) phong[0];
         try {
-            if (!phongKhamDAO.capNhatTrangThai(maPhong, trangThaiTrongDb(trangThaiMoi))) {
+            if (!chuanBiPhongKhamService.capNhatTrangThai(maPhong, trangThaiMoi)) {
                 JOptionPane.showMessageDialog(this,
                         "Không tìm thấy phòng " + maPhong + " trong cơ sở dữ liệu.",
                         "Không thể cập nhật", JOptionPane.ERROR_MESSAGE);

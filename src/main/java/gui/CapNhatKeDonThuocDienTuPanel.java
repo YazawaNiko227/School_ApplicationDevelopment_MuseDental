@@ -1,11 +1,10 @@
 package gui;
 
-import dao.DonThuocDAO;
-import dao.VatTuDAO;
 import dto.LanKham;
 import entity.ChiTietDonThuoc;
 import entity.DonThuoc;
 import entity.VatTu;
+import service.KeDonThuocService;
 import util.GiaoDienUtil;
 
 import java.awt.BorderLayout;
@@ -41,7 +40,7 @@ import javax.swing.table.DefaultTableModel;
 
 /**
  * Panel "Kê đơn thuốc điện tử" (bước kê đơn trong luồng khám bệnh).
- * Kết nối CSDL trực tiếp qua DonThuocDAO và VatTuDAO.
+ * Dữ liệu và quy tắc kê đơn được xử lý qua KeDonThuocService.
  *
  * Quy tắc nghiệp vụ chuẩn y khoa & CSDL:
  * - Mỗi lần khám (ChanDoan) có tối đa 1 đơn thuốc (ràng buộc UQ_DonThuoc_ChanDoan).
@@ -54,8 +53,7 @@ public class CapNhatKeDonThuocDienTuPanel extends JPanel {
     private static final DateTimeFormatter DINH_DANG_NGAY = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     private static final String[] DUONG_DUNG_MAC_DINH = { "Uống", "Tiêm", "Bôi", "Ngậm", "Súc miệng" };
 
-    private final DonThuocDAO donThuocDAO = new DonThuocDAO();
-    private final VatTuDAO vatTuDAO = new VatTuDAO();
+    private final KeDonThuocService keDonThuocService = new KeDonThuocService();
 
     // Dữ liệu lần khám và thuốc trong bộ nhớ làm việc
     private final List<LanKham> danhSachLanKham = new ArrayList<>();
@@ -286,14 +284,14 @@ public class CapNhatKeDonThuocDienTuPanel extends JPanel {
     }
 
     // =========================================================================
-    // 2. TẢI DỮ LIỆU TỪ DAO
+    // 2. TẢI DỮ LIỆU
     // =========================================================================
 
     /** Nạp danh sách các lần khám đang chờ kê đơn (TrangThai = 'Nhap'). */
     public void taiDanhSachLanKham() {
         try {
             danhSachLanKham.clear();
-            danhSachLanKham.addAll(donThuocDAO.layLanKhamChoKeDon());
+            danhSachLanKham.addAll(keDonThuocService.layLanKhamChoKeDon());
             cboLanKham.removeAllItems();
             for (LanKham lk : danhSachLanKham) {
                 cboLanKham.addItem(lk.maChanDoan() + " - " + lk.hoTen() + " (" + lk.maBenhNhan() + ")");
@@ -311,11 +309,11 @@ public class CapNhatKeDonThuocDienTuPanel extends JPanel {
         }
     }
 
-    /** Nạp danh mục thuốc từ VatTuDAO (lọc theo từ khóa). */
+    /** Nạp danh mục thuốc theo từ khóa. */
     public void taiDanhSachThuoc() {
         String tuKhoa = txtTimThuoc.getText().trim();
         try {
-            List<VatTu> danhSach = vatTuDAO.timKiem(tuKhoa, VatTuDAO.LOAI_THUOC);
+            List<VatTu> danhSach = keDonThuocService.timThuoc(tuKhoa);
             modelThuoc.setRowCount(0);
             for (VatTu vt : danhSach) {
                 mapCacheVatTu.put(vt.getMaVatTu(), vt);
@@ -360,9 +358,9 @@ public class CapNhatKeDonThuocDienTuPanel extends JPanel {
 
         try {
             // Kiểm tra xem lần khám này đã có đơn thuốc chưa
-            donThuocHienTai = donThuocDAO.timTheoChanDoan(lk.maChanDoan());
+            donThuocHienTai = keDonThuocService.timTheoChanDoan(lk.maChanDoan());
             if (donThuocHienTai == null) {
-                String maMoi = donThuocDAO.sinhMa();
+                String maMoi = keDonThuocService.sinhMaDonThuoc();
                 donThuocHienTai = new DonThuoc(maMoi, LocalDate.now(), "", lk.maChanDoan());
                 lblTrangThaiDon.setText("Lần khám này chưa có đơn thuốc. Sẽ tạo mới mã " + maMoi);
                 lblNgayKe.setText(LocalDate.now().format(DINH_DANG_NGAY));
@@ -372,9 +370,10 @@ public class CapNhatKeDonThuocDienTuPanel extends JPanel {
                 lblNgayKe.setText(donThuocHienTai.getNgayKe().format(DINH_DANG_NGAY));
                 txtLoiDan.setText(donThuocHienTai.getLoiDanChamSoc() == null ? "" : donThuocHienTai.getLoiDanChamSoc());
 
-                List<ChiTietDonThuoc> chiTietList = donThuocDAO.layChiTiet(donThuocHienTai.getMaDonThuoc());
+                List<ChiTietDonThuoc> chiTietList =
+                        keDonThuocService.layChiTiet(donThuocHienTai.getMaDonThuoc());
                 for (ChiTietDonThuoc ct : chiTietList) {
-                    mapChiTietDangSoan.put(ct.getMaVatTu(), ct);
+                    mapChiTietDangSoan.put(ct.getMaVatTuId(), ct);
                 }
             }
             capNhatBangDonThuoc();
@@ -396,20 +395,13 @@ public class CapNhatKeDonThuocDienTuPanel extends JPanel {
         if (vt == null) return;
 
         String lieuDung = txtLieuDung.getText().trim();
-        if (lieuDung.isEmpty()) {
-            GiaoDienUtil.canhBao(this, "Liều dùng không được để trống (ví dụ: 1 viên x 2 lần/ngày).");
-            txtLieuDung.requestFocusInWindow();
-            return;
-        }
-
         int soLuong = (Integer) spnSoLuong.getValue();
-        if (soLuong > vt.getSoLuongTon()) {
-            GiaoDienUtil.canhBao(this, "Số lượng kê (" + soLuong + ") vượt quá tồn kho hiện có (" + vt.getSoLuongTon() + ").");
-            return;
-        }
-
-        if (vt.getHanSuDung() != null && vt.getHanSuDung().isBefore(LocalDate.now())) {
-            GiaoDienUtil.canhBao(this, "Thuốc " + vt.getTenVatTu() + " đã hết hạn sử dụng, không thể kê đơn!");
+        String loi = keDonThuocService.kiemTraThuoc(vt, lieuDung, soLuong);
+        if (loi != null) {
+            GiaoDienUtil.canhBao(this, loi);
+            if (lieuDung.trim().isEmpty()) {
+                txtLieuDung.requestFocusInWindow();
+            }
             return;
         }
 
@@ -440,14 +432,14 @@ public class CapNhatKeDonThuocDienTuPanel extends JPanel {
         double tongTien = 0;
 
         for (ChiTietDonThuoc ct : mapChiTietDangSoan.values()) {
-            VatTu vt = mapCacheVatTu.get(ct.getMaVatTu());
-            String tenThuoc = vt != null ? vt.getTenVatTu() : ct.getMaVatTu();
+            VatTu vt = mapCacheVatTu.get(ct.getMaVatTuId());
+            String tenThuoc = vt != null ? vt.getTenVatTu() : ct.getMaVatTuId();
             double giaBan = vt != null ? vt.getDonGiaBan() : 0;
             double thanhTien = giaBan * ct.getSoLuong();
             tongTien += thanhTien;
 
             modelDon.addRow(new Object[] {
-                    ct.getMaVatTu(),
+                    ct.getMaVatTuId(),
                     tenThuoc,
                     ct.getLieuDung(),
                     ct.getDuongDung(),
@@ -461,20 +453,14 @@ public class CapNhatKeDonThuocDienTuPanel extends JPanel {
     /** Lưu đơn thuốc và chi tiết vào CSDL bằng Transaction. */
     private void luuDonThuoc() {
         int index = cboLanKham.getSelectedIndex();
-        if (index < 0 || donThuocHienTai == null) {
-            GiaoDienUtil.canhBao(this, "Vui lòng chọn lần khám cần kê đơn.");
-            return;
-        }
-
-        if (mapChiTietDangSoan.isEmpty()) {
-            GiaoDienUtil.canhBao(this, "Đơn thuốc phải có ít nhất một loại thuốc.");
-            return;
-        }
-
         String loiDan = txtLoiDan.getText().trim();
-        if (loiDan.length() > 500) {
-            GiaoDienUtil.canhBao(this, "Lời dặn chăm sóc tối đa 500 ký tự.");
-            txtLoiDan.requestFocusInWindow();
+        String loi = keDonThuocService.kiemTraLuuDon(
+                index >= 0 && donThuocHienTai != null, !mapChiTietDangSoan.isEmpty(), loiDan);
+        if (loi != null) {
+            GiaoDienUtil.canhBao(this, loi);
+            if (loi.startsWith("Lời dặn")) {
+                txtLoiDan.requestFocusInWindow();
+            }
             return;
         }
 
@@ -495,7 +481,7 @@ public class CapNhatKeDonThuocDienTuPanel extends JPanel {
         List<ChiTietDonThuoc> chiTietList = new ArrayList<>(mapChiTietDangSoan.values());
 
         try {
-            donThuocDAO.luuDonThuoc(donThuocHienTai, chiTietList);
+            keDonThuocService.luuDonThuoc(donThuocHienTai, chiTietList);
             GiaoDienUtil.thongBao(this, "Đã lưu đơn thuốc " + donThuocHienTai.getMaDonThuoc() + " thành công!");
             chonLanKham();
         } catch (SQLException e) {

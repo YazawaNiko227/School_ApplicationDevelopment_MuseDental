@@ -32,12 +32,12 @@ public class SoDoRangDAO {
                 + "WHEN NOT MATCHED THEN INSERT (MaHoSo, MaRang, LoaiRang, TinhTrangBenhLy, GhiChu) "
                 + "VALUES (?,?,?,?,?);";
         try (PreparedStatement ps = ConnectDB.getConnection().prepareStatement(sql)) {
-            ps.setString(1, r.getMaHoSo());
+            ps.setString(1, r.getMaHoSoId());
             ps.setInt(2, r.getMaRang());
             ps.setString(3, r.getLoaiRang());
             ps.setString(4, r.getTinhTrangBenhLy());
             ps.setString(5, r.getGhiChu());
-            ps.setString(6, r.getMaHoSo());
+            ps.setString(6, r.getMaHoSoId());
             ps.setInt(7, r.getMaRang());
             ps.setString(8, r.getLoaiRang());
             ps.setString(9, r.getTinhTrangBenhLy());

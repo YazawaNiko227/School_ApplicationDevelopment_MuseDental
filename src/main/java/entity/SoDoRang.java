@@ -2,7 +2,7 @@ package entity;
 
 /** Entity ánh xạ bảng SoDoRang trong QuanLyPhongKhamMuse. */
 public class SoDoRang {
-    private String maHoSo;
+    private HoSoBenhAn maHoSo;
     private int maRang;
     private String loaiRang;
     private String tinhTrangBenhLy;
@@ -19,14 +19,32 @@ public class SoDoRang {
         setGhiChu(ghiChu);
     }
 
-    public String getMaHoSo() {
+    public HoSoBenhAn getMaHoSo() {
         return maHoSo;
     }
+
+    public String getMaHoSoId() {
+        return maHoSo == null ? null : maHoSo.getMaHoSo();
+    }
+
+    public HoSoBenhAn getHoSoBenhAn() {
+        return maHoSo;
+    }
+
+    public void setHoSoBenhAn(HoSoBenhAn hoSoBenhAn) {
+        if (hoSoBenhAn == null)
+            throw new IllegalArgumentException("HoSoBenhAn không được null.");
+        this.maHoSo = hoSoBenhAn;
+    }
+
+    public void setMaHoSo(HoSoBenhAn hoSoBenhAn) { setHoSoBenhAn(hoSoBenhAn); }
 
     public void setMaHoSo(String maHoSo) {
         if (maHoSo == null) throw new IllegalArgumentException("MaHoSo không được null.");
         if (maHoSo != null && maHoSo.length() > 20) throw new IllegalArgumentException("MaHoSo tối đa 20 ký tự.");
-        this.maHoSo = maHoSo;
+        HoSoBenhAn hoSoBenhAn = new HoSoBenhAn();
+        hoSoBenhAn.setMaHoSo(maHoSo);
+        this.maHoSo = hoSoBenhAn;
     }
 
     public int getMaRang() {

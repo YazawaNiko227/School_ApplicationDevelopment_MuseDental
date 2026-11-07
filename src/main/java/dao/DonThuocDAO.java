@@ -1,7 +1,9 @@
 package dao;
 
 import connectDB.ConnectDB;
+import dto.DonThuocDaLuu;
 import dto.LanKham;
+import dto.ThuocDonThuocDaLuu;
 import entity.ChiTietDonThuoc;
 import entity.DonThuoc;
 import java.sql.Connection;
@@ -23,6 +25,58 @@ import java.util.List;
  * cập nhật + thay toàn bộ chi tiết, chạy trong MỘT giao tác (transaction).
  */
 public class DonThuocDAO {
+
+    /** Danh sách đơn thuốc đã lưu kèm thông tin lần khám và bệnh nhân. */
+    public List<DonThuocDaLuu> layDanhSachDonThuocDaLuu() throws SQLException {
+        String sql = "SELECT dt.MaDonThuoc, dt.NgayKe, dt.LoiDanChamSoc, "
+                + "cd.MaChanDoan, cd.KetLuanChanDoan, bn.MaBenhNhan, bn.HoTen AS TenBenhNhan "
+                + "FROM DonThuoc dt "
+                + "JOIN ChanDoan cd ON cd.MaChanDoan = dt.MaChanDoan "
+                + "JOIN HoSoBenhAn hs ON hs.MaHoSo = cd.MaHoSo "
+                + "JOIN BenhNhan bn ON bn.MaBenhNhan = hs.MaBenhNhan "
+                + "ORDER BY dt.NgayKe DESC, dt.MaDonThuoc DESC";
+        List<DonThuocDaLuu> ketQua = new ArrayList<>();
+        try (PreparedStatement ps = ConnectDB.getConnection().prepareStatement(sql);
+                ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                Date ngayKe = rs.getDate("NgayKe");
+                ketQua.add(new DonThuocDaLuu(
+                        rs.getString("MaDonThuoc"),
+                        ngayKe == null ? null : ngayKe.toLocalDate(),
+                        rs.getString("LoiDanChamSoc"),
+                        rs.getString("MaChanDoan"),
+                        rs.getString("KetLuanChanDoan"),
+                        rs.getString("MaBenhNhan"),
+                        rs.getString("TenBenhNhan")));
+            }
+        }
+        return ketQua;
+    }
+
+    /** Các thuốc đã kê trong một đơn thuốc. */
+    public List<ThuocDonThuocDaLuu> layThuocDaKe(String maDonThuoc) throws SQLException {
+        String sql = "SELECT vt.MaVatTu, vt.TenVatTu, vt.DonViTinh, "
+                + "ct.LieuDung, ct.DuongDung, ct.SoLuong "
+                + "FROM ChiTietDonThuoc ct "
+                + "JOIN VatTu vt ON vt.MaVatTu = ct.MaVatTu "
+                + "WHERE ct.MaDonThuoc = ? ORDER BY vt.TenVatTu";
+        List<ThuocDonThuocDaLuu> ketQua = new ArrayList<>();
+        try (PreparedStatement ps = ConnectDB.getConnection().prepareStatement(sql)) {
+            ps.setString(1, maDonThuoc);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    ketQua.add(new ThuocDonThuocDaLuu(
+                            rs.getString("MaVatTu"),
+                            rs.getString("TenVatTu"),
+                            rs.getString("DonViTinh"),
+                            rs.getString("LieuDung"),
+                            rs.getString("DuongDung"),
+                            rs.getInt("SoLuong")));
+                }
+            }
+        }
+        return ketQua;
+    }
 
     /** Lần khám đang chờ kê đơn (TrangThai = 'Nhap') kèm thông tin bệnh nhân. */
     public List<LanKham> layLanKhamChoKeDon() throws SQLException {
@@ -110,7 +164,7 @@ public class DonThuocDAO {
                     ps.setString(1, don.getMaDonThuoc());
                     ps.setDate(2, Date.valueOf(don.getNgayKe()));
                     ps.setString(3, don.getLoiDanChamSoc());
-                    ps.setString(4, don.getMaChanDoan());
+                    ps.setString(4, don.getMaChanDoanId());
                     ps.executeUpdate();
                 }
             }
@@ -125,7 +179,7 @@ public class DonThuocDAO {
                             + "VALUES (?, ?, ?, ?, ?)")) {
                 for (ChiTietDonThuoc dong : chiTiet) {
                     ps.setString(1, don.getMaDonThuoc());
-                    ps.setString(2, dong.getMaVatTu());
+                    ps.setString(2, dong.getMaVatTuId());
                     ps.setString(3, dong.getLieuDung());
                     ps.setString(4, dong.getDuongDung());
                     ps.setInt(5, dong.getSoLuong());

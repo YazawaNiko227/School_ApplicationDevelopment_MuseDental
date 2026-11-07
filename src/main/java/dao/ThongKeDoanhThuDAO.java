@@ -1,6 +1,8 @@
 package dao;
 
 import connectDB.ConnectDB;
+import entity.BaoCaoDoanhThu;
+import entity.NhomDoanhThu;
 import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -15,52 +17,6 @@ public class ThongKeDoanhThuDAO {
     public static final String THEO_THANG = "Theo tháng";
     public static final String THEO_MUC = "Theo dịch vụ / thuốc";
     public static final String THEO_PHUONG_THUC = "Theo phương thức thanh toán";
-
-    public static final class NhomDoanhThu {
-        private final String tenNhom;
-        private final int soHoaDon;
-        private final double tongDoanhThu;
-        private final double tienDichVu;
-        private final double tienThuoc;
-
-        private NhomDoanhThu(String tenNhom, int soHoaDon, double tongDoanhThu,
-                double tienDichVu, double tienThuoc) {
-            this.tenNhom = tenNhom;
-            this.soHoaDon = soHoaDon;
-            this.tongDoanhThu = tongDoanhThu;
-            this.tienDichVu = tienDichVu;
-            this.tienThuoc = tienThuoc;
-        }
-
-        public String getTenNhom() { return tenNhom; }
-        public int getSoHoaDon() { return soHoaDon; }
-        public double getTongDoanhThu() { return tongDoanhThu; }
-        public double getTienDichVu() { return tienDichVu; }
-        public double getTienThuoc() { return tienThuoc; }
-    }
-
-    public static final class BaoCaoDoanhThu {
-        private final int soHoaDon;
-        private final double tongDoanhThu;
-        private final double tienDichVu;
-        private final double tienThuoc;
-        private final List<NhomDoanhThu> dsNhom;
-
-        private BaoCaoDoanhThu(int soHoaDon, double tongDoanhThu,
-                double tienDichVu, double tienThuoc, List<NhomDoanhThu> dsNhom) {
-            this.soHoaDon = soHoaDon;
-            this.tongDoanhThu = tongDoanhThu;
-            this.tienDichVu = tienDichVu;
-            this.tienThuoc = tienThuoc;
-            this.dsNhom = dsNhom;
-        }
-
-        public int getSoHoaDon() { return soHoaDon; }
-        public double getTongDoanhThu() { return tongDoanhThu; }
-        public double getTienDichVu() { return tienDichVu; }
-        public double getTienThuoc() { return tienThuoc; }
-        public List<NhomDoanhThu> getDsNhom() { return dsNhom; }
-    }
 
     public BaoCaoDoanhThu thongKe(LocalDate tuNgay, LocalDate denNgay, String cachNhom)
             throws SQLException {

@@ -4,7 +4,7 @@
 */
 package gui;
 
-import dao.DoiMatKhauDAO;
+import service.DoiMatKhauService;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Cursor;
@@ -31,7 +31,7 @@ public final class HeThongDoiMatKhauPanel extends JPanel {
     private static final Color ACCENT = new Color(218, 241, 239);
 
     private final String username;
-    private final DoiMatKhauDAO doiMatKhauDAO = new DoiMatKhauDAO();
+    private final DoiMatKhauService doiMatKhauService = new DoiMatKhauService();
     private final JPasswordField currentPassword = new JPasswordField();
     private final JPasswordField newPassword = new JPasswordField();
     private final JPasswordField confirmPassword = new JPasswordField();
@@ -143,29 +143,13 @@ public final class HeThongDoiMatKhauPanel extends JPanel {
         return button;
     }
 
-    // Kiểm tra dữ liệu rồi yêu cầu DAO đổi mật khẩu trong CSDL.
+    // Kiểm tra dữ liệu và yêu cầu dịch vụ đổi mật khẩu trong CSDL.
     private void validateAndSubmit() {
         char[] current = currentPassword.getPassword();
         char[] next = newPassword.getPassword();
         char[] confirmation = confirmPassword.getPassword();
         try {
-            if (current.length == 0) {
-                showValidation("Vui lòng nhập mật khẩu hiện tại.", currentPassword);
-                return;
-            }
-            if (next.length < 8) {
-                showValidation("Mật khẩu mới phải có ít nhất 8 ký tự.", newPassword);
-                return;
-            }
-            if (java.util.Arrays.equals(current, next)) {
-                showValidation("Mật khẩu mới phải khác mật khẩu hiện tại.", newPassword);
-                return;
-            }
-            if (!java.util.Arrays.equals(next, confirmation)) {
-                showValidation("Mật khẩu xác nhận không khớp.", confirmPassword);
-                return;
-            }
-            if (!doiMatKhauDAO.doiMatKhau(username, current, next)) {
+            if (!doiMatKhauService.doiMatKhau(username, current, next, confirmation)) {
                 feedback.setText("Mật khẩu hiện tại không đúng hoặc tài khoản không còn hoạt động.");
                 feedback.setForeground(new Color(184, 55, 55));
                 JOptionPane.showMessageDialog(
@@ -178,6 +162,20 @@ public final class HeThongDoiMatKhauPanel extends JPanel {
             JOptionPane.showMessageDialog(this, "Đã đổi mật khẩu thành công.", "Thành công",
                     JOptionPane.INFORMATION_MESSAGE);
             clearFields();
+        } catch (DoiMatKhauService.LoiDuLieu exception) {
+            JPasswordField field;
+            switch (exception.getTruong()) {
+                case MAT_KHAU_HIEN_TAI:
+                    field = currentPassword;
+                    break;
+                case XAC_NHAN:
+                    field = confirmPassword;
+                    break;
+                default:
+                    field = newPassword;
+                    break;
+            }
+            showValidation(exception.getMessage(), field);
         } catch (java.sql.SQLException exception) {
             feedback.setText("Lỗi CSDL khi đổi mật khẩu.");
             feedback.setForeground(new Color(184, 55, 55));

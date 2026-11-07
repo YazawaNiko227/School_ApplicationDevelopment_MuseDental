@@ -9,8 +9,8 @@ public class CaTruc {
     private LocalTime gioBatDau;
     private LocalTime gioKetThuc;
     private String loaiCa;
-    private String maNhanVien;
-    private String maPhong;
+    private NhanVien maNhanVien;
+    private PhongKham maPhong;
 
     public CaTruc() {
     }
@@ -88,28 +88,64 @@ public class CaTruc {
         this.loaiCa = loaiCa;
     }
 
-    public String getMaNhanVien() {
+    public NhanVien getMaNhanVien() {
         return maNhanVien;
     }
+
+    public String getMaNhanVienId() {
+        return maNhanVien == null ? null : maNhanVien.getMaNhanVien();
+    }
+
+    public NhanVien getNhanVien() {
+        return maNhanVien;
+    }
+
+    public void setNhanVien(NhanVien nhanVien) {
+        if (nhanVien == null)
+            throw new IllegalArgumentException("NhanVien không được null.");
+        this.maNhanVien = nhanVien;
+    }
+
+    public void setMaNhanVien(NhanVien nhanVien) { setNhanVien(nhanVien); }
 
     public void setMaNhanVien(String maNhanVien) {
         if (maNhanVien == null)
             throw new IllegalArgumentException("MaNhanVien không được null.");
         if (maNhanVien != null && maNhanVien.length() > 20)
             throw new IllegalArgumentException("MaNhanVien tối đa 20 ký tự.");
-        this.maNhanVien = maNhanVien;
+        NhanVien nhanVien = new NhanVien();
+        nhanVien.setMaNhanVien(maNhanVien);
+        this.maNhanVien = nhanVien;
     }
 
-    public String getMaPhong() {
+    public PhongKham getMaPhong() {
         return maPhong;
     }
+
+    public String getMaPhongId() {
+        return maPhong == null ? null : maPhong.getMaPhong();
+    }
+
+    public PhongKham getPhongKham() {
+        return maPhong;
+    }
+
+    public void setPhongKham(PhongKham phongKham) {
+        if (phongKham == null)
+            throw new IllegalArgumentException("PhongKham không được null.");
+        this.maPhong = phongKham;
+    }
+
+    public void setMaPhong(PhongKham phongKham) { setPhongKham(phongKham); }
 
     public void setMaPhong(String maPhong) {
         if (maPhong == null)
             throw new IllegalArgumentException("MaPhong không được null.");
         if (maPhong != null && maPhong.length() > 20)
             throw new IllegalArgumentException("MaPhong tối đa 20 ký tự.");
-        this.maPhong = maPhong;
+        PhongKham phongKham = new PhongKham();
+        phongKham.setMaPhong(maPhong);
+        this.maPhong = phongKham;
     }
 
 }

@@ -2,6 +2,7 @@ package dao;
 
 import connectDB.ConnectDB;
 import entity.DotThanhToan;
+import entity.HoSoCongNo;
 import java.sql.Connection;
 import java.sql.Date;
 import java.sql.PreparedStatement;
@@ -14,10 +15,6 @@ import java.util.List;
 import java.util.Map;
 
 public class CongNoTraGopDAO {
-    public record HoSoCongNo(String maCongNo, String maHoaDon, String maBenhNhan,
-            String hoTen, String soDienThoai, double tongSoTien, List<DotThanhToan> dsDot) {
-    }
-
     /** Lấy toàn bộ hồ sơ trả góp cùng các kỳ hạn và thông tin bệnh nhân. */
     public List<HoSoCongNo> layTatCa() throws SQLException {
         String sql = "SELECT cn.MaCongNo, cn.MaHoaDon, cn.TongSoTien, bn.MaBenhNhan, bn.HoTen, "
@@ -28,20 +25,20 @@ public class CongNoTraGopDAO {
                 + "JOIN BenhNhan bn ON bn.MaBenhNhan = hd.MaBenhNhan "
                 + "JOIN DotThanhToan dt ON dt.MaCongNo = cn.MaCongNo "
                 + "ORDER BY cn.MaCongNo, dt.NgayDenHan, dt.MaDot";
-        Map<String, CongNoTichLuy> ketQua = new LinkedHashMap<>();
+        Map<String, HoSoCongNo> ketQua = new LinkedHashMap<>();
         try (PreparedStatement ps = ConnectDB.getConnection().prepareStatement(sql);
                 ResultSet rs = ps.executeQuery()) {
             while (rs.next()) {
                 String maCongNo = rs.getString("MaCongNo");
-                CongNoTichLuy congNo = ketQua.get(maCongNo);
+                HoSoCongNo congNo = ketQua.get(maCongNo);
                 if (congNo == null) {
-                    congNo = new CongNoTichLuy(maCongNo, rs.getString("MaHoaDon"),
+                    congNo = new HoSoCongNo(maCongNo, rs.getString("MaHoaDon"),
                             rs.getString("MaBenhNhan"), rs.getString("HoTen"),
                             rs.getString("SoDienThoai"), rs.getDouble("TongSoTien"));
                     ketQua.put(maCongNo, congNo);
                 }
                 Date ngayThanhToan = rs.getDate("NgayThanhToanThucTe");
-                congNo.dsDot.add(new DotThanhToan(
+                congNo.addDot(new DotThanhToan(
                         rs.getString("MaDot"),
                         rs.getDate("NgayDenHan").toLocalDate(),
                         rs.getDouble("SoTienDot"),
@@ -50,33 +47,7 @@ public class CongNoTraGopDAO {
                         maCongNo));
             }
         }
-        List<HoSoCongNo> ds = new ArrayList<>();
-        for (CongNoTichLuy congNo : ketQua.values()) {
-            ds.add(new HoSoCongNo(congNo.maCongNo, congNo.maHoaDon, congNo.maBenhNhan,
-                    congNo.hoTen, congNo.soDienThoai, congNo.tongSoTien,
-                    List.copyOf(congNo.dsDot)));
-        }
-        return ds;
-    }
-
-    private static final class CongNoTichLuy {
-        private final String maCongNo;
-        private final String maHoaDon;
-        private final String maBenhNhan;
-        private final String hoTen;
-        private final String soDienThoai;
-        private final double tongSoTien;
-        private final List<DotThanhToan> dsDot = new ArrayList<>();
-
-        private CongNoTichLuy(String maCongNo, String maHoaDon, String maBenhNhan,
-                String hoTen, String soDienThoai, double tongSoTien) {
-            this.maCongNo = maCongNo;
-            this.maHoaDon = maHoaDon;
-            this.maBenhNhan = maBenhNhan;
-            this.hoTen = hoTen;
-            this.soDienThoai = soDienThoai;
-            this.tongSoTien = tongSoTien;
-        }
+        return new ArrayList<>(ketQua.values());
     }
 
     /**

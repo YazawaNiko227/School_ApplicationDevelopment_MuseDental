@@ -6,7 +6,7 @@ import java.time.LocalDate;
 public class HoSoBenhAn {
     private String maHoSo;
     private LocalDate ngayTao;
-    private String maBenhNhan;
+    private BenhNhan maBenhNhan;
 
     public HoSoBenhAn() {
         this.ngayTao = LocalDate.now();
@@ -37,14 +37,32 @@ public class HoSoBenhAn {
         this.ngayTao = ngayTao;
     }
 
-    public String getMaBenhNhan() {
+    public BenhNhan getMaBenhNhan() {
         return maBenhNhan;
     }
+
+    public String getMaBenhNhanId() {
+        return maBenhNhan == null ? null : maBenhNhan.getMaBenhNhan();
+    }
+
+    public BenhNhan getBenhNhan() {
+        return maBenhNhan;
+    }
+
+    public void setBenhNhan(BenhNhan benhNhan) {
+        if (benhNhan == null)
+            throw new IllegalArgumentException("BenhNhan không được null.");
+        this.maBenhNhan = benhNhan;
+    }
+
+    public void setMaBenhNhan(BenhNhan benhNhan) { setBenhNhan(benhNhan); }
 
     public void setMaBenhNhan(String maBenhNhan) {
         if (maBenhNhan == null) throw new IllegalArgumentException("MaBenhNhan không được null.");
         if (maBenhNhan != null && maBenhNhan.length() > 20) throw new IllegalArgumentException("MaBenhNhan tối đa 20 ký tự.");
-        this.maBenhNhan = maBenhNhan;
+        BenhNhan benhNhan = new BenhNhan();
+        benhNhan.setMaBenhNhan(maBenhNhan);
+        this.maBenhNhan = benhNhan;
     }
 
 }

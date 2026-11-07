@@ -1,8 +1,8 @@
 package gui;
 
 import com.toedter.calendar.JDateChooser;
-import dao.VatTuDAO;
 import entity.VatTu;
+import service.ThuocService;
 import util.GiaoDienUtil;
 
 import java.awt.BorderLayout;
@@ -38,7 +38,7 @@ import javax.swing.table.DefaultTableModel;
 
 /**
  * Panel Quản lý thuốc (CRUD) phục vụ mục DANH MỤC → "Quản lý thuốc".
- * Kết nối trực tiếp với CSDL qua VatTuDAO (bảng VatTu, LoaiVatTu = 'Thuoc').
+ * Dữ liệu thuốc được quản lý qua ThuocService (bảng VatTu, LoaiVatTu = 'Thuoc').
  *
  * Thiết kế Clean Code:
  * - Bên trái: Danh sách thuốc dạng bảng kèm bộ lọc tìm kiếm tức thì.
@@ -50,7 +50,7 @@ public class DanhMucQuanLyThuocPanel extends JPanel {
     private static final DateTimeFormatter DINH_DANG_NGAY = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     private static final NumberFormat DINH_DANG_TIEN = NumberFormat.getIntegerInstance(Locale.forLanguageTag("vi-VN"));
 
-    private final VatTuDAO vatTuDAO = new VatTuDAO();
+    private final ThuocService thuocService = new ThuocService();
 
     // Bảng và mô hình dữ liệu bảng
     private final DefaultTableModel modelBang = new DefaultTableModel(
@@ -227,7 +227,7 @@ public class DanhMucQuanLyThuocPanel extends JPanel {
             int row = bangThuoc.getSelectedRow();
             String ma = (String) modelBang.getValueAt(row, 0);
             try {
-                VatTu vt = vatTuDAO.timTheoMa(ma);
+                VatTu vt = thuocService.timTheoMa(ma);
                 if (vt != null) {
                     doLenForm(vt);
                     chuyenCheDo(true);
@@ -239,14 +239,14 @@ public class DanhMucQuanLyThuocPanel extends JPanel {
     }
 
     // =========================================================================
-    // 2. XỬ LÝ DỮ LIỆU & DAO
+    // 2. XỬ LÝ DỮ LIỆU & SERVICE
     // =========================================================================
 
-    /** Nạp danh sách thuốc từ CSDL qua VatTuDAO, có hỗ trợ từ khóa tìm kiếm. */
+    /** Nạp danh sách thuốc từ CSDL qua ThuocService, có hỗ trợ từ khóa tìm kiếm. */
     private void taiDuLieu() {
         String tuKhoa = txtTimKiem.getText().trim();
         try {
-            List<VatTu> danhSach = vatTuDAO.timKiem(tuKhoa, VatTuDAO.LOAI_THUOC);
+            List<VatTu> danhSach = thuocService.timKiem(tuKhoa);
             modelBang.setRowCount(0);
             for (VatTu vt : danhSach) {
                 modelBang.addRow(new Object[] {
@@ -280,7 +280,7 @@ public class DanhMucQuanLyThuocPanel extends JPanel {
     private void lamMoiBieuMau() {
         bangThuoc.clearSelection();
         try {
-            txtMa.setText(vatTuDAO.sinhMa());
+            txtMa.setText(thuocService.sinhMa());
         } catch (SQLException e) {
             txtMa.setText("");
             GiaoDienUtil.baoLoi(this, e);
@@ -309,11 +309,7 @@ public class DanhMucQuanLyThuocPanel extends JPanel {
     private void themThuoc() {
         try {
             VatTu vt = docTuForm(txtMa.getText().trim());
-            if (vatTuDAO.timTheoMa(vt.getMaVatTu()) != null) {
-                GiaoDienUtil.canhBao(this, "Mã thuốc đã tồn tại trong hệ thống.");
-                return;
-            }
-            if (vatTuDAO.them(vt)) {
+            if (thuocService.them(vt)) {
                 GiaoDienUtil.thongBao(this, "Đã thêm thuốc thành công: " + vt.getTenVatTu());
                 taiDuLieu();
                 lamMoiBieuMau();
@@ -329,7 +325,7 @@ public class DanhMucQuanLyThuocPanel extends JPanel {
     private void suaThuoc() {
         try {
             VatTu vt = docTuForm(txtMa.getText().trim());
-            if (vatTuDAO.capNhat(vt)) {
+            if (thuocService.capNhat(vt)) {
                 GiaoDienUtil.thongBao(this, "Đã cập nhật thông tin thuốc: " + vt.getTenVatTu());
                 taiDuLieu();
                 lamMoiBieuMau();
@@ -357,7 +353,7 @@ public class DanhMucQuanLyThuocPanel extends JPanel {
         if (xacNhan != JOptionPane.YES_OPTION) return;
 
         try {
-            if (vatTuDAO.xoa(ma)) {
+            if (thuocService.xoa(ma)) {
                 GiaoDienUtil.thongBao(this, "Đã xóa thuốc " + ma + " thành công.");
                 taiDuLieu();
                 lamMoiBieuMau();
@@ -376,43 +372,9 @@ public class DanhMucQuanLyThuocPanel extends JPanel {
     // =========================================================================
 
     private VatTu docTuForm(String ma) {
-        String ten = txtTen.getText().trim();
-        if (ten.isEmpty()) {
-            txtTen.requestFocusInWindow();
-            throw new IllegalArgumentException("Tên thuốc không được để trống.");
-        }
-
-        int ton = docSoNguyenKhongAm(txtTon, "Số lượng tồn");
-        int nguong = docSoNguyenKhongAm(txtNguong, "Ngưỡng tối thiểu");
-        double giaBan = docSoTien(txtGiaBan, "Giá bán");
-
-        LocalDate han = null;
-        han = GiaoDienUtil.layNgayDaChon(chonHanSuDung);
-
-        String donVi = txtDonVi.getText().trim();
-        return new VatTu(ma, ten, VatTuDAO.LOAI_THUOC, donVi.isEmpty() ? null : donVi, ton, nguong, han, giaBan);
-    }
-
-    private int docSoNguyenKhongAm(JTextField field, String tenTruong) {
-        try {
-            int val = Integer.parseInt(field.getText().trim());
-            if (val < 0) throw new NumberFormatException();
-            return val;
-        } catch (NumberFormatException e) {
-            field.requestFocusInWindow();
-            throw new IllegalArgumentException(tenTruong + " phải là số nguyên không âm.");
-        }
-    }
-
-    private double docSoTien(JTextField field, String tenTruong) {
-        String text = field.getText().trim();
-        if (text.isEmpty()) return 0;
-        String so = text.replaceAll("[^0-9]", "");
-        if (text.contains("-") || so.isEmpty()) {
-            field.requestFocusInWindow();
-            throw new IllegalArgumentException(tenTruong + " phải là số tiền không âm.");
-        }
-        return Double.parseDouble(so);
+        return thuocService.taoThuoc(ma, txtTen.getText(), txtDonVi.getText(),
+                txtTon.getText(), txtNguong.getText(), txtGiaBan.getText(),
+                GiaoDienUtil.layNgayDaChon(chonHanSuDung));
     }
 
     // =========================================================================

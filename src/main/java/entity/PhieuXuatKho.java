@@ -9,8 +9,8 @@ import java.time.LocalDate;
 public class PhieuXuatKho {
     private String maPhieuXuat;
     private LocalDate ngayXuat;
-    private String maNhanVien;
-    private String maLichHen;
+    private NhanVien maNhanVien;
+    private LichHen maLichHen;
 
     public PhieuXuatKho() {
         this.ngayXuat = LocalDate.now();
@@ -45,25 +45,63 @@ public class PhieuXuatKho {
         this.ngayXuat = ngayXuat;
     }
 
-    public String getMaNhanVien() {
+    public NhanVien getMaNhanVien() {
         return maNhanVien;
     }
+
+    public String getMaNhanVienId() {
+        return maNhanVien == null ? null : maNhanVien.getMaNhanVien();
+    }
+
+    public NhanVien getNhanVien() {
+        return maNhanVien;
+    }
+
+    public void setNhanVien(NhanVien nhanVien) {
+        if (nhanVien == null)
+            throw new IllegalArgumentException("NhanVien không được null.");
+        this.maNhanVien = nhanVien;
+    }
+
+    public void setMaNhanVien(NhanVien nhanVien) { setNhanVien(nhanVien); }
 
     public void setMaNhanVien(String maNhanVien) {
         if (maNhanVien == null || maNhanVien.trim().isEmpty())
             throw new IllegalArgumentException("MaNhanVien không được để trống.");
         if (maNhanVien.length() > 20)
             throw new IllegalArgumentException("MaNhanVien tối đa 20 ký tự.");
-        this.maNhanVien = maNhanVien.trim();
+        NhanVien nhanVien = new NhanVien();
+        nhanVien.setMaNhanVien(maNhanVien.trim());
+        this.maNhanVien = nhanVien;
     }
 
-    public String getMaLichHen() {
+    public LichHen getMaLichHen() {
         return maLichHen;
     }
+
+    public String getMaLichHenId() {
+        return maLichHen == null ? null : maLichHen.getMaLichHen();
+    }
+
+    public LichHen getLichHen() {
+        return maLichHen;
+    }
+
+    public void setLichHen(LichHen lichHen) {
+        this.maLichHen = lichHen;
+    }
+
+    public void setMaLichHen(LichHen lichHen) { setLichHen(lichHen); }
 
     public void setMaLichHen(String maLichHen) {
         if (maLichHen != null && maLichHen.length() > 20)
             throw new IllegalArgumentException("MaLichHen tối đa 20 ký tự.");
-        this.maLichHen = maLichHen == null || maLichHen.trim().isEmpty() ? null : maLichHen.trim();
+        if (maLichHen == null || maLichHen.trim().isEmpty()) {
+            this.maLichHen = null;
+        } else {
+            LichHen lichHen = new LichHen();
+            lichHen.setMaLichHen(maLichHen.trim());
+            this.maLichHen = lichHen;
+        }
     }
 }

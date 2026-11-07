@@ -1,7 +1,7 @@
 package gui; /*Võ Thành Tài */
 
-import dao.BanGhiBenhAnDAO;
 import entity.BanGhiBenhAn;
+import service.MedicalRecordSearchService;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Cursor;
@@ -49,6 +49,7 @@ public class TimKiemTraCuuBenhAnPanel extends JPanel {
             "Mã chẩn đoán", "Mã hồ sơ", "Bệnh nhân", "Ngày khám", "Nha sĩ", "Lý do khám"
     };
 
+    private final MedicalRecordSearchService searchService = new MedicalRecordSearchService();
     private final List<BanGhiBenhAn> shownRecords = new ArrayList<>();
 
     private final JTextField keywordField = new JTextField();
@@ -323,7 +324,7 @@ public class TimKiemTraCuuBenhAnPanel extends JPanel {
             return;
         }
         BanGhiBenhAn record = shownRecords.get(viewRow);
-        detailTitle.setText("Chi tiết lần khám " + record.getMaChanDoan() + " · " + record.getTenBenhNhan());
+        detailTitle.setText("Chi tiết lần khám " + record.getMaChanDoanId() + " · " + record.getTenBenhNhan());
         reasonArea.setText(nullToEmpty(record.getLyDoKham()));
         symptomArea.setText(nullToEmpty(record.getTrieuChung()));
         conclusionArea.setText(nullToEmpty(record.getKetLuanChanDoan()));
@@ -338,11 +339,12 @@ public class TimKiemTraCuuBenhAnPanel extends JPanel {
         LocalDate from = GiaoDienUtil.layNgayDaChon(fromDateField);
         LocalDate to = GiaoDienUtil.layNgayDaChon(toDateField);
         int requestId = ++searchRequestId;
-        if (from != null && to != null && from.isAfter(to)) {
+        String validationError = searchService.validateDateRange(from, to);
+        if (validationError != null) {
             setLoading(false);
             clearResults("Khoảng ngày không hợp lệ.");
             JOptionPane.showMessageDialog(this,
-                    "Ngày bắt đầu không được sau ngày kết thúc.",
+                    validationError,
                     "Khoảng ngày không hợp lệ",
                     JOptionPane.WARNING_MESSAGE);
             return;
@@ -355,9 +357,8 @@ public class TimKiemTraCuuBenhAnPanel extends JPanel {
         SwingWorker<SearchResult, Void> worker = new SwingWorker<SearchResult, Void>() {
             @Override
             protected SearchResult doInBackground() throws Exception {
-                BanGhiBenhAnDAO dao = new BanGhiBenhAnDAO();
-                List<String> dentists = dao.layDanhSachNhaSi();
-                List<BanGhiBenhAn> records = dao.timKiem(
+                List<String> dentists = searchService.layDanhSachNhaSi();
+                List<BanGhiBenhAn> records = searchService.timKiem(
                         keyword,
                         dentist == null || ALL_DENTISTS.equals(dentist) ? null : dentist,
                         from,
@@ -430,8 +431,8 @@ public class TimKiemTraCuuBenhAnPanel extends JPanel {
         tableModel.setRowCount(0);
         for (BanGhiBenhAn record : records) {
             tableModel.addRow(new Object[] {
-                    record.getMaChanDoan(),
-                    record.getMaHoSo(),
+                    record.getMaChanDoanId(),
+                    record.getMaHoSoId(),
                     record.getTenBenhNhan(),
                     record.getNgayKham().format(DATE_FORMAT),
                     record.getTenNhaSi(),

@@ -1,6 +1,7 @@
 package dao;
 
 import connectDB.ConnectDB;
+import entity.ChuyenMon;
 import entity.NhanVien;
 import entity.TaiKhoan;
 import entity.VaiTro;
@@ -20,10 +21,11 @@ public class DangNhapDAO {
         String sql = "SELECT TK.TenDangNhap, TK.MatKhau, TK.TrangThaiTaiKhoan, TK.LanDangNhapCuoi, "
                 + "TK.MaVaiTro, VT.TenVaiTro, NV.MaNhanVien, NV.HoTen, NV.NgaySinh, NV.GioiTinh, "
                 + "NV.SoDienThoai, NV.Email, NV.DiaChi, NV.NgayVaoLam, NV.TrangThaiLamViec, "
-                + "NV.ChuyenMon, NV.SoChungChiHanhNghe "
+                + "NV.MaChuyenMon, CM.TenChuyenMon, NV.SoChungChiHanhNghe "
                 + "FROM TaiKhoan TK "
                 + "JOIN VaiTro VT ON VT.MaVaiTro = TK.MaVaiTro "
                 + "JOIN NhanVien NV ON NV.MaNhanVien = TK.MaNhanVien "
+                + "LEFT JOIN ChuyenMon CM ON CM.MaChuyenMon = NV.MaChuyenMon "
                 + "WHERE TK.TenDangNhap = ?";
 
         TaiKhoan taiKhoan = null;
@@ -47,7 +49,8 @@ public class DangNhapDAO {
                         result.getString("DiaChi"),
                         layNgay(result, "NgayVaoLam"),
                         result.getString("TrangThaiLamViec"),
-                        result.getString("ChuyenMon"),
+                        result.getString("MaChuyenMon") == null ? null
+                                : new ChuyenMon(result.getString("MaChuyenMon"), result.getString("TenChuyenMon")),
                         result.getString("SoChungChiHanhNghe"));
                 VaiTro vaiTro = new VaiTro(result.getString("MaVaiTro"), result.getString("TenVaiTro"));
                 taiKhoan = new TaiKhoan(

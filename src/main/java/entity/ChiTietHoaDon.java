@@ -2,8 +2,8 @@ package entity;
 
 
 public class ChiTietHoaDon {
-    private String maHoaDon;
-    private String maDichVu;
+    private HoaDon maHoaDon;
+    private DichVu maDichVu;
     private int soLuong;
     private double donGiaTaiThoiDiem;
 
@@ -17,24 +17,58 @@ public class ChiTietHoaDon {
         setDonGiaTaiThoiDiem(donGiaTaiThoiDiem);
     }
 
-    public String getMaHoaDon() {
+    public HoaDon getMaHoaDon() {
         return maHoaDon;
     }
+
+    public String getMaHoaDonId() {
+        return maHoaDon == null ? null : maHoaDon.getMaHoaDon();
+    }
+
+    public HoaDon getHoaDon() {
+        return maHoaDon;
+    }
+
+    public void setHoaDon(HoaDon hoaDon) {
+        if (hoaDon == null) throw new IllegalArgumentException("hoaDon không được null.");
+        this.maHoaDon = hoaDon;
+    }
+
+    public void setMaHoaDon(HoaDon hoaDon) { setHoaDon(hoaDon); }
 
     public void setMaHoaDon(String maHoaDon) {
         if (maHoaDon == null) throw new IllegalArgumentException("MaHoaDon không được null.");
         if (maHoaDon != null && maHoaDon.length() > 20) throw new IllegalArgumentException("MaHoaDon tối đa 20 ký tự.");
-        this.maHoaDon = maHoaDon;
+        HoaDon hoaDon = new HoaDon();
+        hoaDon.setMaHoaDon(maHoaDon);
+        this.maHoaDon = hoaDon;
     }
 
-    public String getMaDichVu() {
+    public DichVu getMaDichVu() {
         return maDichVu;
     }
+
+    public String getMaDichVuId() {
+        return maDichVu == null ? null : maDichVu.getMaDichVu();
+    }
+
+    public DichVu getDichVu() {
+        return maDichVu;
+    }
+
+    public void setDichVu(DichVu dichVu) {
+        if (dichVu == null) throw new IllegalArgumentException("dichVu không được null.");
+        this.maDichVu = dichVu;
+    }
+
+    public void setMaDichVu(DichVu dichVu) { setDichVu(dichVu); }
 
     public void setMaDichVu(String maDichVu) {
         if (maDichVu == null) throw new IllegalArgumentException("MaDichVu không được null.");
         if (maDichVu != null && maDichVu.length() > 20) throw new IllegalArgumentException("MaDichVu tối đa 20 ký tự.");
-        this.maDichVu = maDichVu;
+        DichVu dichVu = new DichVu();
+        dichVu.setMaDichVu(maDichVu);
+        this.maDichVu = dichVu;
     }
 
     public int getSoLuong() {

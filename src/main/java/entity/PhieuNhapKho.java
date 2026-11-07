@@ -7,7 +7,7 @@ public class PhieuNhapKho {
     private String maPhieuNhap;
     private LocalDate ngayNhap;
     private String nhaCungCap;
-    private String maNhanVien;
+    private NhanVien maNhanVien;
 
     public PhieuNhapKho() {
         this.ngayNhap = LocalDate.now();
@@ -48,14 +48,32 @@ public class PhieuNhapKho {
         this.nhaCungCap = nhaCungCap;
     }
 
-    public String getMaNhanVien() {
+    public NhanVien getMaNhanVien() {
         return maNhanVien;
     }
+
+    public String getMaNhanVienId() {
+        return maNhanVien == null ? null : maNhanVien.getMaNhanVien();
+    }
+
+    public NhanVien getNhanVien() {
+        return maNhanVien;
+    }
+
+    public void setNhanVien(NhanVien nhanVien) {
+        if (nhanVien == null)
+            throw new IllegalArgumentException("NhanVien không được null.");
+        this.maNhanVien = nhanVien;
+    }
+
+    public void setMaNhanVien(NhanVien nhanVien) { setNhanVien(nhanVien); }
 
     public void setMaNhanVien(String maNhanVien) {
         if (maNhanVien == null) throw new IllegalArgumentException("MaNhanVien không được null.");
         if (maNhanVien != null && maNhanVien.length() > 20) throw new IllegalArgumentException("MaNhanVien tối đa 20 ký tự.");
-        this.maNhanVien = maNhanVien;
+        NhanVien nhanVien = new NhanVien();
+        nhanVien.setMaNhanVien(maNhanVien);
+        this.maNhanVien = nhanVien;
     }
 
 }

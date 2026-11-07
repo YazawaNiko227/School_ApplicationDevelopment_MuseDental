@@ -1,6 +1,8 @@
 package gui;
 
-import dao.CongNoTraGopDAO;
+import entity.DotThanhToan;
+import entity.HoSoCongNo;
+import service.CongNoTraGopService;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
@@ -29,7 +31,6 @@ import javax.swing.SwingConstants;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
-import entity.DotThanhToan;
 
 /**
  * Panel "Công nợ và trả góp theo đợt" (bước 9 trong luồng khám bệnh chính,
@@ -47,8 +48,7 @@ import entity.DotThanhToan;
  * Đợt chưa thanh toán mà quá ngày đến hạn được hiển thị là "Quá hạn" mà không
  * cần sửa dữ liệu trạng thái trong CSDL.
  *
- * Hồ sơ và kỳ hạn được nạp từ CSDL; thao tác thu tiền cập nhật transaction qua
- * DAO.
+ * Nghiệp vụ công nợ được xử lý trong service; DAO phụ trách truy cập CSDL.
  */
 public class CapNhatCongNoTraGopPanel extends JPanel {
     private static final Color INK = new Color(32, 53, 68);
@@ -62,115 +62,16 @@ public class CapNhatCongNoTraGopPanel extends JPanel {
     private static final DecimalFormat TIEN = new DecimalFormat("#,##0");
     private static final DateTimeFormatter NGAY = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
-    // Trạng thái đợt (DB lưu không dấu: 'Da thanh toan', 'Chua den han', 'Qua
-    // han').
-    private static final String DOT_DA_THANH_TOAN = "Đã thanh toán";
-    private static final String DOT_CHUA_DEN_HAN = "Chưa đến hạn";
-    private static final String DOT_QUA_HAN = "Quá hạn";
+    private static final String DOT_DA_THANH_TOAN = CongNoTraGopService.DOT_DA_THANH_TOAN;
+    private static final String DOT_QUA_HAN = CongNoTraGopService.DOT_QUA_HAN;
+    private static final String DANG_TRA_GOP = CongNoTraGopService.DANG_TRA_GOP;
+    private static final String QUA_HAN = CongNoTraGopService.QUA_HAN;
+    private static final String HOAN_TAT = CongNoTraGopService.HOAN_TAT;
+    private static final String TAT_CA = CongNoTraGopService.TAT_CA;
+    private static final int NGAY_SAP_DEN_HAN = CongNoTraGopService.NGAY_SAP_DEN_HAN;
 
-    // Trạng thái hồ sơ công nợ (tính từ các đợt, không lưu trong DB).
-    private static final String DANG_TRA_GOP = "Đang trả góp";
-    private static final String QUA_HAN = "Quá hạn";
-    private static final String HOAN_TAT = "Hoàn tất";
-    private static final String TAT_CA = "Tất cả";
-
-    // Số ngày tính là "sắp đến hạn".
-    private static final int NGAY_SAP_DEN_HAN = 7;
-
-    /** Một đợt thanh toán (DotThanhToan). */
-    private static final class Dot {
-        final String ma;
-        final LocalDate denHan;
-        final double soTien;
-        boolean daThanhToan;
-        LocalDate ngayThanhToan;
-
-        Dot(String ma, LocalDate denHan, double soTien, boolean daThanhToan, LocalDate ngayThanhToan) {
-            this.ma = ma;
-            this.denHan = denHan;
-            this.soTien = soTien;
-            this.daThanhToan = daThanhToan;
-            this.ngayThanhToan = ngayThanhToan;
-        }
-
-        // Trạng thái hiển thị: đợt chưa thu mà quá hạn thì là "Quá hạn".
-        String trangThai() {
-            if (daThanhToan) {
-                return DOT_DA_THANH_TOAN;
-            }
-            return denHan.isBefore(LocalDate.now()) ? DOT_QUA_HAN : DOT_CHUA_DEN_HAN;
-        }
-    }
-
-    /** Một hồ sơ trả góp (CongNoTraGop) kèm hóa đơn, bệnh nhân và các đợt. */
-    private static final class CongNo {
-        final String ma;
-        final String maHoaDon;
-        final String maBenhNhan;
-        final String hoTen;
-        final String soDienThoai;
-        final double tongTien;
-        final List<Dot> dots = new ArrayList<>();
-
-        CongNo(String ma, String maHoaDon, String maBenhNhan, String hoTen, String soDienThoai, double tongTien) {
-            this.ma = ma;
-            this.maHoaDon = maHoaDon;
-            this.maBenhNhan = maBenhNhan;
-            this.hoTen = hoTen;
-            this.soDienThoai = soDienThoai;
-            this.tongTien = tongTien;
-        }
-
-        // Tương ứng cột CongNoTraGop.SoDotConLai.
-        int soDotConLai() {
-            int dem = 0;
-            for (Dot d : dots) {
-                if (!d.daThanhToan) {
-                    dem++;
-                }
-            }
-            return dem;
-        }
-
-        double daThu() {
-            double tong = 0;
-            for (Dot d : dots) {
-                if (d.daThanhToan) {
-                    tong += d.soTien;
-                }
-            }
-            return tong;
-        }
-
-        double conLai() {
-            return tongTien - daThu();
-        }
-
-        // Đợt chưa thanh toán sớm nhất, null nếu đã thu hết.
-        Dot dotCanThu() {
-            for (Dot d : dots) {
-                if (!d.daThanhToan) {
-                    return d;
-                }
-            }
-            return null;
-        }
-
-        String trangThai() {
-            if (soDotConLai() == 0) {
-                return HOAN_TAT;
-            }
-            for (Dot d : dots) {
-                if (DOT_QUA_HAN.equals(d.trangThai())) {
-                    return QUA_HAN;
-                }
-            }
-            return DANG_TRA_GOP;
-        }
-    }
-
-    private final CongNoTraGopDAO congNoDAO = new CongNoTraGopDAO();
-    private final List<CongNo> dsCongNo = new ArrayList<>();
+    private final CongNoTraGopService congNoService = new CongNoTraGopService();
+    private final List<HoSoCongNo> dsCongNo = new ArrayList<>();
     private boolean dangNapBang = false;
 
     // ----- Thẻ thống kê -----
@@ -388,8 +289,8 @@ public class CapNhatCongNoTraGopPanel extends JPanel {
 
     /** Thu tiền đợt chưa thanh toán sớm nhất của hồ sơ đang chọn. */
     private void thuTienDot() {
-        CongNo cn = layCongNoDangChon();
-        if (cn == null) {
+        HoSoCongNo hoSo = layCongNoDangChon();
+        if (hoSo == null) {
             showMessage("Vui lòng chọn một hồ sơ trả góp.");
             return;
         }
@@ -398,80 +299,70 @@ public class CapNhatCongNoTraGopPanel extends JPanel {
             showMessage("Vui lòng chọn đợt cần thu trong bảng bên phải.");
             return;
         }
-        Dot dot = cn.dots.get(row);
-        if (dot.daThanhToan) {
-            showMessage("Đợt " + (row + 1) + " đã được thanh toán.");
-            return;
-        }
-        if (dot != cn.dotCanThu()) {
-            showWarning("Vui lòng thu theo thứ tự: hãy thu đợt "
-                    + (cn.dots.indexOf(cn.dotCanThu()) + 1) + " trước.");
+        DotThanhToan dot = hoSo.dsDot().get(row);
+        try {
+            congNoService.thuTuDotCanThu(hoSo, dot.getMaDot());
+        } catch (IllegalStateException exception) {
+            showWarning(exception.getMessage());
             return;
         }
 
-        String thongTinQuaHan = DOT_QUA_HAN.equals(dot.trangThai()) ? "\n(Đợt này đã quá hạn.)" : "";
+        String thongTinQuaHan = DOT_QUA_HAN.equals(congNoService.trangThai(dot, LocalDate.now()))
+                ? "\n(Đợt này đã quá hạn.)" : "";
         int choice = JOptionPane.showConfirmDialog(this,
-                "Thu đợt " + (row + 1) + " của " + cn.hoTen + ": " + TIEN.format(dot.soTien) + " đ?"
+                "Thu đợt " + (row + 1) + " của " + hoSo.hoTen() + ": "
+                        + TIEN.format(dot.getSoTienDot()) + " đ?"
                         + thongTinQuaHan,
                 "Xác nhận thu tiền", JOptionPane.YES_NO_OPTION);
         if (choice != JOptionPane.YES_OPTION) {
             return;
         }
 
-        int soDotConLaiSauKhiThu = cn.soDotConLai() - 1;
-        double conLaiSauKhiThu = cn.conLai() - dot.soTien;
         try {
-            if (!congNoDAO.thanhToanDot(dot.ma, LocalDate.now())) {
+            CongNoTraGopService.KetQuaThanhToan ketQua =
+                    congNoService.thanhToanDot(hoSo.maCongNo(), dot.getMaDot(), LocalDate.now());
+            if (!ketQua.thanhCong()) {
                 showWarning("Đợt này đã được thanh toán hoặc không còn tồn tại. Danh sách sẽ được tải lại.");
-                lamMoi(cn.ma);
+                lamMoi(hoSo.maCongNo());
                 return;
             }
+            lamMoi(ketQua.maCongNo());
+            String thongBao = "Đã thu đợt " + ketQua.thuTuDot() + ": "
+                    + TIEN.format(ketQua.soTienDot()) + " đ.";
+            if (ketQua.soDotConLai() == 0) {
+                thongBao += "\nHồ sơ " + ketQua.maCongNo() + " đã trả hết, hóa đơn "
+                        + ketQua.maHoaDon() + " chuyển sang \"Đã thanh toán\".";
+            } else {
+                thongBao += "\nCòn " + ketQua.soDotConLai() + " đợt, "
+                        + TIEN.format(ketQua.conLai()) + " đ.";
+            }
+            showMessage(thongBao);
+        } catch (IllegalStateException exception) {
+            showWarning(exception.getMessage());
+            lamMoi(hoSo.maCongNo());
         } catch (java.sql.SQLException exception) {
             JOptionPane.showMessageDialog(this,
                     "Không thể ghi nhận thanh toán:\n" + exception.getMessage(),
                     "Lỗi cập nhật công nợ", JOptionPane.ERROR_MESSAGE);
-            return;
         }
-
-        lamMoi(cn.ma);
-        String thongBao = "Đã thu đợt " + (row + 1) + ": " + TIEN.format(dot.soTien) + " đ.";
-        if (soDotConLaiSauKhiThu == 0) {
-            thongBao += "\nHồ sơ " + cn.ma + " đã trả hết, hóa đơn " + cn.maHoaDon
-                    + " chuyển sang \"Đã thanh toán\".";
-        } else {
-            thongBao += "\nCòn " + soDotConLaiSauKhiThu + " đợt, "
-                    + TIEN.format(conLaiSauKhiThu) + " đ.";
-        }
-        showMessage(thongBao);
     }
 
     /** Soạn nội dung nhắc nợ cho đợt chưa thanh toán gần nhất. */
     private void nhacNo() {
-        CongNo cn = layCongNoDangChon();
-        if (cn == null) {
+        HoSoCongNo hoSo = layCongNoDangChon();
+        if (hoSo == null) {
             showMessage("Vui lòng chọn một hồ sơ trả góp.");
             return;
         }
-        Dot dot = cn.dotCanThu();
-        if (dot == null) {
-            showMessage("Hồ sơ này đã trả hết, không cần nhắc nợ.");
-            return;
+        try {
+            String noiDung = congNoService.taoNoiDungNhacNo(hoSo, LocalDate.now());
+            JOptionPane.showMessageDialog(this,
+                    "Chưa tích hợp gửi SMS/Zalo; nội dung dưới đây chỉ để tham khảo, chưa được gửi.\n"
+                            + "Liên hệ: " + hoSo.soDienThoai() + "\n\n" + noiDung,
+                    "Nội dung nhắc nợ", JOptionPane.INFORMATION_MESSAGE);
+        } catch (IllegalStateException exception) {
+            showMessage(exception.getMessage());
         }
-
-        String noiDung;
-        if (DOT_QUA_HAN.equals(dot.trangThai())) {
-            noiDung = "Phòng khám Muse xin thông báo: đợt thanh toán " + TIEN.format(dot.soTien)
-                    + " đ của hóa đơn " + cn.maHoaDon + " đã quá hạn từ ngày " + dot.denHan.format(NGAY)
-                    + ". Vui lòng thanh toán sớm. Xin cảm ơn.";
-        } else {
-            noiDung = "Phòng khám Muse xin nhắc: đợt thanh toán " + TIEN.format(dot.soTien)
-                    + " đ của hóa đơn " + cn.maHoaDon + " sẽ đến hạn vào ngày " + dot.denHan.format(NGAY)
-                    + ". Xin cảm ơn.";
-        }
-        JOptionPane.showMessageDialog(this,
-                "Chưa tích hợp gửi SMS/Zalo; nội dung dưới đây chỉ để tham khảo, chưa được gửi.\n"
-                        + "Liên hệ: " + cn.soDienThoai + "\n\n" + noiDung,
-                "Nội dung nhắc nợ", JOptionPane.INFORMATION_MESSAGE);
     }
 
     // =====================================================================
@@ -486,33 +377,19 @@ public class CapNhatCongNoTraGopPanel extends JPanel {
 
         dsCongNo.clear();
         try {
-            for (CongNoTraGopDAO.HoSoCongNo hoSo : congNoDAO.layTatCa()) {
-                CongNo congNo = new CongNo(hoSo.maCongNo(), hoSo.maHoaDon(), hoSo.maBenhNhan(),
-                        hoSo.hoTen(), hoSo.soDienThoai(), hoSo.tongSoTien());
-                for (DotThanhToan dot : hoSo.dsDot()) {
-                    congNo.dots.add(new Dot(dot.getMaDot(), dot.getNgayDenHan(), dot.getSoTienDot(),
-                            DotThanhToan.DA_THANH_TOAN.equals(dot.getTrangThai()),
-                            dot.getNgayThanhToanThucTe()));
-                }
-                dsCongNo.add(congNo);
-            }
+            dsCongNo.addAll(congNoService.layTatCa());
         } catch (java.sql.SQLException exception) {
             JOptionPane.showMessageDialog(this,
                     "Không thể tải dữ liệu công nợ từ CSDL:\n" + exception.getMessage(),
                     "Lỗi tải công nợ", JOptionPane.ERROR_MESSAGE);
         }
         congNoModel.setRowCount(0);
-        for (CongNo cn : dsCongNo) {
-            boolean khopTuKhoa = keyword.isEmpty()
-                    || cn.ma.toLowerCase().contains(keyword)
-                    || cn.maHoaDon.toLowerCase().contains(keyword)
-                    || cn.hoTen.toLowerCase().contains(keyword);
-            boolean khopLoc = loc == null || TAT_CA.equals(loc) || loc.equals(cn.trangThai());
-            if (khopTuKhoa && khopLoc) {
-                congNoModel.addRow(new Object[] {
-                        cn.ma, cn.maHoaDon, cn.hoTen, TIEN.format(cn.tongTien), TIEN.format(cn.daThu()),
-                        TIEN.format(cn.conLai()), cn.soDotConLai(), cn.trangThai() });
-            }
+        for (HoSoCongNo hoSo : congNoService.locDanhSach(dsCongNo, keyword, loc, LocalDate.now())) {
+            congNoModel.addRow(new Object[] {
+                    hoSo.maCongNo(), hoSo.maHoaDon(), hoSo.hoTen(),
+                    TIEN.format(hoSo.tongSoTien()), TIEN.format(congNoService.daThu(hoSo)),
+                    TIEN.format(congNoService.conLai(hoSo)), congNoService.soDotConLai(hoSo),
+                    congNoService.trangThai(hoSo, LocalDate.now()) });
         }
 
         capNhatThongKe();
@@ -531,38 +408,18 @@ public class CapNhatCongNoTraGopPanel extends JPanel {
 
     // Thống kê tính trên toàn bộ hồ sơ (không phụ thuộc bộ lọc).
     private void capNhatThongKe() {
-        LocalDate homNay = LocalDate.now();
-        int dangTraGop = 0;
-        int dotQuaHan = 0;
-        int sapDenHan = 0;
-        double conPhaiThu = 0;
-        for (CongNo cn : dsCongNo) {
-            if (cn.soDotConLai() > 0) {
-                dangTraGop++;
-                conPhaiThu += cn.conLai();
-            }
-            for (Dot d : cn.dots) {
-                if (d.daThanhToan) {
-                    continue;
-                }
-                if (d.denHan.isBefore(homNay)) {
-                    dotQuaHan++;
-                } else if (!d.denHan.isAfter(homNay.plusDays(NGAY_SAP_DEN_HAN))) {
-                    sapDenHan++;
-                }
-            }
-        }
-        lblDangTraGop.setText(String.valueOf(dangTraGop));
-        lblQuaHan.setText(String.valueOf(dotQuaHan));
-        lblSapDenHan.setText(String.valueOf(sapDenHan));
-        lblConPhaiThu.setText(TIEN.format(conPhaiThu) + " đ");
+        CongNoTraGopService.ThongKe thongKe = congNoService.thongKe(dsCongNo, LocalDate.now());
+        lblDangTraGop.setText(String.valueOf(thongKe.dangTraGop()));
+        lblQuaHan.setText(String.valueOf(thongKe.dotQuaHan()));
+        lblSapDenHan.setText(String.valueOf(thongKe.sapDenHan()));
+        lblConPhaiThu.setText(TIEN.format(thongKe.conPhaiThu()) + " đ");
     }
 
     // Đổ các đợt của hồ sơ đang chọn lên bảng bên phải.
     private void hienThiChiTiet() {
-        CongNo cn = layCongNoDangChon();
+        HoSoCongNo hoSo = layCongNoDangChon();
         dotModel.setRowCount(0);
-        if (cn == null) {
+        if (hoSo == null) {
             lblBenhNhan.setText("Chưa chọn hồ sơ trả góp");
             lblHoaDon.setText("Chọn một hồ sơ ở danh sách bên trái để xem các đợt.");
             lblTienDo.setText(" ");
@@ -570,19 +427,23 @@ public class CapNhatCongNoTraGopPanel extends JPanel {
             btnThuTien.setEnabled(false);
             return;
         }
-        lblBenhNhan.setText(cn.hoTen + "  ·  " + cn.maBenhNhan + "  ·  " + cn.soDienThoai);
-        lblHoaDon.setText("Hồ sơ " + cn.ma + "  ·  Hóa đơn " + cn.maHoaDon
-                + "  ·  Tổng " + TIEN.format(cn.tongTien) + " đ");
-        lblTienDo.setText("Đã thu " + TIEN.format(cn.daThu()) + " đ  ·  Còn lại "
-                + TIEN.format(cn.conLai()) + " đ (" + cn.soDotConLai() + " đợt)");
+        lblBenhNhan.setText(hoSo.hoTen() + "  ·  " + hoSo.maBenhNhan() + "  ·  " + hoSo.soDienThoai());
+        lblHoaDon.setText("Hồ sơ " + hoSo.maCongNo() + "  ·  Hóa đơn " + hoSo.maHoaDon()
+                + "  ·  Tổng " + TIEN.format(hoSo.tongSoTien()) + " đ");
+        lblTienDo.setText("Đã thu " + TIEN.format(congNoService.daThu(hoSo)) + " đ  ·  Còn lại "
+                + TIEN.format(congNoService.conLai(hoSo)) + " đ ("
+                + congNoService.soDotConLai(hoSo) + " đợt)");
 
         int stt = 1;
-        for (Dot d : cn.dots) {
+        for (DotThanhToan dot : hoSo.dsDot()) {
             dotModel.addRow(new Object[] {
-                    d.ma, stt++, d.denHan.format(NGAY), TIEN.format(d.soTien), d.trangThai(),
-                    d.ngayThanhToan == null ? "-" : d.ngayThanhToan.format(NGAY) });
+                    dot.getMaDot(), stt++, dot.getNgayDenHan().format(NGAY),
+                    TIEN.format(dot.getSoTienDot()),
+                    congNoService.trangThai(dot, LocalDate.now()),
+                    dot.getNgayThanhToanThucTe() == null
+                            ? "-" : dot.getNgayThanhToanThucTe().format(NGAY) });
         }
-        boolean conNo = cn.soDotConLai() > 0;
+        boolean conNo = congNoService.soDotConLai(hoSo) > 0;
         btnNhacNo.setEnabled(conNo);
         btnThuTien.setEnabled(conNo);
     }
@@ -592,14 +453,14 @@ public class CapNhatCongNoTraGopPanel extends JPanel {
         return row < 0 ? null : (String) congNoModel.getValueAt(row, 0);
     }
 
-    private CongNo layCongNoDangChon() {
+    private HoSoCongNo layCongNoDangChon() {
         String ma = layMaCongNoDangChon();
         if (ma == null) {
             return null;
         }
-        for (CongNo cn : dsCongNo) {
-            if (cn.ma.equals(ma)) {
-                return cn;
+        for (HoSoCongNo hoSo : dsCongNo) {
+            if (hoSo.maCongNo().equals(ma)) {
+                return hoSo;
             }
         }
         return null;

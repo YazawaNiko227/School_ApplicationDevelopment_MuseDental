@@ -2,6 +2,7 @@ package dao;
 
 import connectDB.ConnectDB;
 import entity.KeHoachDieuTri;
+import entity.ThongTinBenhNhan;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -10,24 +11,6 @@ import java.util.List;
 public class KeHoachDieuTriDAO {
     private static final String SELECT = "SELECT MaKeHoach, TenPhacDo, ThoiGianDuKien, TrangThai, "
             + "MaChanDoan, MaBenhNhan FROM KeHoachDieuTri ";
-
-    public static final class ThongTinBenhNhan {
-        private final String maBenhNhan;
-        private final String hoTen;
-
-        private ThongTinBenhNhan(String maBenhNhan, String hoTen) {
-            this.maBenhNhan = maBenhNhan;
-            this.hoTen = hoTen;
-        }
-
-        public String getMaBenhNhan() {
-            return maBenhNhan;
-        }
-
-        public String getHoTen() {
-            return hoTen;
-        }
-    }
 
     public List<KeHoachDieuTri> layTatCa() throws SQLException {
         List<KeHoachDieuTri> ds = new ArrayList<>();
@@ -119,8 +102,8 @@ public class KeHoachDieuTriDAO {
                     else
                         ps.setInt(3, kh.getThoiGianDuKien());
                     ps.setString(4, kh.getTrangThai());
-                    ps.setString(5, kh.getMaChanDoan());
-                    ps.setString(6, kh.getMaBenhNhan());
+                    ps.setString(5, kh.getMaChanDoanId());
+                    ps.setString(6, kh.getMaBenhNhanId());
                     ps.executeUpdate();
                 }
             } else {

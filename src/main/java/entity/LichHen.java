@@ -9,11 +9,11 @@ public class LichHen {
     private String trangThai;
     private LocalDate ngayTao;
     private LocalDateTime thoiGianCheckIn;
-    private String maNhanVienLap;
-    private String maNhaSiPhuTrach;
-    private String maBenhNhan;
-    private String maPhong;
-    private String maKeHoach;
+    private NhanVien maNhanVienLap;
+    private NhanVien maNhaSiPhuTrach;
+    private BenhNhan maBenhNhan;
+    private PhongKham maPhong;
+    private KeHoachDieuTri maKeHoach;
 
     public LichHen() {
         this.trangThai = "Cho xac nhan";
@@ -91,63 +91,155 @@ public class LichHen {
         this.thoiGianCheckIn = thoiGianCheckIn;
     }
 
-    public String getMaNhanVienLap() {
+    public NhanVien getMaNhanVienLap() {
         return maNhanVienLap;
     }
+
+    public String getMaNhanVienLapId() {
+        return maNhanVienLap == null ? null : maNhanVienLap.getMaNhanVien();
+    }
+
+    public NhanVien getNhanVienLap() {
+        return maNhanVienLap;
+    }
+
+    public void setNhanVienLap(NhanVien nhanVienLap) {
+        if (nhanVienLap == null)
+            throw new IllegalArgumentException("NhanVienLap không được null.");
+        this.maNhanVienLap = nhanVienLap;
+    }
+
+    public void setMaNhanVienLap(NhanVien nhanVienLap) { setNhanVienLap(nhanVienLap); }
 
     public void setMaNhanVienLap(String maNhanVienLap) {
         if (maNhanVienLap == null || maNhanVienLap.trim().isEmpty())
             throw new IllegalArgumentException("maNhanVienLap không được để trống");
         if (maNhanVienLap != null && maNhanVienLap.length() > 20)
             throw new IllegalArgumentException("maNhanVienLap tối đa 20 ký tự");
-        this.maNhanVienLap = maNhanVienLap;
+        NhanVien nhanVien = new NhanVien();
+        nhanVien.setMaNhanVien(maNhanVienLap);
+        this.maNhanVienLap = nhanVien;
     }
 
-    public String getMaNhaSiPhuTrach() {
+    public NhanVien getMaNhaSiPhuTrach() {
         return maNhaSiPhuTrach;
     }
+
+    public String getMaNhaSiPhuTrachId() {
+        return maNhaSiPhuTrach == null ? null : maNhaSiPhuTrach.getMaNhanVien();
+    }
+
+    public NhanVien getNhaSiPhuTrach() {
+        return maNhaSiPhuTrach;
+    }
+
+    public void setNhaSiPhuTrach(NhanVien nhaSiPhuTrach) {
+        if (nhaSiPhuTrach == null)
+            throw new IllegalArgumentException("NhaSiPhuTrach không được null.");
+        this.maNhaSiPhuTrach = nhaSiPhuTrach;
+    }
+
+    public void setMaNhaSiPhuTrach(NhanVien nhaSiPhuTrach) { setNhaSiPhuTrach(nhaSiPhuTrach); }
 
     public void setMaNhaSiPhuTrach(String maNhaSiPhuTrach) {
         if (maNhaSiPhuTrach == null || maNhaSiPhuTrach.trim().isEmpty())
             throw new IllegalArgumentException("maNhaSiPhuTrach không được để trống");
         if (maNhaSiPhuTrach != null && maNhaSiPhuTrach.length() > 20)
             throw new IllegalArgumentException("maNhaSiPhuTrach tối đa 20 ký tự");
-        this.maNhaSiPhuTrach = maNhaSiPhuTrach;
+        NhanVien nhaSi = new NhanVien();
+        nhaSi.setMaNhanVien(maNhaSiPhuTrach);
+        this.maNhaSiPhuTrach = nhaSi;
     }
 
-    public String getMaBenhNhan() {
+    public BenhNhan getMaBenhNhan() {
         return maBenhNhan;
     }
+
+    public String getMaBenhNhanId() {
+        return maBenhNhan == null ? null : maBenhNhan.getMaBenhNhan();
+    }
+
+    public BenhNhan getBenhNhan() {
+        return maBenhNhan;
+    }
+
+    public void setBenhNhan(BenhNhan benhNhan) {
+        if (benhNhan == null)
+            throw new IllegalArgumentException("BenhNhan không được null.");
+        this.maBenhNhan = benhNhan;
+    }
+
+    public void setMaBenhNhan(BenhNhan benhNhan) { setBenhNhan(benhNhan); }
 
     public void setMaBenhNhan(String maBenhNhan) {
         if (maBenhNhan == null || maBenhNhan.trim().isEmpty())
             throw new IllegalArgumentException("maBenhNhan không được để trống");
         if (maBenhNhan != null && maBenhNhan.length() > 20)
             throw new IllegalArgumentException("maBenhNhan tối đa 20 ký tự");
-        this.maBenhNhan = maBenhNhan;
+        BenhNhan benhNhan = new BenhNhan();
+        benhNhan.setMaBenhNhan(maBenhNhan);
+        this.maBenhNhan = benhNhan;
     }
 
-    public String getMaPhong() {
+    public PhongKham getMaPhong() {
         return maPhong;
     }
+
+    public String getMaPhongId() {
+        return maPhong == null ? null : maPhong.getMaPhong();
+    }
+
+    public PhongKham getPhongKham() {
+        return maPhong;
+    }
+
+    public void setPhongKham(PhongKham phongKham) {
+        if (phongKham == null)
+            throw new IllegalArgumentException("PhongKham không được null.");
+        this.maPhong = phongKham;
+    }
+
+    public void setMaPhong(PhongKham phongKham) { setPhongKham(phongKham); }
 
     public void setMaPhong(String maPhong) {
         if (maPhong == null || maPhong.trim().isEmpty())
             throw new IllegalArgumentException("maPhong không được để trống");
         if (maPhong != null && maPhong.length() > 20)
             throw new IllegalArgumentException("maPhong tối đa 20 ký tự");
-        this.maPhong = maPhong;
+        PhongKham phongKham = new PhongKham();
+        phongKham.setMaPhong(maPhong);
+        this.maPhong = phongKham;
     }
 
-    public String getMaKeHoach() {
+    public KeHoachDieuTri getMaKeHoach() {
         return maKeHoach;
     }
+
+    public String getMaKeHoachId() {
+        return maKeHoach == null ? null : maKeHoach.getMaKeHoach();
+    }
+
+    public KeHoachDieuTri getKeHoachDieuTri() {
+        return maKeHoach;
+    }
+
+    public void setKeHoachDieuTri(KeHoachDieuTri keHoachDieuTri) {
+        this.maKeHoach = keHoachDieuTri;
+    }
+
+    public void setMaKeHoach(KeHoachDieuTri keHoachDieuTri) { setKeHoachDieuTri(keHoachDieuTri); }
 
     public void setMaKeHoach(String maKeHoach) {
         String v = (maKeHoach == null || maKeHoach.trim().isEmpty()) ? null : maKeHoach.trim();
         if (v != null && v.length() > 20)
             throw new IllegalArgumentException("maKeHoach tối đa 20 ký tự");
-        this.maKeHoach = v;
+        if (v == null) {
+            this.maKeHoach = null;
+        } else {
+            KeHoachDieuTri keHoach = new KeHoachDieuTri();
+            keHoach.setMaKeHoach(v);
+            this.maKeHoach = keHoach;
+        }
     }
 
 }

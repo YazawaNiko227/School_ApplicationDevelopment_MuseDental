@@ -2,7 +2,7 @@ package gui;
 
 import com.toedter.calendar.JDateChooser;
 import entity.VatTu;
-import dao.VatTuDAO;
+import service.VatTuYTeService;
 import util.GiaoDienUtil;
 
 import java.awt.BorderLayout;
@@ -50,7 +50,7 @@ import javax.swing.table.TableRowSorter;
  * (phần thuốc do DanhMucQuanLyThuocPanel đảm nhiệm).
  *
  * Bên trái: danh sách + tìm kiếm + lọc loại. Bên phải: form thêm / sửa / xóa.
- * Dữ liệu được đọc và cập nhật trực tiếp qua VatTuDAO.
+ * Dữ liệu được đọc và cập nhật qua VatTuYTeService.
  */
 public class DanhMucQuanLyVatTuYTePanel extends JPanel {
     private static final Color INK = new Color(32, 53, 68);
@@ -59,7 +59,6 @@ public class DanhMucQuanLyVatTuYTePanel extends JPanel {
     private static final Color LINE = new Color(226, 234, 237);
     private static final Color DANGER = new Color(214, 69, 80);
 
-    private static final String LOAI_THUOC = "Thuốc";
     private static final String TAT_CA = "Tất cả loại";
     private static final String[] LOAI_VAT_TU = { "Tiêu hao", "Vật liệu", "Dụng cụ" };
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("dd/MM/uuuu")
@@ -68,7 +67,7 @@ public class DanhMucQuanLyVatTuYTePanel extends JPanel {
     private static final NumberFormat MONEY_FMT = NumberFormat.getIntegerInstance(Locale.forLanguageTag("vi-VN"));
 
     private final List<VatTu> danhSach = new ArrayList<>();
-    private final VatTuDAO vatTuDAO = new VatTuDAO();
+    private final VatTuYTeService vatTuService = new VatTuYTeService();
     private final DefaultTableModel tableModel = new DefaultTableModel(
             new String[] { "Mã vật tư", "Tên vật tư", "Loại", "Đơn vị", "Tồn kho", "Ngưỡng tối thiểu",
                     "Giá bán", "Hạn sử dụng" },
@@ -126,7 +125,7 @@ public class DanhMucQuanLyVatTuYTePanel extends JPanel {
     private void loadData() {
         try {
             danhSach.clear();
-            danhSach.addAll(vatTuDAO.getAllExceptLoai(LOAI_THUOC));
+            danhSach.addAll(vatTuService.layDanhSach());
         } catch (SQLException ex) {
             showDatabaseError("Không thể tải danh sách vật tư.", ex);
         }
@@ -143,7 +142,7 @@ public class DanhMucQuanLyVatTuYTePanel extends JPanel {
 
     private String nextId() {
         try {
-            return vatTuDAO.getNextId();
+            return vatTuService.sinhMa();
         } catch (SQLException ex) {
             showDatabaseError("Không thể tạo mã vật tư mới.", ex);
             return "";
@@ -421,10 +420,7 @@ public class DanhMucQuanLyVatTuYTePanel extends JPanel {
     private void onAdd() {
         try {
             VatTu vt = readForm(txtMa.getText().trim());
-            if (findById(vt.getMaVatTu()) != null) {
-                throw new IllegalArgumentException("Mã vật tư đã tồn tại.");
-            }
-            if (!vatTuDAO.insert(vt)) {
+            if (!vatTuService.them(vt)) {
                 throw new SQLException("Không thể thêm vật tư vào cơ sở dữ liệu.");
             }
             danhSach.add(vt);
@@ -443,13 +439,15 @@ public class DanhMucQuanLyVatTuYTePanel extends JPanel {
         try {
             VatTu updated = readForm(txtMa.getText().trim());
             VatTu current = findById(updated.getMaVatTu());
-            if (current == null) {
-                throw new IllegalArgumentException("Không tìm thấy vật tư cần cập nhật.");
-            }
-            if (!vatTuDAO.update(updated)) {
+            if (!vatTuService.capNhat(updated)) {
                 throw new SQLException("Không tìm thấy vật tư cần cập nhật trong cơ sở dữ liệu.");
             }
-            danhSach.set(danhSach.indexOf(current), updated);
+            int currentIndex = danhSach.indexOf(current);
+            if (currentIndex >= 0) {
+                danhSach.set(currentIndex, updated);
+            } else {
+                loadData();
+            }
             refreshTable();
             clearForm();
             JOptionPane.showMessageDialog(this, "Đã cập nhật thông tin vật tư.");
@@ -471,7 +469,7 @@ public class DanhMucQuanLyVatTuYTePanel extends JPanel {
                 "Xác nhận xóa", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
         if (choice == JOptionPane.YES_OPTION) {
             try {
-                if (!vatTuDAO.delete(vt.getMaVatTu())) {
+                if (!vatTuService.xoa(vt.getMaVatTu())) {
                     JOptionPane.showMessageDialog(this, "Không tìm thấy vật tư trong cơ sở dữ liệu.",
                             "Không thể xóa", JOptionPane.WARNING_MESSAGE);
                     return;
@@ -502,59 +500,11 @@ public class DanhMucQuanLyVatTuYTePanel extends JPanel {
     // ---------------------------- Kiểm tra dữ liệu ----------------------------
 
     private VatTu readForm(String ma) {
-        String ten = txtTen.getText().trim();
-        if (ten.isEmpty()) {
-            txtTen.requestFocusInWindow();
-            throw new IllegalArgumentException("Tên vật tư không được để trống.");
-        }
-
         Object loaiValue = cbLoai.getSelectedItem();
-        String loai = loaiValue == null ? "" : loaiValue.toString().trim();
-        if (loai.isEmpty()) {
-            throw new IllegalArgumentException("Vui lòng chọn loại vật tư.");
-        }
-        if (LOAI_THUOC.equalsIgnoreCase(loai)) {
-            throw new IllegalArgumentException("Loại \"Thuoc\" được quản lý ở mục Quản Lý Thuốc.");
-        }
-
-        int ton = parseNonNegativeInt(txtTon, "Số lượng tồn");
-        int nguong = parseNonNegativeInt(txtNguong, "Ngưỡng tối thiểu");
-        double giaBan = parseMoney(txtGiaBan, "Giá bán");
-
-        LocalDate han = null;
-        han = GiaoDienUtil.layNgayDaChon(chonHanSuDung);
-        String donVi = txtDonVi.getText().trim();
-        return new VatTu(ma, ten, loai, donVi.isEmpty() ? null : donVi, ton, nguong, han, giaBan);
-    }
-
-    private int parseNonNegativeInt(JTextField field, String name) {
-        try {
-            int value = Integer.parseInt(field.getText().trim());
-            if (value < 0) {
-                throw new NumberFormatException();
-            }
-            return value;
-        } catch (NumberFormatException ex) {
-            field.requestFocusInWindow();
-            throw new IllegalArgumentException(name + " phải là số nguyên không âm.");
-        }
-    }
-
-    /**
-     * Đọc số tiền: chấp nhận 5000 hoặc 5.000, để trống coi như 0 (vật tư dùng nội
-     * bộ).
-     */
-    private double parseMoney(JTextField field, String name) {
-        String text = field.getText().trim();
-        if (text.isEmpty()) {
-            return 0;
-        }
-        String digits = text.replaceAll("[^0-9]", "");
-        if (text.contains("-") || digits.isEmpty()) {
-            field.requestFocusInWindow();
-            throw new IllegalArgumentException(name + " phải là số tiền không âm.");
-        }
-        return Double.parseDouble(digits);
+        return vatTuService.taoVatTu(ma, txtTen.getText(),
+                loaiValue == null ? "" : loaiValue.toString(), txtDonVi.getText(),
+                txtTon.getText(), txtNguong.getText(), txtGiaBan.getText(),
+                GiaoDienUtil.layNgayDaChon(chonHanSuDung));
     }
 
     // ---------------------------- Renderer ----------------------------

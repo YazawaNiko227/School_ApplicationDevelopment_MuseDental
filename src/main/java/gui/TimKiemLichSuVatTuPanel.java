@@ -148,8 +148,7 @@ public class TimKiemLichSuVatTuPanel extends JPanel {
         ketQuaDangHienThi.clear();
         model.setRowCount(0);
         try {
-            List<PhieuXuatTraCuuInfo> ketQua =
-                    service.timKiemPhieuXuat(txtTuKhoa.getText().trim(), tuNgay, denNgay);
+            List<PhieuXuatTraCuuInfo> ketQua = service.timKiemPhieuXuat(txtTuKhoa.getText().trim(), tuNgay, denNgay);
             for (PhieuXuatTraCuuInfo phieu : ketQua) {
                 ketQuaDangHienThi.add(phieu);
                 model.addRow(new Object[] {

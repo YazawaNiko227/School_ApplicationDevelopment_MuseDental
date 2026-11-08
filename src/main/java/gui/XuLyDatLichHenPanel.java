@@ -82,8 +82,8 @@ public final class XuLyDatLichHenPanel extends JPanel {
     private final JTextField txtDiaChi = new JTextField();
 
     // ----- Form lịch hẹn -----
-    private final JComboBox<ComboItem> cboNhaSi = new JComboBox<>();
-    private final JComboBox<ComboItem> cboPhong = new JComboBox<>();
+    private final JComboBox<NhanVien> cboNhaSi = new JComboBox<>();
+    private final JComboBox<PhongKham> cboPhong = new JComboBox<>();
     private final JDateChooser chonNgayHen = new JDateChooser();
     private final JSpinner spnGioHen = new JSpinner(new SpinnerDateModel(new Date(), null, null, Calendar.MINUTE));
 
@@ -341,8 +341,8 @@ public final class XuLyDatLichHenPanel extends JPanel {
     /** Kiểm tra dữ liệu rồi lưu lịch hẹn với trạng thái "Chờ xác nhận". */
     private void saveAppointment() {
         LocalDateTime thoiGianHen = getSelectedDateTime();
-        ComboItem nhaSi = (ComboItem) cboNhaSi.getSelectedItem();
-        ComboItem phong = (ComboItem) cboPhong.getSelectedItem();
+        NhanVien nhaSi = (NhanVien) cboNhaSi.getSelectedItem();
+        PhongKham phong = (PhongKham) cboPhong.getSelectedItem();
 
         BenhNhan benhNhanMoi = null;
         String maBenhNhan = txtMaBenhNhan.getText().trim();
@@ -352,8 +352,8 @@ public final class XuLyDatLichHenPanel extends JPanel {
                 maBenhNhan = null;
             }
             String maLichHen = datLichHenService.datLichHen(benhNhanMoi, maBenhNhan, thoiGianHen,
-                    nhaSi == null ? null : nhaSi.getMa(),
-                    phong == null ? null : phong.getMa(), tenDangNhap);
+                    nhaSi == null ? null : nhaSi.getMaNhanVien(),
+                    phong == null ? null : phong.getMaPhong(), tenDangNhap);
             loadAppointments();
             showMessage("Đã lưu lịch hẹn " + maLichHen + " (Chờ xác nhận).");
             clearForm();
@@ -440,8 +440,7 @@ public final class XuLyDatLichHenPanel extends JPanel {
         try {
             cboPhong.removeAllItems();
             for (PhongKham phong : datLichHenService.layPhongKhongBaoTri()) {
-                cboPhong.addItem(new ComboItem(phong.getMaPhong(),
-                        phong.getMaPhong() + " - " + phong.getTenPhong()));
+                cboPhong.addItem(phong);
             }
             napNhaSiRanh();
         } catch (SQLException ex) {
@@ -450,8 +449,8 @@ public final class XuLyDatLichHenPanel extends JPanel {
     }
 
     private void napNhaSiRanh() {
-        ComboItem selection = (ComboItem) cboNhaSi.getSelectedItem();
-        String maNhaSiDangChon = selection == null ? null : selection.getMa();
+        NhanVien dangChon = (NhanVien) cboNhaSi.getSelectedItem();
+        String maNhaSiDangChon = dangChon == null ? null : dangChon.getMaNhanVien();
         cboNhaSi.removeAllItems();
         LocalDateTime thoiGianHen = getSelectedDateTime();
         if (thoiGianHen == null) {
@@ -460,15 +459,15 @@ public final class XuLyDatLichHenPanel extends JPanel {
         try {
             List<NhanVien> nhaSiRanh = datLichHenService.layNhaSiRanh(thoiGianHen);
             for (NhanVien nhaSi : nhaSiRanh) {
-                ComboItem item = new ComboItem(nhaSi.getMaNhanVien(),
-                        nhaSi.getMaNhanVien() + " - " + nhaSi.getHoTen());
-                cboNhaSi.addItem(item);
+                cboNhaSi.addItem(nhaSi);
                 if (nhaSi.getMaNhanVien().equals(maNhaSiDangChon)) {
-                    cboNhaSi.setSelectedItem(item);
+                    cboNhaSi.setSelectedItem(nhaSi);
                 }
             }
             if (nhaSiRanh.isEmpty()) {
-                cboNhaSi.addItem(new ComboItem(null, "Không có nha sĩ rảnh trong thời gian này"));
+                NhanVien giuCho = new NhanVien(); // không có mã
+                giuCho.setHoTen("Không có nha sĩ rảnh trong thời gian này");
+                cboNhaSi.addItem(giuCho);
                 cboNhaSi.setToolTipText("Không có nha sĩ rảnh hoặc có ca trực vào thời gian đã chọn.");
             } else {
                 cboNhaSi.setToolTipText("Chỉ hiển thị nha sĩ có ca trực và chưa có lịch hẹn vào thời gian này.");
@@ -503,25 +502,6 @@ public final class XuLyDatLichHenPanel extends JPanel {
         JOptionPane.showMessageDialog(this,
                 detail == null || detail.trim().isEmpty() ? message : message + "\n" + detail,
                 "Lỗi cơ sở dữ liệu", JOptionPane.ERROR_MESSAGE);
-    }
-
-    private static final class ComboItem {
-        private final String ma;
-        private final String ten;
-
-        private ComboItem(String ma, String ten) {
-            this.ma = ma;
-            this.ten = ten;
-        }
-
-        private String getMa() {
-            return ma;
-        }
-
-        @Override
-        public String toString() {
-            return ten;
-        }
     }
 
     private LocalDateTime getSelectedDateTime() {

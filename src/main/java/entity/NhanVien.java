@@ -143,4 +143,10 @@ public class NhanVien {
     public int hashCode() {
         return Objects.hash(maNhanVien);
     }
+
+    @Override
+    public String toString() {
+        // mục giữ chỗ (không có mã) chỉ hiện họ tên/thông báo
+        return maNhanVien == null ? hoTen : maNhanVien + " - " + hoTen;
+    }
 }

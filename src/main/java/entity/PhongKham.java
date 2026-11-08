@@ -54,4 +54,9 @@ public class PhongKham {
         this.trangThai = trangThai;
     }
 
+    @Override
+    public String toString() {
+        return maPhong + " - " + tenPhong;
+    }
+
 }

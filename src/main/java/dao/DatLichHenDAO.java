@@ -169,49 +169,34 @@ public class DatLichHenDAO {
     public String themLichHen(BenhNhan benhNhanMoi, String maBenhNhan, LocalDateTime thoiGianHen,
             String maNhaSi, String maPhong, String tenDangNhap) throws SQLException {
         Connection connection = getConnection();
-        boolean autoCommit = connection.getAutoCommit();
-        int isolation = connection.getTransactionIsolation();
-        connection.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
-        connection.setAutoCommit(false);
-        try {
-            String maNhanVienLap = layMaNhanVienLap(connection, tenDangNhap);
-            String maBenhNhanDatLich = maBenhNhan;
-            if (benhNhanMoi != null) {
-                maBenhNhanDatLich = taoMa(connection, "BenhNhan", "MaBenhNhan", "BN");
-                benhNhanMoi.setMaBenhNhan(maBenhNhanDatLich);
-                themBenhNhan(connection, benhNhanMoi);
-                taoHoSoBenhAn(connection, maBenhNhanDatLich);
-            }
 
-            kiemTraPhong(connection, maPhong);
-            kiemTraCaTruc(connection, maNhaSi, thoiGianHen);
-            kiemTraLichTrung(connection, maBenhNhanDatLich, maNhaSi, maPhong, thoiGianHen);
-
-            String maLichHen = taoMa(connection, "LichHen", "MaLichHen", "LH");
-            String sql = "INSERT INTO LichHen "
-                    + "(MaLichHen, ThoiGianHen, TrangThai, MaNhanVienLap, MaNhaSiPhuTrach, "
-                    + "MaBenhNhan, MaPhong) VALUES (?, ?, N'Cho xac nhan', ?, ?, ?, ?)";
-            try (PreparedStatement statement = connection.prepareStatement(sql)) {
-                statement.setString(1, maLichHen);
-                statement.setTimestamp(2, Timestamp.valueOf(thoiGianHen));
-                statement.setString(3, maNhanVienLap);
-                statement.setString(4, maNhaSi);
-                statement.setString(5, maBenhNhanDatLich);
-                statement.setString(6, maPhong);
-                statement.executeUpdate();
-            }
-            connection.commit();
-            return maLichHen;
-        } catch (SQLException | RuntimeException ex) {
-            connection.rollback();
-            throw ex;
-        } finally {
-            try {
-                connection.setAutoCommit(autoCommit);
-            } finally {
-                connection.setTransactionIsolation(isolation);
-            }
+        String maNhanVienLap = layMaNhanVienLap(connection, tenDangNhap);
+        String maBenhNhanDatLich = maBenhNhan;
+        if (benhNhanMoi != null) {
+            maBenhNhanDatLich = taoMa(connection, "BenhNhan", "MaBenhNhan", "BN");
+            benhNhanMoi.setMaBenhNhan(maBenhNhanDatLich);
+            themBenhNhan(connection, benhNhanMoi);
+            taoHoSoBenhAn(connection, maBenhNhanDatLich);
         }
+
+        kiemTraPhong(connection, maPhong);
+        kiemTraCaTruc(connection, maNhaSi, thoiGianHen);
+        kiemTraLichTrung(connection, maBenhNhanDatLich, maNhaSi, maPhong, thoiGianHen);
+
+        String maLichHen = taoMa(connection, "LichHen", "MaLichHen", "LH");
+        String sql = "INSERT INTO LichHen "
+                + "(MaLichHen, ThoiGianHen, TrangThai, MaNhanVienLap, MaNhaSiPhuTrach, "
+                + "MaBenhNhan, MaPhong) VALUES (?, ?, N'Cho xac nhan', ?, ?, ?, ?)";
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setString(1, maLichHen);
+            statement.setTimestamp(2, Timestamp.valueOf(thoiGianHen));
+            statement.setString(3, maNhanVienLap);
+            statement.setString(4, maNhaSi);
+            statement.setString(5, maBenhNhanDatLich);
+            statement.setString(6, maPhong);
+            statement.executeUpdate();
+        }
+        return maLichHen;
     }
 
     public boolean capNhatTrangThai(String maLichHen, String trangThaiHienTai, String trangThaiMoi)

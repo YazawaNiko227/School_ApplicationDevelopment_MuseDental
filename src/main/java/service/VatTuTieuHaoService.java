@@ -3,11 +3,9 @@ package service;
 import dao.LichHenDAO;
 import dao.PhieuXuatKhoDAO;
 import dao.VatTuDAO;
-import dto.ChiTietXuatInfo;
-import dto.LichHenInfo;
-import dto.PhieuXuatTraCuuInfo;
 import entity.ChiTietXuatKho;
 import entity.PhieuXuatKho;
+import entity.LichHen;
 import entity.VatTu;
 import java.sql.SQLException;
 import java.time.LocalDate;
@@ -22,7 +20,7 @@ public class VatTuTieuHaoService {
     private final VatTuDAO vatTuDAO = new VatTuDAO();
     private final LichHenDAO lichHenDAO = new LichHenDAO();
 
-    public List<LichHenInfo> layLichHenChoXuatKho() throws SQLException {
+    public List<LichHen> layLichHenChoXuatKho() throws SQLException {
         return lichHenDAO.layChoXuatKho();
     }
 
@@ -30,12 +28,12 @@ public class VatTuTieuHaoService {
         return vatTuDAO.timKiem(tuKhoa, loaiVatTu);
     }
 
-    public List<PhieuXuatTraCuuInfo> timKiemPhieuXuat(String tuKhoa, LocalDate tuNgay, LocalDate denNgay)
+    public List<PhieuXuatKho> timKiemPhieuXuat(String tuKhoa, LocalDate tuNgay, LocalDate denNgay)
             throws SQLException {
         return phieuXuatKhoDAO.timKiemPhieuXuat(tuKhoa, tuNgay, denNgay);
     }
 
-    public List<ChiTietXuatInfo> layChiTietPhieuXuat(String maPhieuXuat) throws SQLException {
+    public List<ChiTietXuatKho> layChiTietPhieuXuat(String maPhieuXuat) throws SQLException {
         return phieuXuatKhoDAO.layChiTietPhieuXuat(maPhieuXuat);
     }
 

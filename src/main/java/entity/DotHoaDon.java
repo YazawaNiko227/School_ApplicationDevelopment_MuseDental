@@ -17,9 +17,23 @@ public class DotHoaDon {
         this.ngayThanhToan = ngayThanhToan;
     }
 
-    public String ma() { return ma; }
-    public LocalDate ngayDenHan() { return ngayDenHan; }
-    public double soTien() { return soTien; }
-    public String trangThai() { return trangThai; }
-    public LocalDate ngayThanhToan() { return ngayThanhToan; }
+    public String ma() {
+        return ma;
+    }
+
+    public LocalDate ngayDenHan() {
+        return ngayDenHan;
+    }
+
+    public double soTien() {
+        return soTien;
+    }
+
+    public String trangThai() {
+        return trangThai;
+    }
+
+    public LocalDate ngayThanhToan() {
+        return ngayThanhToan;
+    }
 }

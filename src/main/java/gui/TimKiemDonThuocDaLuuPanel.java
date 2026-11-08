@@ -1,7 +1,7 @@
 package gui;
 
-import dto.DonThuocDaLuu;
-import dto.ThuocDonThuocDaLuu;
+import entity.DonThuoc;
+import entity.ChiTietDonThuoc;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
@@ -36,7 +36,7 @@ public class TimKiemDonThuocDaLuuPanel extends JPanel {
     private static final DateTimeFormatter NGAY = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
     private final KeDonThuocService service = new KeDonThuocService();
-    private final List<DonThuocDaLuu> prescriptions = new ArrayList<>();
+    private final List<DonThuoc> prescriptions = new ArrayList<>();
     private final JTextField searchField = new JTextField();
     private final JLabel prescriptionInfo = new JLabel("Chọn một đơn thuốc để xem chi tiết.");
     private final JLabel diagnosisInfo = new JLabel(" ");
@@ -174,17 +174,17 @@ public class TimKiemDonThuocDaLuuPanel extends JPanel {
 
     private void taiDanhSach() {
         try {
-            List<DonThuocDaLuu> loadedPrescriptions = service.layDanhSachDonThuocDaLuu();
+            List<DonThuoc> loadedPrescriptions = service.layDanhSachDonThuocDaLuu();
             prescriptions.clear();
             prescriptions.addAll(loadedPrescriptions);
             prescriptionModel.setRowCount(0);
-            for (DonThuocDaLuu prescription : prescriptions) {
+            for (DonThuoc prescription : prescriptions) {
                 prescriptionModel.addRow(new Object[] {
                         prescription.getMaDonThuoc(),
                         prescription.getNgayKe() == null ? "" : NGAY.format(prescription.getNgayKe()),
-                        prescription.getMaBenhNhan(),
-                        prescription.getTenBenhNhan(),
-                        prescription.getMaChanDoan()
+                        prescription.getChanDoan().getMaBenhNhanId(),
+                        prescription.getChanDoan().getBenhNhan().getHoTen(),
+                        prescription.getMaChanDoanId()
                 });
             }
             locDanhSach();
@@ -211,18 +211,19 @@ public class TimKiemDonThuocDaLuuPanel extends JPanel {
         }
         int modelRow = prescriptionTable.convertRowIndexToModel(selectedRow);
         String prescriptionId = (String) prescriptionModel.getValueAt(modelRow, 0);
-        DonThuocDaLuu prescription = timDonThuoc(prescriptionId);
+        DonThuoc prescription = timDonThuoc(prescriptionId);
         if (prescription == null) {
             xoaChiTiet();
             return;
         }
 
-        prescriptionInfo.setText(prescriptionId + " · Bệnh nhân: " + prescription.getTenBenhNhan());
-        String diagnosis = prescription.getKetLuanChanDoan() == null
-                || prescription.getKetLuanChanDoan().trim().isEmpty()
+        prescriptionInfo.setText(prescriptionId + " · Bệnh nhân: "
+                + prescription.getChanDoan().getBenhNhan().getHoTen());
+        String ketLuan = prescription.getChanDoan().getKetLuanChanDoan();
+        String diagnosis = ketLuan == null || ketLuan.trim().isEmpty()
                         ? "Chưa có kết luận chẩn đoán"
-                        : prescription.getKetLuanChanDoan();
-        diagnosisInfo.setText("Lần khám " + prescription.getMaChanDoan() + ": " + diagnosis);
+                        : ketLuan;
+        diagnosisInfo.setText("Lần khám " + prescription.getMaChanDoanId() + ": " + diagnosis);
         String careAdvice = prescription.getLoiDanChamSoc() == null
                 || prescription.getLoiDanChamSoc().trim().isEmpty()
                         ? "Không có lời dặn chăm sóc"
@@ -230,13 +231,13 @@ public class TimKiemDonThuocDaLuuPanel extends JPanel {
         careInfo.setText("Lời dặn: " + careAdvice);
 
         try {
-            List<ThuocDonThuocDaLuu> medicines = service.layThuocDaKe(prescriptionId);
+            List<ChiTietDonThuoc> medicines = service.layThuocDaKe(prescriptionId);
             medicineModel.setRowCount(0);
-            for (ThuocDonThuocDaLuu medicine : medicines) {
+            for (ChiTietDonThuoc medicine : medicines) {
                 medicineModel.addRow(new Object[] {
-                        medicine.getMaThuoc(),
-                        medicine.getTenThuoc(),
-                        medicine.getDonViTinh(),
+                        medicine.getMaVatTuId(),
+                        medicine.getVatTu().getTenVatTu(),
+                        medicine.getVatTu().getDonViTinh(),
                         medicine.getLieuDung(),
                         medicine.getDuongDung(),
                         medicine.getSoLuong()
@@ -250,8 +251,8 @@ public class TimKiemDonThuocDaLuuPanel extends JPanel {
         }
     }
 
-    private DonThuocDaLuu timDonThuoc(String maDonThuoc) {
-        for (DonThuocDaLuu prescription : prescriptions) {
+    private DonThuoc timDonThuoc(String maDonThuoc) {
+        for (DonThuoc prescription : prescriptions) {
             if (prescription.getMaDonThuoc().equals(maDonThuoc)) {
                 return prescription;
             }

@@ -2,7 +2,7 @@ package gui;
 
 import entity.ChiTietHoaDonTraCuu;
 import entity.DongTinhTien;
-import dto.LanKham;
+import entity.ChanDoan;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
@@ -577,9 +577,9 @@ public class XuLyLapHoaDonPanel extends JPanel {
         try {
             maNhanVien = invoiceService.layMaNhanVienTheoTenDangNhap(tenDangNhap);
             loiTaiDuLieu = false;
-            for (LanKham lanKham : invoiceService.layLanKhamChuaLapHoaDon()) {
-                String[] row = { lanKham.maChanDoan(), lanKham.maBenhNhan(),
-                        lanKham.hoTen(), lanKham.ketLuan() };
+            for (ChanDoan lanKham : invoiceService.layLanKhamChuaLapHoaDon()) {
+                String[] row = { lanKham.getMaChanDoan(), lanKham.getMaBenhNhanId(),
+                        lanKham.getBenhNhan().getHoTen(), lanKham.getKetLuanChanDoan() };
                 dsLanKham.add(row);
                 cboLanKham.addItem(row[0] + " - " + row[2] + " (" + row[1] + ")");
             }

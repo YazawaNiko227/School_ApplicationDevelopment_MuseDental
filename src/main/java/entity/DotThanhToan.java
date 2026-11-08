@@ -97,7 +97,9 @@ public class DotThanhToan {
         this.maCongNo = congNoTraGop;
     }
 
-    public void setMaCongNo(CongNoTraGop congNoTraGop) { setCongNoTraGop(congNoTraGop); }
+    public void setMaCongNo(CongNoTraGop congNoTraGop) {
+        setCongNoTraGop(congNoTraGop);
+    }
 
     public void setMaCongNo(String maCongNo) {
         if (maCongNo == null)

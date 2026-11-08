@@ -2,7 +2,7 @@ package service;
 
 import dao.DatLichHenDAO;
 import entity.BenhNhan;
-import entity.LichHenThongTin;
+import entity.LichHen;
 import entity.NhanVien;
 import entity.PhongKham;
 import java.sql.SQLException;
@@ -62,7 +62,7 @@ public class DatLichHenService {
         return datLichHenDAO.layPhongKhongBaoTri();
     }
 
-    public List<LichHenThongTin> layDanhSachLichHen() throws SQLException {
+    public List<LichHen> layDanhSachLichHen() throws SQLException {
         return datLichHenDAO.layDanhSachLichHen();
     }
 

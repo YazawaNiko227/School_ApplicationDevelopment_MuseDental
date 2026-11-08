@@ -1,7 +1,7 @@
 package gui;
 
-import dto.DichVuPhacDoDaLuu;
-import dto.PhacDoDaLuu;
+import entity.ChiTietKeHoachDieuTriDichVu;
+import entity.KeHoachDieuTri;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
@@ -39,7 +39,7 @@ public class TimKiemPhacDoDaLuuPanel extends JPanel {
     private static final DateTimeFormatter NGAY = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
     private final PhacDoDaLuuService service = new PhacDoDaLuuService();
-    private final List<PhacDoDaLuu> plans = new ArrayList<>();
+    private final List<KeHoachDieuTri> plans = new ArrayList<>();
     private final JTextField searchField = new JTextField();
     private final JLabel planInfo = new JLabel("Chọn một phác đồ để xem chi tiết.");
     private final JLabel diagnosisInfo = new JLabel(" ");
@@ -176,17 +176,17 @@ public class TimKiemPhacDoDaLuuPanel extends JPanel {
 
     private void taiDanhSach() {
         try {
-            List<PhacDoDaLuu> loadedPlans = service.layDanhSach();
+            List<KeHoachDieuTri> loadedPlans = service.layDanhSach();
             plans.clear();
             plans.addAll(loadedPlans);
             planModel.setRowCount(0);
-            for (PhacDoDaLuu plan : plans) {
+            for (KeHoachDieuTri plan : plans) {
                 planModel.addRow(new Object[] {
                         plan.getMaKeHoach(),
                         plan.getTenPhacDo(),
-                        plan.getMaBenhNhan(),
-                        plan.getTenBenhNhan(),
-                        plan.getNgayKham() == null ? "" : NGAY.format(plan.getNgayKham()),
+                        plan.getBenhNhan().getMaBenhNhan(),
+                        plan.getBenhNhan().getHoTen(),
+                        plan.getChanDoan().getNgayKham() == null ? "" : NGAY.format(plan.getChanDoan().getNgayKham()),
                         plan.getThoiGianDuKien() == null ? "" : plan.getThoiGianDuKien() + " ngày",
                         service.trangThaiHienThi(plan.getTrangThai())
                 });
@@ -215,30 +215,32 @@ public class TimKiemPhacDoDaLuuPanel extends JPanel {
         }
         int modelRow = planTable.convertRowIndexToModel(selectedRow);
         String planId = (String) planModel.getValueAt(modelRow, 0);
-        PhacDoDaLuu plan = timPhacDo(planId);
+        KeHoachDieuTri plan = timPhacDo(planId);
         if (plan == null) {
             xoaChiTiet();
             return;
         }
 
-        String diagnosis = plan.getKetLuanChanDoan() == null || plan.getKetLuanChanDoan().trim().isEmpty()
+        String ketLuan = plan.getChanDoan().getKetLuanChanDoan();
+        String diagnosis = ketLuan == null || ketLuan.trim().isEmpty()
                 ? "Chưa có kết luận chẩn đoán"
-                : plan.getKetLuanChanDoan();
+                : ketLuan;
         planInfo.setText(plan.getTenPhacDo() + " · " + plan.getMaKeHoach()
-                + " · Bệnh nhân: " + plan.getTenBenhNhan());
-        diagnosisInfo.setText("Chẩn đoán " + plan.getMaChanDoan() + ": " + diagnosis);
+                + " · Bệnh nhân: " + plan.getBenhNhan().getHoTen());
+        diagnosisInfo.setText("Chẩn đoán " + plan.getMaChanDoanId() + ": " + diagnosis);
         try {
-            List<DichVuPhacDoDaLuu> services = service.layDichVu(planId);
+            List<ChiTietKeHoachDieuTriDichVu> services = service.layDichVu(planId);
             serviceModel.setRowCount(0);
             double total = 0;
-            for (DichVuPhacDoDaLuu item : services) {
-                total += item.getThanhTien();
+            for (ChiTietKeHoachDieuTriDichVu item : services) {
+                double donGia = item.getDichVu().getDonGia();
+                total += donGia * item.getSoLuong();
                 serviceModel.addRow(new Object[] {
-                        item.getMaDichVu(),
-                        item.getTenDichVu(),
+                        item.getMaDichVuId(),
+                        item.getDichVu().getTenDichVu(),
                         item.getSoLuong(),
-                        TIEN.format(item.getDonGia()) + " đ",
-                        TIEN.format(item.getThanhTien()) + " đ"
+                        TIEN.format(donGia) + " đ",
+                        TIEN.format(donGia * item.getSoLuong()) + " đ"
                 });
             }
             totalInfo.setText("Tổng dự toán: " + TIEN.format(total) + " đ");
@@ -251,8 +253,8 @@ public class TimKiemPhacDoDaLuuPanel extends JPanel {
         }
     }
 
-    private PhacDoDaLuu timPhacDo(String maKeHoach) {
-        for (PhacDoDaLuu plan : plans) {
+    private KeHoachDieuTri timPhacDo(String maKeHoach) {
+        for (KeHoachDieuTri plan : plans) {
             if (plan.getMaKeHoach().equals(maKeHoach)) {
                 return plan;
             }

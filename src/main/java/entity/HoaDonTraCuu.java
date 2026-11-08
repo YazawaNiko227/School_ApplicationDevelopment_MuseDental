@@ -26,13 +26,39 @@ public class HoaDonTraCuu {
         this.tongTien = tongTien;
     }
 
-    public String maHoaDon() { return maHoaDon; }
-    public LocalDate ngayLap() { return ngayLap; }
-    public String maBenhNhan() { return maBenhNhan; }
-    public String tenBenhNhan() { return tenBenhNhan; }
-    public String maNhanVien() { return maNhanVien; }
-    public String tenNhanVien() { return tenNhanVien; }
-    public String phuongThuc() { return phuongThuc; }
-    public String trangThai() { return trangThai; }
-    public double tongTien() { return tongTien; }
+    public String maHoaDon() {
+        return maHoaDon;
+    }
+
+    public LocalDate ngayLap() {
+        return ngayLap;
+    }
+
+    public String maBenhNhan() {
+        return maBenhNhan;
+    }
+
+    public String tenBenhNhan() {
+        return tenBenhNhan;
+    }
+
+    public String maNhanVien() {
+        return maNhanVien;
+    }
+
+    public String tenNhanVien() {
+        return tenNhanVien;
+    }
+
+    public String phuongThuc() {
+        return phuongThuc;
+    }
+
+    public String trangThai() {
+        return trangThai;
+    }
+
+    public double tongTien() {
+        return tongTien;
+    }
 }

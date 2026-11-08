@@ -1,16 +1,18 @@
 package service;
 
 import dao.HoaDonDAO;
+import dao.ChanDoanDAO;
 import entity.ChiTietHoaDonTraCuu;
 import entity.DongTinhTien;
 import entity.HoaDon;
-import dto.LanKham;
+import entity.ChanDoan;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.util.List;
 
 public class InvoiceService {
     private final HoaDonDAO hoaDonDAO = new HoaDonDAO();
+    private final ChanDoanDAO chanDoanDAO = new ChanDoanDAO();
 
     public List<DongTinhTien> layDichVuTheoChanDoan(String diagnosisId) throws SQLException {
         return hoaDonDAO.layDichVuTheoChanDoan(diagnosisId);
@@ -69,8 +71,8 @@ public class InvoiceService {
         return hoaDonDAO.layMaNhanVienTheoTenDangNhap(username);
     }
 
-    public List<LanKham> layLanKhamChuaLapHoaDon() throws SQLException {
-        return hoaDonDAO.layLanKhamChuaLapHoaDon();
+    public List<ChanDoan> layLanKhamChuaLapHoaDon() throws SQLException {
+        return chanDoanDAO.layLanKhamChuaLapHoaDon();
     }
 
     private static boolean isBlank(String value) {

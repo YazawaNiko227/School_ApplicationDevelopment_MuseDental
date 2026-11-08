@@ -2,7 +2,7 @@ package gui;
 
 import com.toedter.calendar.JDateChooser;
 import entity.BaoCaoDoanhThu;
-import entity.NhomDoanhThu;
+import entity.BaoCaoDoanhThu.NhomDoanhThu;
 import service.RevenueReportService;
 import util.GiaoDienUtil;
 

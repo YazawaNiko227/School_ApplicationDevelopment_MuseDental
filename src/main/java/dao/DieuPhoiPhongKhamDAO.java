@@ -1,7 +1,9 @@
 package dao;
 
 import connectDB.ConnectDB;
-import entity.LichHenDieuPhoi;
+import entity.BenhNhan;
+import entity.LichHen;
+import entity.NhanVien;
 import entity.PhongKham;
 
 import java.sql.Connection;
@@ -15,37 +17,53 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class DieuPhoiPhongKhamDAO {
-    public List<LichHenDieuPhoi> layLichHomNay() throws SQLException {
+    public List<LichHen> layLichHomNay() throws SQLException {
         return layLichTheoNgay(LocalDate.now());
     }
 
-    public List<LichHenDieuPhoi> layLichTheoNgay(LocalDate ngay) throws SQLException {
+    public List<LichHen> layLichTheoNgay(LocalDate ngay) throws SQLException {
         if (ngay == null) {
             throw new IllegalArgumentException("Ngày điều phối không được để trống.");
         }
-        String sql = "SELECT lh.MaLichHen, lh.ThoiGianHen, bn.HoTen AS TenBenhNhan, "
-                + "ns.MaNhanVien, ns.HoTen AS TenNhaSi, lh.MaPhong, lh.TrangThai, lh.ThoiGianCheckIn "
+        String sql = "SELECT lh.MaLichHen, lh.ThoiGianHen, lh.TrangThai, lh.NgayTao, lh.ThoiGianCheckIn, "
+                + "lh.MaNhanVienLap, lh.MaNhaSiPhuTrach, ns.HoTen AS TenNhaSi, "
+                + "lh.MaBenhNhan, bn.HoTen AS TenBenhNhan, lh.MaPhong, lh.MaKeHoach "
                 + "FROM LichHen lh "
                 + "INNER JOIN BenhNhan bn ON bn.MaBenhNhan = lh.MaBenhNhan "
                 + "INNER JOIN NhanVien ns ON ns.MaNhanVien = lh.MaNhaSiPhuTrach "
                 + "WHERE lh.ThoiGianHen >= ? AND lh.ThoiGianHen < ? "
                 + "ORDER BY lh.ThoiGianHen, lh.MaLichHen";
-        List<LichHenDieuPhoi> danhSach = new ArrayList<>();
+        List<LichHen> danhSach = new ArrayList<>();
         try (PreparedStatement statement = getConnection().prepareStatement(sql)) {
             statement.setTimestamp(1, Timestamp.valueOf(ngay.atStartOfDay()));
             statement.setTimestamp(2, Timestamp.valueOf(ngay.plusDays(1).atStartOfDay()));
             try (ResultSet result = statement.executeQuery()) {
                 while (result.next()) {
-                    Timestamp thoiGianHen = result.getTimestamp("ThoiGianHen");
+                    BenhNhan benhNhan = new BenhNhan();
+                    benhNhan.setMaBenhNhan(result.getString("MaBenhNhan"));
+                    benhNhan.setHoTen(result.getString("TenBenhNhan"));
+
+                    NhanVien nhaSi = new NhanVien();
+                    nhaSi.setMaNhanVien(result.getString("MaNhaSiPhuTrach"));
+                    nhaSi.setHoTen(result.getString("TenNhaSi"));
+
+                    PhongKham phongKham = new PhongKham();
+                    phongKham.setMaPhong(result.getString("MaPhong"));
+
+                    LichHen lichHen = new LichHen();
+                    lichHen.setMaLichHen(result.getString("MaLichHen"));
+                    lichHen.setThoiGianHen(result.getTimestamp("ThoiGianHen").toLocalDateTime());
+                    lichHen.setTrangThai(result.getString("TrangThai"));
+                    lichHen.setNgayTao(result.getDate("NgayTao").toLocalDate());
                     Timestamp thoiGianCheckIn = result.getTimestamp("ThoiGianCheckIn");
-                    danhSach.add(new LichHenDieuPhoi(
-                            result.getString("MaLichHen"),
-                            thoiGianHen.toLocalDateTime(),
-                            result.getString("TenBenhNhan"),
-                            result.getString("MaNhanVien") + " - " + result.getString("TenNhaSi"),
-                            result.getString("MaPhong"),
-                            result.getString("TrangThai"),
-                            thoiGianCheckIn == null ? null : thoiGianCheckIn.toLocalDateTime()));
+                    lichHen.setThoiGianCheckIn(
+                            thoiGianCheckIn == null ? null : thoiGianCheckIn.toLocalDateTime());
+                    lichHen.setMaNhanVienLap(result.getString("MaNhanVienLap"));
+                    lichHen.setNhaSiPhuTrach(nhaSi);
+                    lichHen.setBenhNhan(benhNhan);
+                    lichHen.setPhongKham(phongKham);
+                    lichHen.setMaKeHoach(result.getString("MaKeHoach"));
+                    danhSach.add(lichHen);
                 }
             }
         }

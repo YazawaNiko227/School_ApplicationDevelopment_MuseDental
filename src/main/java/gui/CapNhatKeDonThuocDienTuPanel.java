@@ -1,6 +1,6 @@
 package gui;
 
-import dto.LanKham;
+import entity.ChanDoan;
 import entity.ChiTietDonThuoc;
 import entity.DonThuoc;
 import entity.VatTu;
@@ -56,7 +56,7 @@ public class CapNhatKeDonThuocDienTuPanel extends JPanel {
     private final KeDonThuocService keDonThuocService = new KeDonThuocService();
 
     // Dữ liệu lần khám và thuốc trong bộ nhớ làm việc
-    private final List<LanKham> danhSachLanKham = new ArrayList<>();
+    private final List<ChanDoan> danhSachLanKham = new ArrayList<>();
     // Dòng thuốc đang soạn trên giao diện: mã vật tư -> ChiTietDonThuoc
     private final Map<String, ChiTietDonThuoc> mapChiTietDangSoan = new LinkedHashMap<>();
     // Bản lưu tạm thông tin thuốc để tính thành tiền và kiểm tra tồn: mã -> VatTu
@@ -293,8 +293,9 @@ public class CapNhatKeDonThuocDienTuPanel extends JPanel {
             danhSachLanKham.clear();
             danhSachLanKham.addAll(keDonThuocService.layLanKhamChoKeDon());
             cboLanKham.removeAllItems();
-            for (LanKham lk : danhSachLanKham) {
-                cboLanKham.addItem(lk.maChanDoan() + " - " + lk.hoTen() + " (" + lk.maBenhNhan() + ")");
+            for (ChanDoan lk : danhSachLanKham) {
+                cboLanKham.addItem(lk.getMaChanDoan() + " - " + lk.getBenhNhan().getHoTen()
+                        + " (" + lk.getMaBenhNhanId() + ")");
             }
             if (!danhSachLanKham.isEmpty()) {
                 chonLanKham();
@@ -339,12 +340,12 @@ public class CapNhatKeDonThuocDienTuPanel extends JPanel {
         int index = cboLanKham.getSelectedIndex();
         if (index < 0 || index >= danhSachLanKham.size()) return;
 
-        LanKham lk = danhSachLanKham.get(index);
-        lblBenhNhan.setText("Bệnh nhân: " + lk.hoTen() + "  ·  Mã: " + lk.maBenhNhan());
-        lblKetLuan.setText("Kết luận chẩn đoán: " + lk.ketLuan());
+        ChanDoan lk = danhSachLanKham.get(index);
+        lblBenhNhan.setText("Bệnh nhân: " + lk.getBenhNhan().getHoTen() + "  ·  Mã: " + lk.getMaBenhNhanId());
+        lblKetLuan.setText("Kết luận chẩn đoán: " + lk.getKetLuanChanDoan());
 
-        if (lk.thongTinDiUng() != null && !lk.thongTinDiUng().trim().isEmpty()) {
-            lblDiUng.setText("CẢNH BÁO DỊ ỨNG: " + lk.thongTinDiUng());
+        if (lk.getBenhNhan().getThongTinDiUng() != null && !lk.getBenhNhan().getThongTinDiUng().trim().isEmpty()) {
+            lblDiUng.setText("CẢNH BÁO DỊ ỨNG: " + lk.getBenhNhan().getThongTinDiUng());
             lblDiUng.setForeground(GiaoDienUtil.RED);
         } else {
             lblDiUng.setText("Dị ứng: Không ghi nhận");
@@ -358,10 +359,10 @@ public class CapNhatKeDonThuocDienTuPanel extends JPanel {
 
         try {
             // Kiểm tra xem lần khám này đã có đơn thuốc chưa
-            donThuocHienTai = keDonThuocService.timTheoChanDoan(lk.maChanDoan());
+            donThuocHienTai = keDonThuocService.timTheoChanDoan(lk.getMaChanDoan());
             if (donThuocHienTai == null) {
                 String maMoi = keDonThuocService.sinhMaDonThuoc();
-                donThuocHienTai = new DonThuoc(maMoi, LocalDate.now(), "", lk.maChanDoan());
+                donThuocHienTai = new DonThuoc(maMoi, LocalDate.now(), "", lk.getMaChanDoan());
                 lblTrangThaiDon.setText("Lần khám này chưa có đơn thuốc. Sẽ tạo mới mã " + maMoi);
                 lblNgayKe.setText(LocalDate.now().format(DINH_DANG_NGAY));
                 txtLoiDan.setText("");
@@ -465,11 +466,12 @@ public class CapNhatKeDonThuocDienTuPanel extends JPanel {
         }
 
         // Cảnh báo nếu bệnh nhân có tiền sử dị ứng
-        LanKham lk = danhSachLanKham.get(index);
-        if (lk.thongTinDiUng() != null && !lk.thongTinDiUng().trim().isEmpty()) {
+        ChanDoan lk = danhSachLanKham.get(index);
+        if (lk.getBenhNhan().getThongTinDiUng() != null
+                && !lk.getBenhNhan().getThongTinDiUng().trim().isEmpty()) {
             int xacNhan = JOptionPane.showConfirmDialog(
                     this,
-                    "Bệnh nhân có thông tin dị ứng: " + lk.thongTinDiUng()
+                    "Bệnh nhân có thông tin dị ứng: " + lk.getBenhNhan().getThongTinDiUng()
                             + ".\nBạn đã kiểm tra tương tác thuốc chưa?",
                     "Cảnh báo dị ứng",
                     JOptionPane.YES_NO_OPTION,

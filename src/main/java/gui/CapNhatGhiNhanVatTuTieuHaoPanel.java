@@ -1,6 +1,6 @@
 package gui;
 
-import dto.LichHenInfo;
+import entity.LichHen;
 import entity.VatTu;
 import service.VatTuTieuHaoService;
 import util.GiaoDienUtil;
@@ -46,7 +46,7 @@ public class CapNhatGhiNhanVatTuTieuHaoPanel extends JPanel {
     private final VatTuTieuHaoService vatTuTieuHaoService = new VatTuTieuHaoService();
 
     // Danh sách lịch hẹn nạp từ CSDL
-    private final List<LichHenInfo> danhSachLichHen = new ArrayList<>();
+    private final List<LichHen> danhSachLichHen = new ArrayList<>();
     // Dòng vật tư đang soạn trên phiếu: mã vật tư -> số lượng sử dụng
     private final Map<String, Integer> mapVatTuDangSoan = new LinkedHashMap<>();
     // Cache danh mục vật tư hiện hành: mã -> VatTu
@@ -239,20 +239,22 @@ public class CapNhatGhiNhanVatTuTieuHaoPanel extends JPanel {
     public void taiDanhSachLichHen() {
         try {
             String maLichDangChon = layMaLichHenDangChon();
-            List<LichHenInfo> lichHenMoi = vatTuTieuHaoService.layLichHenChoXuatKho();
+            List<LichHen> lichHenMoi = vatTuTieuHaoService.layLichHenChoXuatKho();
             danhSachLichHen.clear();
             danhSachLichHen.addAll(lichHenMoi);
             dangNapDanhSachLichHen = true;
             cboLichHen.removeAllItems();
             cboLichHen.addItem(XUAT_DUNG_CHUNG);
-            for (LichHenInfo lh : danhSachLichHen) {
-                String maChanDoan = lh.maChanDoan() == null ? "Chưa có chẩn đoán" : lh.maChanDoan();
-                cboLichHen.addItem(maChanDoan + " - " + lh.hoTen() + " (" + lh.maLichHen()
-                        + ", " + lh.trangThai() + ", P." + lh.maPhong() + ")");
+            for (LichHen lh : danhSachLichHen) {
+                String maChanDoan = lh.getChanDoan() == null ? "Chưa có chẩn đoán"
+                        : lh.getChanDoan().getMaChanDoan();
+                cboLichHen.addItem(maChanDoan + " - " + lh.getBenhNhan().getHoTen() + " ("
+                        + lh.getMaLichHen() + ", " + lh.getTrangThai() + ", P."
+                        + lh.getMaPhongId() + ")");
             }
             if (maLichDangChon != null) {
                 for (int i = 0; i < danhSachLichHen.size(); i++) {
-                    if (maLichDangChon.equals(danhSachLichHen.get(i).maLichHen())) {
+                    if (maLichDangChon.equals(danhSachLichHen.get(i).getMaLichHen())) {
                         cboLichHen.setSelectedIndex(i + 1);
                         break;
                     }
@@ -304,11 +306,13 @@ public class CapNhatGhiNhanVatTuTieuHaoPanel extends JPanel {
         if (index == 0) {
             lblBenhNhan.setText("Xuất dùng chung cho toàn phòng khám (không gắn với bệnh nhân nào).");
         } else if (index - 1 < danhSachLichHen.size()) {
-            LichHenInfo lh = danhSachLichHen.get(index - 1);
+            LichHen lh = danhSachLichHen.get(index - 1);
             lblBenhNhan.setText(
-                    "Lần khám: " + (lh.maChanDoan() == null ? "chưa có chẩn đoán" : lh.maChanDoan())
-                            + "  ·  Bệnh nhân: " + lh.hoTen() + "  ·  Mã BN: " + lh.maBenhNhan()
-                            + "  ·  Phòng: " + lh.maPhong());
+                    "Lần khám: " + (lh.getChanDoan() == null ? "chưa có chẩn đoán"
+                            : lh.getChanDoan().getMaChanDoan())
+                            + "  ·  Bệnh nhân: " + lh.getBenhNhan().getHoTen()
+                            + "  ·  Mã BN: " + lh.getMaBenhNhanId()
+                            + "  ·  Phòng: " + lh.getMaPhongId());
         } else {
             return;
         }
@@ -322,7 +326,7 @@ public class CapNhatGhiNhanVatTuTieuHaoPanel extends JPanel {
         int index = cboLichHen.getSelectedIndex();
         return index <= 0 || index - 1 >= danhSachLichHen.size()
                 ? null
-                : danhSachLichHen.get(index - 1).maLichHen();
+                : danhSachLichHen.get(index - 1).getMaLichHen();
     }
 
     /** Thêm vật tư vào phiếu đang soạn (cộng dồn nếu đã có trong phiếu). */
@@ -385,7 +389,7 @@ public class CapNhatGhiNhanVatTuTieuHaoPanel extends JPanel {
         }
 
         int index = cboLichHen.getSelectedIndex();
-        String maLichHen = (index <= 0) ? null : danhSachLichHen.get(index - 1).maLichHen();
+        String maLichHen = (index <= 0) ? null : danhSachLichHen.get(index - 1).getMaLichHen();
 
         try {
             VatTuTieuHaoService.KetQuaLuuPhieu ketQua =

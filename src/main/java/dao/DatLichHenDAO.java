@@ -2,7 +2,7 @@ package dao;
 
 import connectDB.ConnectDB;
 import entity.BenhNhan;
-import entity.LichHenThongTin;
+import entity.LichHen;
 import entity.NhanVien;
 import entity.PhongKham;
 
@@ -120,27 +120,47 @@ public class DatLichHenDAO {
         return danhSach;
     }
 
-    public List<LichHenThongTin> layDanhSachLichHen() throws SQLException {
-        String sql = "SELECT lh.MaLichHen, lh.ThoiGianHen, lh.MaBenhNhan, bn.HoTen AS TenBenhNhan, "
-                + "ns.HoTen AS TenNhaSi, pk.TenPhong, lh.TrangThai "
+    public List<LichHen> layDanhSachLichHen() throws SQLException {
+        String sql = "SELECT lh.MaLichHen, lh.ThoiGianHen, lh.TrangThai, lh.NgayTao, lh.ThoiGianCheckIn, "
+                + "lh.MaNhanVienLap, lh.MaNhaSiPhuTrach, ns.HoTen AS TenNhaSi, "
+                + "lh.MaBenhNhan, bn.HoTen AS TenBenhNhan, lh.MaPhong, pk.TenPhong, lh.MaKeHoach "
                 + "FROM LichHen lh "
                 + "INNER JOIN BenhNhan bn ON bn.MaBenhNhan = lh.MaBenhNhan "
                 + "INNER JOIN NhanVien ns ON ns.MaNhanVien = lh.MaNhaSiPhuTrach "
                 + "INNER JOIN PhongKham pk ON pk.MaPhong = lh.MaPhong "
                 + "ORDER BY lh.ThoiGianHen DESC, lh.MaLichHen DESC";
-        List<LichHenThongTin> danhSach = new ArrayList<>();
+        List<LichHen> danhSach = new ArrayList<>();
         try (PreparedStatement statement = getConnection().prepareStatement(sql);
                 ResultSet result = statement.executeQuery()) {
             while (result.next()) {
                 Timestamp thoiGianHen = result.getTimestamp("ThoiGianHen");
-                danhSach.add(new LichHenThongTin(
-                        result.getString("MaLichHen"),
-                        thoiGianHen.toLocalDateTime(),
-                        result.getString("MaBenhNhan"),
-                        result.getString("TenBenhNhan"),
-                        result.getString("TenNhaSi"),
-                        result.getString("TenPhong"),
-                        result.getString("TrangThai")));
+                Timestamp thoiGianCheckIn = result.getTimestamp("ThoiGianCheckIn");
+
+                BenhNhan benhNhan = new BenhNhan();
+                benhNhan.setMaBenhNhan(result.getString("MaBenhNhan"));
+                benhNhan.setHoTen(result.getString("TenBenhNhan"));
+
+                NhanVien nhaSi = new NhanVien();
+                nhaSi.setMaNhanVien(result.getString("MaNhaSiPhuTrach"));
+                nhaSi.setHoTen(result.getString("TenNhaSi"));
+
+                PhongKham phongKham = new PhongKham();
+                phongKham.setMaPhong(result.getString("MaPhong"));
+                phongKham.setTenPhong(result.getString("TenPhong"));
+
+                LichHen lichHen = new LichHen();
+                lichHen.setMaLichHen(result.getString("MaLichHen"));
+                lichHen.setThoiGianHen(thoiGianHen.toLocalDateTime());
+                lichHen.setTrangThai(result.getString("TrangThai"));
+                lichHen.setNgayTao(result.getDate("NgayTao").toLocalDate());
+                lichHen.setThoiGianCheckIn(
+                        thoiGianCheckIn == null ? null : thoiGianCheckIn.toLocalDateTime());
+                lichHen.setMaNhanVienLap(result.getString("MaNhanVienLap"));
+                lichHen.setNhaSiPhuTrach(nhaSi);
+                lichHen.setBenhNhan(benhNhan);
+                lichHen.setPhongKham(phongKham);
+                lichHen.setMaKeHoach(result.getString("MaKeHoach"));
+                danhSach.add(lichHen);
             }
         }
         return danhSach;

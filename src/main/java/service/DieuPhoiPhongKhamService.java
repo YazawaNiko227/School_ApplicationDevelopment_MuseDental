@@ -1,7 +1,7 @@
 package service;
 
 import dao.DieuPhoiPhongKhamDAO;
-import entity.LichHenDieuPhoi;
+import entity.LichHen;
 import entity.PhongKham;
 
 import java.sql.SQLException;
@@ -34,7 +34,7 @@ public class DieuPhoiPhongKhamService {
         this.dieuPhoiDAO = dieuPhoiDAO;
     }
 
-    public List<LichHenDieuPhoi> layLichTheoNgay(LocalDate ngay) throws SQLException {
+    public List<LichHen> layLichTheoNgay(LocalDate ngay) throws SQLException {
         if (ngay == null) {
             throw new IllegalArgumentException("Ngày điều phối không được để trống.");
         }

@@ -37,11 +37,15 @@ public class SoDoRang {
         this.maHoSo = hoSoBenhAn;
     }
 
-    public void setMaHoSo(HoSoBenhAn hoSoBenhAn) { setHoSoBenhAn(hoSoBenhAn); }
+    public void setMaHoSo(HoSoBenhAn hoSoBenhAn) {
+        setHoSoBenhAn(hoSoBenhAn);
+    }
 
     public void setMaHoSo(String maHoSo) {
-        if (maHoSo == null) throw new IllegalArgumentException("MaHoSo không được null.");
-        if (maHoSo != null && maHoSo.length() > 20) throw new IllegalArgumentException("MaHoSo tối đa 20 ký tự.");
+        if (maHoSo == null)
+            throw new IllegalArgumentException("MaHoSo không được null.");
+        if (maHoSo != null && maHoSo.length() > 20)
+            throw new IllegalArgumentException("MaHoSo tối đa 20 ký tự.");
         HoSoBenhAn hoSoBenhAn = new HoSoBenhAn();
         hoSoBenhAn.setMaHoSo(maHoSo);
         this.maHoSo = hoSoBenhAn;
@@ -60,7 +64,8 @@ public class SoDoRang {
     }
 
     public void setLoaiRang(String loaiRang) {
-        if (loaiRang != null && loaiRang.length() > 20) throw new IllegalArgumentException("LoaiRang tối đa 20 ký tự.");
+        if (loaiRang != null && loaiRang.length() > 20)
+            throw new IllegalArgumentException("LoaiRang tối đa 20 ký tự.");
         this.loaiRang = loaiRang;
     }
 
@@ -69,7 +74,8 @@ public class SoDoRang {
     }
 
     public void setTinhTrangBenhLy(String tinhTrangBenhLy) {
-        if (tinhTrangBenhLy != null && tinhTrangBenhLy.length() > 100) throw new IllegalArgumentException("TinhTrangBenhLy tối đa 100 ký tự.");
+        if (tinhTrangBenhLy != null && tinhTrangBenhLy.length() > 100)
+            throw new IllegalArgumentException("TinhTrangBenhLy tối đa 100 ký tự.");
         this.tinhTrangBenhLy = tinhTrangBenhLy;
     }
 
@@ -78,7 +84,8 @@ public class SoDoRang {
     }
 
     public void setGhiChu(String ghiChu) {
-        if (ghiChu != null && ghiChu.length() > 500) throw new IllegalArgumentException("GhiChu tối đa 500 ký tự.");
+        if (ghiChu != null && ghiChu.length() > 500)
+            throw new IllegalArgumentException("GhiChu tối đa 500 ký tự.");
         this.ghiChu = ghiChu;
     }
 

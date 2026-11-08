@@ -1,7 +1,7 @@
 package service;
 
 import dao.DashboardDAO;
-import entity.LichHenTongQuan;
+import entity.LichHen;
 import entity.ThongKeTongQuan;
 import java.sql.SQLException;
 import java.util.List;
@@ -15,7 +15,7 @@ public class DashboardService {
         return dashboardDAO.layThongKeHomNay();
     }
 
-    public List<LichHenTongQuan> layLichHenSapToi() throws SQLException {
+    public List<LichHen> layLichHenSapToi() throws SQLException {
         return dashboardDAO.layLichHenSapToi(SO_LICH_HEN_SAP_TOI);
     }
 }

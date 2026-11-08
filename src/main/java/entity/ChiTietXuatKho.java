@@ -36,7 +36,9 @@ public class ChiTietXuatKho {
         this.maPhieuXuat = phieuXuatKho;
     }
 
-    public void setMaPhieuXuat(PhieuXuatKho phieuXuatKho) { setPhieuXuatKho(phieuXuatKho); }
+    public void setMaPhieuXuat(PhieuXuatKho phieuXuatKho) {
+        setPhieuXuatKho(phieuXuatKho);
+    }
 
     public void setMaPhieuXuat(String maPhieuXuat) {
         if (maPhieuXuat == null || maPhieuXuat.trim().isEmpty())
@@ -66,7 +68,9 @@ public class ChiTietXuatKho {
         this.maVatTu = vatTu;
     }
 
-    public void setMaVatTu(VatTu vatTu) { setVatTu(vatTu); }
+    public void setMaVatTu(VatTu vatTu) {
+        setVatTu(vatTu);
+    }
 
     public void setMaVatTu(String maVatTu) {
         if (maVatTu == null || maVatTu.trim().isEmpty())

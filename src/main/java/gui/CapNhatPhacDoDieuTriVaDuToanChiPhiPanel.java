@@ -29,7 +29,7 @@ import javax.swing.ListSelectionModel;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
-import dto.LanKham;
+import entity.ChanDoan;
 import entity.ChiTietKeHoachDieuTriDichVu;
 import entity.DichVu;
 import entity.KeHoachDieuTri;
@@ -62,7 +62,7 @@ public class CapNhatPhacDoDieuTriVaDuToanChiPhiPanel extends JPanel {
     private static final String HUY = "Hủy";
 
     private final PhacDoDieuTriService phacDoDieuTriService = new PhacDoDieuTriService();
-    private final List<LanKham> danhSachLanKham = new ArrayList<>();
+    private final List<ChanDoan> danhSachLanKham = new ArrayList<>();
     private final Map<String, DichVu> danhMucDichVu = new LinkedHashMap<>();
     // Danh sách dịch vụ đang chọn trên màn hình (chưa lưu): maDichVu -> số lượng.
     private final Map<String, Integer> dichVuDangChon = new LinkedHashMap<>();
@@ -273,19 +273,19 @@ public class CapNhatPhacDoDieuTriVaDuToanChiPhiPanel extends JPanel {
     // =====================================================================
 
     private void taiDanhSachLanKham() {
-        String maDangChon = layLanKhamDangChon() == null ? null : layLanKhamDangChon().maChanDoan();
+        String maDangChon = layLanKhamDangChon() == null ? null : layLanKhamDangChon().getMaChanDoan();
         dangNapLanKham = true;
         cboLanKham.removeAllItems();
         danhSachLanKham.clear();
         try {
             danhSachLanKham.addAll(phacDoDieuTriService.layLanKhamDangKham());
-            for (LanKham lanKham : danhSachLanKham) {
-                cboLanKham.addItem(lanKham.maChanDoan() + " - " + lanKham.hoTen()
-                        + " (" + lanKham.maBenhNhan() + ")");
+            for (ChanDoan lanKham : danhSachLanKham) {
+                cboLanKham.addItem(lanKham.getMaChanDoan() + " - " + lanKham.getBenhNhan().getHoTen()
+                        + " (" + lanKham.getMaBenhNhanId() + ")");
             }
             if (maDangChon != null) {
                 for (int i = 0; i < danhSachLanKham.size(); i++) {
-                    if (maDangChon.equals(danhSachLanKham.get(i).maChanDoan())) {
+                    if (maDangChon.equals(danhSachLanKham.get(i).getMaChanDoan())) {
                         cboLanKham.setSelectedIndex(i);
                         break;
                     }
@@ -314,16 +314,17 @@ public class CapNhatPhacDoDieuTriVaDuToanChiPhiPanel extends JPanel {
             hienThiKhongCoLanKham();
             return;
         }
-        LanKham lanKham = danhSachLanKham.get(index);
-        lblBenhNhan.setText("Bệnh nhân: " + lanKham.hoTen() + "  ·  " + lanKham.maBenhNhan());
-        String ketLuan = lanKham.ketLuan();
+        ChanDoan lanKham = danhSachLanKham.get(index);
+        lblBenhNhan.setText("Bệnh nhân: " + lanKham.getBenhNhan().getHoTen()
+                + "  ·  " + lanKham.getMaBenhNhanId());
+        String ketLuan = lanKham.getKetLuanChanDoan();
         lblKetLuan.setText("Kết luận chẩn đoán: "
                 + (ketLuan == null || ketLuan.trim().isEmpty() ? "Chưa nhập" : ketLuan));
 
         dichVuDangChon.clear();
         try {
             KeHoachDieuTri keHoach =
-                    phacDoDieuTriService.timTheoChanDoan(lanKham.maChanDoan());
+                    phacDoDieuTriService.timTheoChanDoan(lanKham.getMaChanDoan());
             if (keHoach == null) {
                 lblCoPhacDo.setText("Lần khám này chưa có phác đồ. Lưu sẽ tạo phác đồ mới.");
                 txtTenPhacDo.setText("");
@@ -399,10 +400,10 @@ public class CapNhatPhacDoDieuTriVaDuToanChiPhiPanel extends JPanel {
             return;
         }
 
-        LanKham lanKham = danhSachLanKham.get(index);
+        ChanDoan lanKham = danhSachLanKham.get(index);
         try {
             KeHoachDieuTri keHoachCu =
-                    phacDoDieuTriService.timTheoChanDoan(lanKham.maChanDoan());
+                    phacDoDieuTriService.timTheoChanDoan(lanKham.getMaChanDoan());
             String maKeHoach = phacDoDieuTriService.luuPhacDo(
                     lanKham, ten, (Integer) spnThoiGian.getValue(),
                     (String) cboTrangThai.getSelectedItem(), dichVuDangChon);
@@ -465,7 +466,7 @@ public class CapNhatPhacDoDieuTriVaDuToanChiPhiPanel extends JPanel {
         return danhMucDichVu.get(maDichVu);
     }
 
-    private LanKham layLanKhamDangChon() {
+    private ChanDoan layLanKhamDangChon() {
         int index = cboLanKham.getSelectedIndex();
         return index < 0 || index >= danhSachLanKham.size() ? null : danhSachLanKham.get(index);
     }

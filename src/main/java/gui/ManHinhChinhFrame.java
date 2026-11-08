@@ -43,7 +43,7 @@ import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import javax.swing.border.EmptyBorder;
 
-import entity.LichHenTongQuan;
+import entity.LichHen;
 import entity.ThongKeTongQuan;
 import service.DashboardService;
 import util.GiaoDienUtil;
@@ -540,7 +540,7 @@ public final class ManHinhChinhFrame extends JFrame {
         contentPanel.removeAll();
         try {
             ThongKeTongQuan stats = dashboardService.layThongKeHomNay();
-            java.util.List<LichHenTongQuan> appointments = dashboardService.layLichHenSapToi();
+            java.util.List<LichHen> appointments = dashboardService.layLichHenSapToi();
             pageDescription.setText("Số liệu thực tế từ cơ sở dữ liệu · Cập nhật " +
                     LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm")));
             contentPanel.add(createDashboardContent(stats, appointments), BorderLayout.CENTER);
@@ -817,7 +817,7 @@ public final class ManHinhChinhFrame extends JFrame {
      * nắm nhanh tình hình hoạt động trong ngày mà không cần đọc từng chi tiết riêng
      * lẻ.
      */
-    private JPanel createDashboardContent(ThongKeTongQuan stats, java.util.List<LichHenTongQuan> appointments) {
+    private JPanel createDashboardContent(ThongKeTongQuan stats, java.util.List<LichHen> appointments) {
         JPanel dashboard = new JPanel(new BorderLayout(0, 22));
         dashboard.setOpaque(false);
         dashboard.add(createGreeting(), BorderLayout.NORTH);
@@ -931,7 +931,7 @@ public final class ManHinhChinhFrame extends JFrame {
      * thái xác nhận,
      * giúp nhân viên chuẩn bị ca làm và làm việc hiệu quả hơn.
      */
-    private JPanel createActivityPanel(java.util.List<LichHenTongQuan> appointments) {
+    private JPanel createActivityPanel(java.util.List<LichHen> appointments) {
         JPanel panel = new JPanel(new BorderLayout(0, 16));
         panel.setBackground(Color.WHITE);
         panel.setBorder(BorderFactory.createCompoundBorder(
@@ -959,15 +959,15 @@ public final class ManHinhChinhFrame extends JFrame {
         if (appointments.isEmpty()) {
             appointmentList.add(new JLabel("Không có lịch hẹn sắp tới.", SwingConstants.CENTER));
         } else {
-            for (LichHenTongQuan appointment : appointments) {
+            for (LichHen appointment : appointments) {
                 Color statusBackground = "Da xac nhan".equals(appointment.getTrangThai())
                         || "Da check-in".equals(appointment.getTrangThai())
                                 ? new Color(231, 246, 245)
                                 : new Color(255, 246, 232);
                 appointmentList.add(createAppointmentRow(
                         appointment.getThoiGianHen().format(DateTimeFormatter.ofPattern("dd/MM HH:mm")),
-                        appointment.getTenBenhNhan(),
-                        appointment.getNoiDung(),
+                        appointment.getBenhNhan().getHoTen(),
+                        "Nha sĩ: " + appointment.getNhaSiPhuTrach().getHoTen(),
                         GiaoDienUtil.hienThiTrangThai(appointment.getTrangThai()),
                         statusBackground));
             }

@@ -14,6 +14,7 @@ public class LichHen {
     private BenhNhan maBenhNhan;
     private PhongKham maPhong;
     private KeHoachDieuTri maKeHoach;
+    private ChanDoan chanDoan;
 
     public LichHen() {
         this.trangThai = "Cho xac nhan";
@@ -109,7 +110,9 @@ public class LichHen {
         this.maNhanVienLap = nhanVienLap;
     }
 
-    public void setMaNhanVienLap(NhanVien nhanVienLap) { setNhanVienLap(nhanVienLap); }
+    public void setMaNhanVienLap(NhanVien nhanVienLap) {
+        setNhanVienLap(nhanVienLap);
+    }
 
     public void setMaNhanVienLap(String maNhanVienLap) {
         if (maNhanVienLap == null || maNhanVienLap.trim().isEmpty())
@@ -139,7 +142,9 @@ public class LichHen {
         this.maNhaSiPhuTrach = nhaSiPhuTrach;
     }
 
-    public void setMaNhaSiPhuTrach(NhanVien nhaSiPhuTrach) { setNhaSiPhuTrach(nhaSiPhuTrach); }
+    public void setMaNhaSiPhuTrach(NhanVien nhaSiPhuTrach) {
+        setNhaSiPhuTrach(nhaSiPhuTrach);
+    }
 
     public void setMaNhaSiPhuTrach(String maNhaSiPhuTrach) {
         if (maNhaSiPhuTrach == null || maNhaSiPhuTrach.trim().isEmpty())
@@ -169,7 +174,9 @@ public class LichHen {
         this.maBenhNhan = benhNhan;
     }
 
-    public void setMaBenhNhan(BenhNhan benhNhan) { setBenhNhan(benhNhan); }
+    public void setMaBenhNhan(BenhNhan benhNhan) {
+        setBenhNhan(benhNhan);
+    }
 
     public void setMaBenhNhan(String maBenhNhan) {
         if (maBenhNhan == null || maBenhNhan.trim().isEmpty())
@@ -199,7 +206,9 @@ public class LichHen {
         this.maPhong = phongKham;
     }
 
-    public void setMaPhong(PhongKham phongKham) { setPhongKham(phongKham); }
+    public void setMaPhong(PhongKham phongKham) {
+        setPhongKham(phongKham);
+    }
 
     public void setMaPhong(String maPhong) {
         if (maPhong == null || maPhong.trim().isEmpty())
@@ -219,6 +228,14 @@ public class LichHen {
         return maKeHoach == null ? null : maKeHoach.getMaKeHoach();
     }
 
+    public ChanDoan getChanDoan() {
+        return chanDoan;
+    }
+
+    public void setChanDoan(ChanDoan chanDoan) {
+        this.chanDoan = chanDoan;
+    }
+
     public KeHoachDieuTri getKeHoachDieuTri() {
         return maKeHoach;
     }
@@ -227,7 +244,9 @@ public class LichHen {
         this.maKeHoach = keHoachDieuTri;
     }
 
-    public void setMaKeHoach(KeHoachDieuTri keHoachDieuTri) { setKeHoachDieuTri(keHoachDieuTri); }
+    public void setMaKeHoach(KeHoachDieuTri keHoachDieuTri) {
+        setKeHoachDieuTri(keHoachDieuTri);
+    }
 
     public void setMaKeHoach(String maKeHoach) {
         String v = (maKeHoach == null || maKeHoach.trim().isEmpty()) ? null : maKeHoach.trim();

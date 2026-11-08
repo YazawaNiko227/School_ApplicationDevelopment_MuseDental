@@ -1,6 +1,5 @@
 package gui;
 
-import dto.CaKhamView;
 import java.awt.BasicStroke;
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -49,6 +48,7 @@ import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 
 import entity.ChanDoan;
+import entity.CaKham;
 import entity.SoDoRang;
 import service.KhamLamSangService;
 
@@ -100,11 +100,11 @@ public class XuLyKhamLamSangVaSoDoRangPanel extends JPanel {
     private static final int TUOI_RANG_SUA = 13;
 
     private final KhamLamSangService khamLamSangService = new KhamLamSangService();
-    private final List<CaKhamView> dsCa = new ArrayList<>();
+    private final List<CaKham> dsCa = new ArrayList<>();
     // maHoSo -> (maRang -> {tình trạng, ghi chú})
     private final Map<String, Map<Integer, String[]>> soDoRang = new HashMap<>();
 
-    private CaKhamView caHienTai;
+    private CaKham caHienTai;
     private boolean dangNapBang;
 
     // ----- Hàng chờ -----
@@ -417,7 +417,7 @@ public class XuLyKhamLamSangVaSoDoRangPanel extends JPanel {
      * Nha sĩ bấm "Vào khám": tạo ChanDoan nháp, lịch và phòng chuyển "Đang khám".
      */
     private void vaoKham() {
-        CaKhamView ca = layCaDangChon();
+        CaKham ca = layCaDangChon();
         if (ca == null) {
             showMessage("Vui lòng chọn một bệnh nhân trong hàng chờ.");
             return;
@@ -483,7 +483,7 @@ public class XuLyKhamLamSangVaSoDoRangPanel extends JPanel {
         }
 
         ghiFormVaoCa(caHienTai);
-        CaKhamView ca = caHienTai;
+        CaKham ca = caHienTai;
         try {
             if (!khamLamSangService.hoanTat(taoChanDoan(ca), ca.maLich, ca.maPhong)) {
                 showWarning("Không thể chốt chẩn đoán. Hãy tải lại hàng chờ.");
@@ -571,7 +571,7 @@ public class XuLyKhamLamSangVaSoDoRangPanel extends JPanel {
     // =====================================================================
 
     // Chuyển sang ca khác: lưu tạm nội dung đang gõ của ca cũ (nếu còn đang khám).
-    private void chuyenCa(CaKhamView caMoi) {
+    private void chuyenCa(CaKham caMoi) {
         if (dangKham(caHienTai)) {
             ghiFormVaoCa(caHienTai);
         }
@@ -591,8 +591,8 @@ public class XuLyKhamLamSangVaSoDoRangPanel extends JPanel {
         if (dangKham(caHienTai)) {
             ghiFormVaoCa(caHienTai);
         }
-        Map<String, CaKhamView> caCu = new HashMap<>();
-        for (CaKhamView ca : dsCa) {
+        Map<String, CaKham> caCu = new HashMap<>();
+        for (CaKham ca : dsCa) {
             caCu.put(ca.maLich, ca);
         }
 
@@ -601,7 +601,7 @@ public class XuLyKhamLamSangVaSoDoRangPanel extends JPanel {
         dsCa.clear();
         try {
             for (entity.CaKham ca : khamLamSangService.layHangCho()) {
-                CaKhamView caMoi = new CaKhamView(
+                CaKham caMoi = new CaKham(
                         ca.getMaLichHen(),
                         ca.getThoiGianHen(),
                         ca.getMaBenhNhan(),
@@ -622,7 +622,7 @@ public class XuLyKhamLamSangVaSoDoRangPanel extends JPanel {
                         ca.getTrieuChung(),
                         ca.getKetLuanChanDoan(),
                         ca.getTrangThaiChanDoan());
-                CaKhamView banCu = caCu.get(caMoi.maLich);
+                CaKham banCu = caCu.get(caMoi.maLich);
                 if (banCu != null && java.util.Objects.equals(caMoi.maChanDoan, banCu.maChanDoan)) {
                     caMoi.lyDo = banCu.lyDo;
                     caMoi.trieuChung = banCu.trieuChung;
@@ -634,7 +634,7 @@ public class XuLyKhamLamSangVaSoDoRangPanel extends JPanel {
             int choKham = 0;
             int dangKhamDem = 0;
             int hoanThanh = 0;
-            for (CaKhamView ca : dsCa) {
+            for (CaKham ca : dsCa) {
                 if (DA_CHECK_IN.equals(ca.trangThai)) {
                     choKham++;
                 } else if (DANG_KHAM.equals(ca.trangThai)) {
@@ -679,7 +679,7 @@ public class XuLyKhamLamSangVaSoDoRangPanel extends JPanel {
         hienThiCa();
     }
 
-    private void napSoDoRang(CaKhamView ca) {
+    private void napSoDoRang(CaKham ca) {
         if (ca.maHoSo == null) {
             return;
         }
@@ -720,7 +720,7 @@ public class XuLyKhamLamSangVaSoDoRangPanel extends JPanel {
 
     // Đổ dữ liệu của ca đang chọn lên form và bật/tắt các nút theo trạng thái.
     private void hienThiCa() {
-        CaKhamView ca = caHienTai;
+        CaKham ca = caHienTai;
         boolean choPhepSua = dangKham(ca);
 
         if (ca == null) {
@@ -781,7 +781,7 @@ public class XuLyKhamLamSangVaSoDoRangPanel extends JPanel {
         capNhatTomTatRang();
     }
 
-    private String moTaTrangThai(CaKhamView ca) {
+    private String moTaTrangThai(CaKham ca) {
         if (ca.daChot) {
             return "Lần khám " + ca.maChanDoan + " đã được chốt (chỉ xem).";
         }
@@ -845,7 +845,7 @@ public class XuLyKhamLamSangVaSoDoRangPanel extends JPanel {
     // HÀM HỖ TRỢ
     // =====================================================================
 
-    private boolean dangKham(CaKhamView ca) {
+    private boolean dangKham(CaKham ca) {
         return ca != null && DANG_KHAM.equals(ca.trangThai) && ca.maChanDoan != null && !ca.daChot;
     }
 
@@ -853,20 +853,20 @@ public class XuLyKhamLamSangVaSoDoRangPanel extends JPanel {
         return layDuLieuRang(caHienTai);
     }
 
-    private Map<Integer, String[]> layDuLieuRang(CaKhamView ca) {
+    private Map<Integer, String[]> layDuLieuRang(CaKham ca) {
         if (ca == null || ca.maHoSo == null) {
             return new TreeMap<>();
         }
         return soDoRang.computeIfAbsent(ca.maHoSo, k -> new TreeMap<>());
     }
 
-    private CaKhamView layCaDangChon() {
+    private CaKham layCaDangChon() {
         int row = lichTable.getSelectedRow();
         if (row < 0 || row >= lichTable.getRowCount()) {
             return null;
         }
         String ma = (String) lichModel.getValueAt(lichTable.convertRowIndexToModel(row), 0);
-        for (CaKhamView ca : dsCa) {
+        for (CaKham ca : dsCa) {
             if (ca.maLich.equals(ma)) {
                 return ca;
             }
@@ -874,13 +874,13 @@ public class XuLyKhamLamSangVaSoDoRangPanel extends JPanel {
         return null;
     }
 
-    private void ghiFormVaoCa(CaKhamView ca) {
+    private void ghiFormVaoCa(CaKham ca) {
         ca.lyDo = txtLyDo.getText().trim();
         ca.trieuChung = txtTrieuChung.getText().trim();
         ca.ketLuan = txtKetLuan.getText().trim();
     }
 
-    private ChanDoan taoChanDoan(CaKhamView ca) {
+    private ChanDoan taoChanDoan(CaKham ca) {
         return new ChanDoan(ca.maChanDoan, LocalDate.now(), ca.lyDo, ca.trieuChung, ca.ketLuan,
                 "Nhap", ca.maLich, ca.maHoSo, ca.maNhaSi);
     }

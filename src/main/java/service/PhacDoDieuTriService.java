@@ -4,7 +4,7 @@ import dao.ChanDoanDAO;
 import dao.DichVuDAO;
 import dao.KeHoachDieuTriDAO;
 import dao.KeHoachDieuTri_DichVuDAO;
-import dto.LanKham;
+import entity.ChanDoan;
 import entity.ChiTietKeHoachDieuTriDichVu;
 import entity.DichVu;
 import entity.KeHoachDieuTri;
@@ -19,7 +19,7 @@ public class PhacDoDieuTriService {
     private final KeHoachDieuTriDAO keHoachDieuTriDAO = new KeHoachDieuTriDAO();
     private final KeHoachDieuTri_DichVuDAO chiTietKeHoachDAO = new KeHoachDieuTri_DichVuDAO();
 
-    public List<LanKham> layLanKhamDangKham() throws SQLException {
+    public List<ChanDoan> layLanKhamDangKham() throws SQLException {
         return chanDoanDAO.layThongTinDangKham();
     }
 
@@ -77,13 +77,13 @@ public class PhacDoDieuTriService {
         return trangThai;
     }
 
-    public String luuPhacDo(LanKham lanKham, String ten, Integer thoiGian, String trangThai,
+    public String luuPhacDo(ChanDoan lanKham, String ten, Integer thoiGian, String trangThai,
             Map<String, Integer> dichVuDangChon) throws SQLException {
         String loi = kiemTraPhacDo(ten, thoiGian, dichVuDangChon);
         if (loi != null) {
             throw new IllegalArgumentException(loi);
         }
-        KeHoachDieuTri keHoachCu = keHoachDieuTriDAO.timTheoChanDoan(lanKham.maChanDoan());
+        KeHoachDieuTri keHoachCu = keHoachDieuTriDAO.timTheoChanDoan(lanKham.getMaChanDoan());
         KeHoachDieuTri keHoach = new KeHoachDieuTri();
         if (keHoachCu != null) {
             keHoach.setMaKeHoach(keHoachCu.getMaKeHoach());
@@ -91,8 +91,8 @@ public class PhacDoDieuTriService {
         keHoach.setTenPhacDo(ten.trim());
         keHoach.setThoiGianDuKien(thoiGian);
         keHoach.setTrangThai(trangThaiTrongCoSoDuLieu(trangThai));
-        keHoach.setMaChanDoan(lanKham.maChanDoan());
-        keHoach.setMaBenhNhan(lanKham.maBenhNhan());
+        keHoach.setMaChanDoan(lanKham.getMaChanDoan());
+        keHoach.setMaBenhNhan(lanKham.getMaBenhNhanId());
         List<String[]> chiTiet = new ArrayList<>();
         for (Map.Entry<String, Integer> entry : dichVuDangChon.entrySet()) {
             chiTiet.add(new String[] { entry.getKey(), String.valueOf(entry.getValue()) });

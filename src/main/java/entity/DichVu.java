@@ -1,6 +1,5 @@
 package entity;
 
-
 public class DichVu {
     private String maDichVu;
     private String tenDichVu;
@@ -24,8 +23,10 @@ public class DichVu {
     }
 
     public void setMaDichVu(String maDichVu) {
-        if (maDichVu == null) throw new IllegalArgumentException("MaDichVu không được null.");
-        if (maDichVu != null && maDichVu.length() > 20) throw new IllegalArgumentException("MaDichVu tối đa 20 ký tự.");
+        if (maDichVu == null)
+            throw new IllegalArgumentException("MaDichVu không được null.");
+        if (maDichVu != null && maDichVu.length() > 20)
+            throw new IllegalArgumentException("MaDichVu tối đa 20 ký tự.");
         this.maDichVu = maDichVu;
     }
 
@@ -34,8 +35,10 @@ public class DichVu {
     }
 
     public void setTenDichVu(String tenDichVu) {
-        if (tenDichVu == null) throw new IllegalArgumentException("TenDichVu không được null.");
-        if (tenDichVu != null && tenDichVu.length() > 150) throw new IllegalArgumentException("TenDichVu tối đa 150 ký tự.");
+        if (tenDichVu == null)
+            throw new IllegalArgumentException("TenDichVu không được null.");
+        if (tenDichVu != null && tenDichVu.length() > 150)
+            throw new IllegalArgumentException("TenDichVu tối đa 150 ký tự.");
         this.tenDichVu = tenDichVu;
     }
 
@@ -44,8 +47,10 @@ public class DichVu {
     }
 
     public void setDonGia(double donGia) {
-        if (!Double.isFinite(donGia)) throw new IllegalArgumentException("DonGia phải là số hữu hạn.");
-        if (donGia < 0) throw new IllegalArgumentException("DonGia phải >= 0.");
+        if (!Double.isFinite(donGia))
+            throw new IllegalArgumentException("DonGia phải là số hữu hạn.");
+        if (donGia < 0)
+            throw new IllegalArgumentException("DonGia phải >= 0.");
         this.donGia = donGia;
     }
 
@@ -62,7 +67,8 @@ public class DichVu {
     }
 
     public void setMoTa(String moTa) {
-        if (moTa != null && moTa.length() > 500) throw new IllegalArgumentException("MoTa tối đa 500 ký tự.");
+        if (moTa != null && moTa.length() > 500)
+            throw new IllegalArgumentException("MoTa tối đa 500 ký tự.");
         this.moTa = moTa;
     }
 

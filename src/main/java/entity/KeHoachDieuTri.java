@@ -85,7 +85,9 @@ public class KeHoachDieuTri {
         this.maChanDoan = chanDoan;
     }
 
-    public void setMaChanDoan(ChanDoan chanDoan) { setChanDoan(chanDoan); }
+    public void setMaChanDoan(ChanDoan chanDoan) {
+        setChanDoan(chanDoan);
+    }
 
     public void setMaChanDoan(String maChanDoan) {
         if (maChanDoan == null)
@@ -115,7 +117,9 @@ public class KeHoachDieuTri {
         this.maBenhNhan = benhNhan;
     }
 
-    public void setMaBenhNhan(BenhNhan benhNhan) { setBenhNhan(benhNhan); }
+    public void setMaBenhNhan(BenhNhan benhNhan) {
+        setBenhNhan(benhNhan);
+    }
 
     public void setMaBenhNhan(String maBenhNhan) {
         if (maBenhNhan == null)

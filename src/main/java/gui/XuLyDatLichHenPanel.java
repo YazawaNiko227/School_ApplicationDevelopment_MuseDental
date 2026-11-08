@@ -1,6 +1,6 @@
 package gui;
 
-import entity.LichHenThongTin;
+import entity.LichHen;
 import entity.BenhNhan;
 import entity.NhanVien;
 import entity.PhongKham;
@@ -481,14 +481,14 @@ public final class XuLyDatLichHenPanel extends JPanel {
     private void loadAppointments() {
         tableModel.setRowCount(0);
         try {
-            for (LichHenThongTin lichHen : datLichHenService.layDanhSachLichHen()) {
+            for (LichHen lichHen : datLichHenService.layDanhSachLichHen()) {
                 tableModel.addRow(new Object[] {
                         lichHen.getMaLichHen(),
                         lichHen.getThoiGianHen().format(DATE_TIME_FORMAT),
-                        lichHen.getMaBenhNhan(),
-                        lichHen.getTenBenhNhan(),
-                        lichHen.getTenNhaSi(),
-                        lichHen.getTenPhong(),
+                        lichHen.getMaBenhNhanId(),
+                        lichHen.getBenhNhan().getHoTen(),
+                        lichHen.getNhaSiPhuTrach().getHoTen(),
+                        lichHen.getPhongKham().getTenPhong(),
                         datLichHenService.trangThaiHienThi(lichHen.getTrangThai())
                 });
             }

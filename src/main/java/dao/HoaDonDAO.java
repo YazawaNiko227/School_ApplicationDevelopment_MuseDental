@@ -1,14 +1,12 @@
 package dao;
 
 import connectDB.ConnectDB;
-import dto.LanKham;
 import entity.ChiTietHoaDonTraCuu;
 import entity.DichVu;
 import entity.DotHoaDon;
 import entity.DongTinhTien;
 import entity.HoaDonTraCuu;
 import entity.HoaDon;
-import entity.NhanVienHoaDon;
 import entity.CongNoHoaDon;
 import java.sql.Date;
 import java.sql.Connection;
@@ -128,26 +126,6 @@ public class HoaDonDAO {
                             rs.getDouble("SoTienDot"), rs.getString("TrangThai"),
                             ngayThu == null ? null : ngayThu.toLocalDate()));
                 }
-            }
-        }
-        return ds;
-    }
-
-    /** Lần khám đã chốt, chưa có hóa đơn, kèm thông tin bệnh nhân. */
-    public List<LanKham> layLanKhamChuaLapHoaDon() throws SQLException {
-        String sql = "SELECT cd.MaChanDoan, bn.MaBenhNhan, bn.HoTen, cd.KetLuanChanDoan "
-                + "FROM ChanDoan cd "
-                + "JOIN HoSoBenhAn hs ON hs.MaHoSo = cd.MaHoSo "
-                + "JOIN BenhNhan bn ON bn.MaBenhNhan = hs.MaBenhNhan "
-                + "WHERE cd.TrangThai = N'Da chot' "
-                + "AND NOT EXISTS (SELECT 1 FROM HoaDon hd WHERE hd.MaChanDoan = cd.MaChanDoan) "
-                + "ORDER BY cd.NgayKham DESC, cd.MaChanDoan DESC";
-        List<LanKham> ds = new ArrayList<>();
-        try (PreparedStatement ps = ConnectDB.getConnection().prepareStatement(sql);
-                ResultSet rs = ps.executeQuery()) {
-            while (rs.next()) {
-                ds.add(new LanKham(rs.getString("MaChanDoan"), rs.getString("MaBenhNhan"),
-                        rs.getString("HoTen"), rs.getString("KetLuanChanDoan")));
             }
         }
         return ds;
@@ -395,37 +373,6 @@ public class HoaDonDAO {
                 ps.executeUpdate();
             }
         }
-    }
-
-    public List<NhanVienHoaDon> layNhanVienDangLamViec() throws SQLException {
-        List<NhanVienHoaDon> ds = new ArrayList<>();
-        String sql = "SELECT MaNhanVien, HoTen FROM NhanVien "
-                + "WHERE TrangThaiLamViec = N'Dang lam viec' ORDER BY HoTen";
-        try (PreparedStatement ps = ConnectDB.getConnection().prepareStatement(sql);
-                ResultSet rs = ps.executeQuery()) {
-            while (rs.next()) {
-                ds.add(new NhanVienHoaDon(rs.getString("MaNhanVien"), rs.getString("HoTen")));
-            }
-        }
-        return ds;
-    }
-
-    public List<LanKham> layLanKhamChoLapHoaDon() throws SQLException {
-        List<LanKham> ds = new ArrayList<>();
-        String sql = "SELECT cd.MaChanDoan, bn.MaBenhNhan, bn.HoTen, cd.KetLuanChanDoan "
-                + "FROM ChanDoan cd JOIN HoSoBenhAn hs ON hs.MaHoSo = cd.MaHoSo "
-                + "JOIN BenhNhan bn ON bn.MaBenhNhan = hs.MaBenhNhan "
-                + "WHERE cd.TrangThai = N'Da chot' AND NOT EXISTS "
-                + "(SELECT 1 FROM HoaDon hd WHERE hd.MaChanDoan = cd.MaChanDoan) "
-                + "ORDER BY cd.NgayKham DESC, cd.MaChanDoan";
-        try (PreparedStatement ps = ConnectDB.getConnection().prepareStatement(sql);
-                ResultSet rs = ps.executeQuery()) {
-            while (rs.next()) {
-                ds.add(new LanKham(rs.getString("MaChanDoan"), rs.getString("MaBenhNhan"),
-                        rs.getString("HoTen"), rs.getString("KetLuanChanDoan")));
-            }
-        }
-        return ds;
     }
 
     public List<DongTinhTien> layDichVuHoaDonTheoChanDoan(String maChanDoan) throws SQLException {

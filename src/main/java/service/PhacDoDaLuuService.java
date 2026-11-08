@@ -1,23 +1,25 @@
 package service;
 
-import dao.PhacDoDaLuuDAO;
-import dto.DichVuPhacDoDaLuu;
-import dto.PhacDoDaLuu;
+import dao.KeHoachDieuTriDAO;
+import dao.KeHoachDieuTri_DichVuDAO;
+import entity.ChiTietKeHoachDieuTriDichVu;
+import entity.KeHoachDieuTri;
 import java.sql.SQLException;
 import java.util.List;
 
 public class PhacDoDaLuuService {
-    private final PhacDoDaLuuDAO phacDoDaLuuDAO = new PhacDoDaLuuDAO();
+    private final KeHoachDieuTriDAO keHoachDAO = new KeHoachDieuTriDAO();
+    private final KeHoachDieuTri_DichVuDAO chiTietDAO = new KeHoachDieuTri_DichVuDAO();
 
-    public List<PhacDoDaLuu> layDanhSach() throws SQLException {
-        return phacDoDaLuuDAO.layDanhSach();
+    public List<KeHoachDieuTri> layDanhSach() throws SQLException {
+        return keHoachDAO.layDanhSachDaLuu();
     }
 
-    public List<DichVuPhacDoDaLuu> layDichVu(String maKeHoach) throws SQLException {
+    public List<ChiTietKeHoachDieuTriDichVu> layDichVu(String maKeHoach) throws SQLException {
         if (maKeHoach == null || maKeHoach.trim().isEmpty()) {
             throw new IllegalArgumentException("Mã phác đồ không hợp lệ.");
         }
-        return phacDoDaLuuDAO.layDichVu(maKeHoach.trim());
+        return chiTietDAO.layChiTietKieuHienThi(maKeHoach.trim());
     }
 
     public String trangThaiHienThi(String trangThai) {

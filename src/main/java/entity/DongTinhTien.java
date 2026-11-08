@@ -13,9 +13,23 @@ public class DongTinhTien {
         this.donGia = donGia;
     }
 
-    public String ma() { return ma; }
-    public String ten() { return ten; }
-    public int soLuong() { return soLuong; }
-    public double donGia() { return donGia; }
-    public double thanhTien() { return soLuong * donGia; }
+    public String ma() {
+        return ma;
+    }
+
+    public String ten() {
+        return ten;
+    }
+
+    public int soLuong() {
+        return soLuong;
+    }
+
+    public double donGia() {
+        return donGia;
+    }
+
+    public double thanhTien() {
+        return soLuong * donGia;
+    }
 }

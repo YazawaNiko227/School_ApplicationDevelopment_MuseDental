@@ -1,8 +1,10 @@
 package gui;
 
 import com.toedter.calendar.JDateChooser;
-import dto.ChiTietXuatInfo;
-import dto.PhieuXuatTraCuuInfo;
+import entity.BenhNhan;
+import entity.ChiTietXuatKho;
+import entity.LichHen;
+import entity.PhieuXuatKho;
 import service.VatTuTieuHaoService;
 import util.GiaoDienUtil;
 
@@ -39,7 +41,7 @@ public class TimKiemLichSuVatTuPanel extends JPanel {
     private static final DateTimeFormatter NGAY = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
     private final VatTuTieuHaoService service = new VatTuTieuHaoService();
-    private final List<PhieuXuatTraCuuInfo> ketQuaDangHienThi = new ArrayList<>();
+    private final List<PhieuXuatKho> ketQuaDangHienThi = new ArrayList<>();
 
     private final JTextField txtTuKhoa = new JTextField();
     private final JDateChooser dtTuNgay = new JDateChooser();
@@ -148,17 +150,19 @@ public class TimKiemLichSuVatTuPanel extends JPanel {
         ketQuaDangHienThi.clear();
         model.setRowCount(0);
         try {
-            List<PhieuXuatTraCuuInfo> ketQua = service.timKiemPhieuXuat(txtTuKhoa.getText().trim(), tuNgay, denNgay);
-            for (PhieuXuatTraCuuInfo phieu : ketQua) {
+            List<PhieuXuatKho> ketQua = service.timKiemPhieuXuat(txtTuKhoa.getText().trim(), tuNgay, denNgay);
+            for (PhieuXuatKho phieu : ketQua) {
                 ketQuaDangHienThi.add(phieu);
+                LichHen lichHen = phieu.getLichHen();
+                BenhNhan benhNhan = lichHen == null ? null : lichHen.getBenhNhan();
                 model.addRow(new Object[] {
-                        phieu.maPhieuXuat(),
-                        phieu.ngayXuat().format(NGAY),
-                        phieu.maLichHen() == null ? "Dùng chung" : phieu.maLichHen(),
-                        phieu.maBenhNhan() == null ? "" : phieu.maBenhNhan(),
-                        phieu.tenBenhNhan() == null ? "Xuất dùng chung" : phieu.tenBenhNhan(),
-                        phieu.soLoaiVatTu(),
-                        phieu.tongSoLuong()
+                        phieu.getMaPhieuXuat(),
+                        phieu.getNgayXuat().format(NGAY),
+                        phieu.getMaLichHenId() == null ? "Dùng chung" : phieu.getMaLichHenId(),
+                        benhNhan == null ? "" : benhNhan.getMaBenhNhan(),
+                        benhNhan == null ? "Xuất dùng chung" : benhNhan.getHoTen(),
+                        phieu.getSoLoaiVatTu(),
+                        phieu.getTongSoLuong()
                 });
             }
             lblKetQua.setText(ketQua.isEmpty()
@@ -186,27 +190,27 @@ public class TimKiemLichSuVatTuPanel extends JPanel {
                     "Thông báo", JOptionPane.INFORMATION_MESSAGE);
             return;
         }
-        PhieuXuatTraCuuInfo phieu = ketQuaDangHienThi.get(bang.convertRowIndexToModel(row));
-        List<ChiTietXuatInfo> chiTiet;
+        PhieuXuatKho phieu = ketQuaDangHienThi.get(bang.convertRowIndexToModel(row));
+        List<ChiTietXuatKho> chiTiet;
         try {
-            chiTiet = service.layChiTietPhieuXuat(phieu.maPhieuXuat());
+            chiTiet = service.layChiTietPhieuXuat(phieu.getMaPhieuXuat());
         } catch (java.sql.SQLException exception) {
             JOptionPane.showMessageDialog(this,
-                    "Không thể tải chi tiết phiếu xuất " + phieu.maPhieuXuat() + ":\n" + exception.getMessage(),
+                    "Không thể tải chi tiết phiếu xuất " + phieu.getMaPhieuXuat() + ":\n" + exception.getMessage(),
                     "Lỗi tải chi tiết", JOptionPane.ERROR_MESSAGE);
             return;
         }
 
         Window owner = SwingUtilities.getWindowAncestor(this);
-        JDialog dialog = new JDialog(owner, "Chi tiết phiếu xuất " + phieu.maPhieuXuat(),
+        JDialog dialog = new JDialog(owner, "Chi tiết phiếu xuất " + phieu.getMaPhieuXuat(),
                 Dialog.ModalityType.APPLICATION_MODAL);
         dialog.setLayout(new BorderLayout(0, 12));
         JPanel noiDung = new JPanel(new BorderLayout(0, 12));
         noiDung.setBackground(Color.WHITE);
         noiDung.setBorder(new EmptyBorder(16, 18, 16, 18));
-        noiDung.add(new JLabel("Phiếu " + phieu.maPhieuXuat() + "  ·  Ngày xuất "
-                + phieu.ngayXuat().format(NGAY) + "  ·  Lịch hẹn "
-                + (phieu.maLichHen() == null ? "dùng chung" : phieu.maLichHen())), BorderLayout.NORTH);
+        noiDung.add(new JLabel("Phiếu " + phieu.getMaPhieuXuat() + "  ·  Ngày xuất "
+                + phieu.getNgayXuat().format(NGAY) + "  ·  Lịch hẹn "
+                + (phieu.getMaLichHenId() == null ? "dùng chung" : phieu.getMaLichHenId())), BorderLayout.NORTH);
 
         DefaultTableModel modelChiTiet = new DefaultTableModel(
                 new String[] { "Mã vật tư", "Tên vật tư", "ĐVT", "Số lượng xuất" }, 0) {
@@ -215,10 +219,11 @@ public class TimKiemLichSuVatTuPanel extends JPanel {
                 return false;
             }
         };
-        for (ChiTietXuatInfo dong : chiTiet) {
+        for (ChiTietXuatKho dong : chiTiet) {
             modelChiTiet.addRow(new Object[] {
-                    dong.maVatTu(), dong.tenVatTu(),
-                    dong.donViTinh() == null ? "" : dong.donViTinh(), dong.soLuongSuDung()
+                    dong.getMaVatTuId(), dong.getVatTu().getTenVatTu(),
+                    dong.getVatTu().getDonViTinh() == null ? "" : dong.getVatTu().getDonViTinh(),
+                    dong.getSoLuongSuDung()
             });
         }
         JTable bangChiTiet = new JTable(modelChiTiet);

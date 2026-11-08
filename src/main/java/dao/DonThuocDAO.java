@@ -1,11 +1,12 @@
 package dao;
 
 import connectDB.ConnectDB;
-import dto.DonThuocDaLuu;
-import dto.LanKham;
-import dto.ThuocDonThuocDaLuu;
+import entity.BenhNhan;
+import entity.ChanDoan;
 import entity.ChiTietDonThuoc;
 import entity.DonThuoc;
+import entity.HoSoBenhAn;
+import entity.VatTu;
 import java.sql.Connection;
 import java.sql.Date;
 import java.sql.PreparedStatement;
@@ -27,7 +28,7 @@ import java.util.List;
 public class DonThuocDAO {
 
     /** Danh sách đơn thuốc đã lưu kèm thông tin lần khám và bệnh nhân. */
-    public List<DonThuocDaLuu> layDanhSachDonThuocDaLuu() throws SQLException {
+    public List<DonThuoc> layDanhSachDonThuocDaLuu() throws SQLException {
         String sql = "SELECT dt.MaDonThuoc, dt.NgayKe, dt.LoiDanChamSoc, "
                 + "cd.MaChanDoan, cd.KetLuanChanDoan, bn.MaBenhNhan, bn.HoTen AS TenBenhNhan "
                 + "FROM DonThuoc dt "
@@ -35,43 +36,56 @@ public class DonThuocDAO {
                 + "JOIN HoSoBenhAn hs ON hs.MaHoSo = cd.MaHoSo "
                 + "JOIN BenhNhan bn ON bn.MaBenhNhan = hs.MaBenhNhan "
                 + "ORDER BY dt.NgayKe DESC, dt.MaDonThuoc DESC";
-        List<DonThuocDaLuu> ketQua = new ArrayList<>();
+        List<DonThuoc> ketQua = new ArrayList<>();
         try (PreparedStatement ps = ConnectDB.getConnection().prepareStatement(sql);
                 ResultSet rs = ps.executeQuery()) {
             while (rs.next()) {
                 Date ngayKe = rs.getDate("NgayKe");
-                ketQua.add(new DonThuocDaLuu(
-                        rs.getString("MaDonThuoc"),
-                        ngayKe == null ? null : ngayKe.toLocalDate(),
-                        rs.getString("LoiDanChamSoc"),
-                        rs.getString("MaChanDoan"),
-                        rs.getString("KetLuanChanDoan"),
-                        rs.getString("MaBenhNhan"),
-                        rs.getString("TenBenhNhan")));
+                BenhNhan benhNhan = new BenhNhan();
+                benhNhan.setMaBenhNhan(rs.getString("MaBenhNhan"));
+                benhNhan.setHoTen(rs.getString("TenBenhNhan"));
+
+                HoSoBenhAn hoSo = new HoSoBenhAn();
+                hoSo.setBenhNhan(benhNhan);
+                ChanDoan chanDoan = new ChanDoan();
+                chanDoan.setMaChanDoan(rs.getString("MaChanDoan"));
+                chanDoan.setKetLuanChanDoan(rs.getString("KetLuanChanDoan"));
+                chanDoan.setHoSoBenhAn(hoSo);
+
+                DonThuoc donThuoc = new DonThuoc();
+                donThuoc.setMaDonThuoc(rs.getString("MaDonThuoc"));
+                donThuoc.setNgayKe(ngayKe == null ? null : ngayKe.toLocalDate());
+                donThuoc.setLoiDanChamSoc(rs.getString("LoiDanChamSoc"));
+                donThuoc.setChanDoan(chanDoan);
+                ketQua.add(donThuoc);
             }
         }
         return ketQua;
     }
 
     /** Các thuốc đã kê trong một đơn thuốc. */
-    public List<ThuocDonThuocDaLuu> layThuocDaKe(String maDonThuoc) throws SQLException {
+    public List<ChiTietDonThuoc> layThuocDaKe(String maDonThuoc) throws SQLException {
         String sql = "SELECT vt.MaVatTu, vt.TenVatTu, vt.DonViTinh, "
                 + "ct.LieuDung, ct.DuongDung, ct.SoLuong "
                 + "FROM ChiTietDonThuoc ct "
                 + "JOIN VatTu vt ON vt.MaVatTu = ct.MaVatTu "
                 + "WHERE ct.MaDonThuoc = ? ORDER BY vt.TenVatTu";
-        List<ThuocDonThuocDaLuu> ketQua = new ArrayList<>();
+        List<ChiTietDonThuoc> ketQua = new ArrayList<>();
         try (PreparedStatement ps = ConnectDB.getConnection().prepareStatement(sql)) {
             ps.setString(1, maDonThuoc);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    ketQua.add(new ThuocDonThuocDaLuu(
-                            rs.getString("MaVatTu"),
-                            rs.getString("TenVatTu"),
-                            rs.getString("DonViTinh"),
-                            rs.getString("LieuDung"),
-                            rs.getString("DuongDung"),
-                            rs.getInt("SoLuong")));
+                    VatTu vatTu = new VatTu();
+                    vatTu.setMaVatTu(rs.getString("MaVatTu"));
+                    vatTu.setTenVatTu(rs.getString("TenVatTu"));
+                    vatTu.setDonViTinh(rs.getString("DonViTinh"));
+                    ChiTietDonThuoc chiTiet = new ChiTietDonThuoc();
+                    chiTiet.setMaDonThuoc(maDonThuoc);
+                    chiTiet.setVatTu(vatTu);
+                    chiTiet.setLieuDung(rs.getString("LieuDung"));
+                    chiTiet.setDuongDung(rs.getString("DuongDung"));
+                    chiTiet.setSoLuong(rs.getInt("SoLuong"));
+                    ketQua.add(chiTiet);
                 }
             }
         }
@@ -79,7 +93,7 @@ public class DonThuocDAO {
     }
 
     /** Lần khám đang chờ kê đơn (TrangThai = 'Nhap') kèm thông tin bệnh nhân. */
-    public List<LanKham> layLanKhamChoKeDon() throws SQLException {
+    public List<ChanDoan> layLanKhamChoKeDon() throws SQLException {
         return new ChanDoanDAO().layThongTinDangKham();
     }
 

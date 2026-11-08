@@ -25,8 +25,10 @@ public class PhieuNhapKho {
     }
 
     public void setMaPhieuNhap(String maPhieuNhap) {
-        if (maPhieuNhap == null) throw new IllegalArgumentException("MaPhieuNhap không được null.");
-        if (maPhieuNhap != null && maPhieuNhap.length() > 20) throw new IllegalArgumentException("MaPhieuNhap tối đa 20 ký tự.");
+        if (maPhieuNhap == null)
+            throw new IllegalArgumentException("MaPhieuNhap không được null.");
+        if (maPhieuNhap != null && maPhieuNhap.length() > 20)
+            throw new IllegalArgumentException("MaPhieuNhap tối đa 20 ký tự.");
         this.maPhieuNhap = maPhieuNhap;
     }
 
@@ -35,7 +37,8 @@ public class PhieuNhapKho {
     }
 
     public void setNgayNhap(LocalDate ngayNhap) {
-        if (ngayNhap == null) throw new IllegalArgumentException("NgayNhap không được null.");
+        if (ngayNhap == null)
+            throw new IllegalArgumentException("NgayNhap không được null.");
         this.ngayNhap = ngayNhap;
     }
 
@@ -44,7 +47,8 @@ public class PhieuNhapKho {
     }
 
     public void setNhaCungCap(String nhaCungCap) {
-        if (nhaCungCap != null && nhaCungCap.length() > 150) throw new IllegalArgumentException("NhaCungCap tối đa 150 ký tự.");
+        if (nhaCungCap != null && nhaCungCap.length() > 150)
+            throw new IllegalArgumentException("NhaCungCap tối đa 150 ký tự.");
         this.nhaCungCap = nhaCungCap;
     }
 
@@ -66,11 +70,15 @@ public class PhieuNhapKho {
         this.maNhanVien = nhanVien;
     }
 
-    public void setMaNhanVien(NhanVien nhanVien) { setNhanVien(nhanVien); }
+    public void setMaNhanVien(NhanVien nhanVien) {
+        setNhanVien(nhanVien);
+    }
 
     public void setMaNhanVien(String maNhanVien) {
-        if (maNhanVien == null) throw new IllegalArgumentException("MaNhanVien không được null.");
-        if (maNhanVien != null && maNhanVien.length() > 20) throw new IllegalArgumentException("MaNhanVien tối đa 20 ký tự.");
+        if (maNhanVien == null)
+            throw new IllegalArgumentException("MaNhanVien không được null.");
+        if (maNhanVien != null && maNhanVien.length() > 20)
+            throw new IllegalArgumentException("MaNhanVien tối đa 20 ký tự.");
         NhanVien nhanVien = new NhanVien();
         nhanVien.setMaNhanVien(maNhanVien);
         this.maNhanVien = nhanVien;

@@ -30,63 +30,94 @@ public class ChanDoan {
         setMaNhaSi(maNhaSi);
     }
 
-    public String getMaChanDoan() { return maChanDoan; }
+    public String getMaChanDoan() {
+        return maChanDoan;
+    }
 
     public void setMaChanDoan(String maChanDoan) {
-        if (maChanDoan == null || maChanDoan.trim().isEmpty()) throw new IllegalArgumentException("maChanDoan không được để trống");
-        if (maChanDoan.trim().length() > 20) throw new IllegalArgumentException("maChanDoan tối đa 20 ký tự");
+        if (maChanDoan == null || maChanDoan.trim().isEmpty())
+            throw new IllegalArgumentException("maChanDoan không được để trống");
+        if (maChanDoan.trim().length() > 20)
+            throw new IllegalArgumentException("maChanDoan tối đa 20 ký tự");
         this.maChanDoan = maChanDoan.trim();
     }
 
-    public LocalDate getNgayKham() { return ngayKham; }
+    public LocalDate getNgayKham() {
+        return ngayKham;
+    }
 
     public void setNgayKham(LocalDate ngayKham) {
-        if (ngayKham == null) throw new IllegalArgumentException("ngayKham không được null");
+        if (ngayKham == null)
+            throw new IllegalArgumentException("ngayKham không được null");
         this.ngayKham = ngayKham;
     }
 
-    public String getLyDoKham() { return lyDoKham; }
+    public String getLyDoKham() {
+        return lyDoKham;
+    }
 
     public void setLyDoKham(String lyDoKham) {
-        if (lyDoKham != null && lyDoKham.length() > 500) throw new IllegalArgumentException("lyDoKham tối đa 500 ký tự");
+        if (lyDoKham != null && lyDoKham.length() > 500)
+            throw new IllegalArgumentException("lyDoKham tối đa 500 ký tự");
         this.lyDoKham = lyDoKham;
     }
 
-    public String getTrieuChung() { return trieuChung; }
+    public String getTrieuChung() {
+        return trieuChung;
+    }
 
     public void setTrieuChung(String trieuChung) {
-        if (trieuChung != null && trieuChung.length() > 1000) throw new IllegalArgumentException("trieuChung tối đa 1000 ký tự");
+        if (trieuChung != null && trieuChung.length() > 1000)
+            throw new IllegalArgumentException("trieuChung tối đa 1000 ký tự");
         this.trieuChung = trieuChung;
     }
 
-    public String getKetLuanChanDoan() { return ketLuanChanDoan; }
+    public String getKetLuanChanDoan() {
+        return ketLuanChanDoan;
+    }
 
     public void setKetLuanChanDoan(String ketLuanChanDoan) {
-        if (ketLuanChanDoan != null && ketLuanChanDoan.length() > 1000) throw new IllegalArgumentException("ketLuanChanDoan tối đa 1000 ký tự");
+        if (ketLuanChanDoan != null && ketLuanChanDoan.length() > 1000)
+            throw new IllegalArgumentException("ketLuanChanDoan tối đa 1000 ký tự");
         this.ketLuanChanDoan = ketLuanChanDoan;
     }
 
-    public String getTrangThai() { return trangThai; }
+    public String getTrangThai() {
+        return trangThai;
+    }
 
     public void setTrangThai(String trangThai) {
-        if (trangThai == null || trangThai.trim().isEmpty()) throw new IllegalArgumentException("trangThai không được để trống");
-        if (!"Nhap".equals(trangThai) && !"Da chot".equals(trangThai)) throw new IllegalArgumentException("trangThai không thuộc trạng thái hợp lệ");
+        if (trangThai == null || trangThai.trim().isEmpty())
+            throw new IllegalArgumentException("trangThai không được để trống");
+        if (!"Nhap".equals(trangThai) && !"Da chot".equals(trangThai))
+            throw new IllegalArgumentException("trangThai không thuộc trạng thái hợp lệ");
         this.trangThai = trangThai;
     }
 
-    public LichHen getMaLichHen() { return maLichHen; }
+    public LichHen getMaLichHen() {
+        return maLichHen;
+    }
 
-    public String getMaLichHenId() { return maLichHen == null ? null : maLichHen.getMaLichHen(); }
+    public String getMaLichHenId() {
+        return maLichHen == null ? null : maLichHen.getMaLichHen();
+    }
 
-    public LichHen getLichHen() { return maLichHen; }
+    public LichHen getLichHen() {
+        return maLichHen;
+    }
 
-    public void setLichHen(LichHen lichHen) { this.maLichHen = lichHen; }
+    public void setLichHen(LichHen lichHen) {
+        this.maLichHen = lichHen;
+    }
 
-    public void setMaLichHen(LichHen lichHen) { setLichHen(lichHen); }
+    public void setMaLichHen(LichHen lichHen) {
+        setLichHen(lichHen);
+    }
 
     public void setMaLichHen(String maLichHen) {
         String v = (maLichHen == null || maLichHen.trim().isEmpty()) ? null : maLichHen.trim();
-        if (v != null && v.length() > 20) throw new IllegalArgumentException("maLichHen tối đa 20 ký tự");
+        if (v != null && v.length() > 20)
+            throw new IllegalArgumentException("maLichHen tối đa 20 ký tự");
         if (v == null) {
             this.maLichHen = null;
         } else {
@@ -96,43 +127,73 @@ public class ChanDoan {
         }
     }
 
-    public HoSoBenhAn getMaHoSo() { return maHoSo; }
+    public HoSoBenhAn getMaHoSo() {
+        return maHoSo;
+    }
 
-    public String getMaHoSoId() { return maHoSo == null ? null : maHoSo.getMaHoSo(); }
+    public String getMaHoSoId() {
+        return maHoSo == null ? null : maHoSo.getMaHoSo();
+    }
 
-    public HoSoBenhAn getHoSoBenhAn() { return maHoSo; }
+    public HoSoBenhAn getHoSoBenhAn() {
+        return maHoSo;
+    }
 
     public void setHoSoBenhAn(HoSoBenhAn hoSoBenhAn) {
-        if (hoSoBenhAn == null) throw new IllegalArgumentException("hoSoBenhAn không được null");
+        if (hoSoBenhAn == null)
+            throw new IllegalArgumentException("hoSoBenhAn không được null");
         this.maHoSo = hoSoBenhAn;
     }
 
-    public void setMaHoSo(HoSoBenhAn hoSoBenhAn) { setHoSoBenhAn(hoSoBenhAn); }
+    public void setMaHoSo(HoSoBenhAn hoSoBenhAn) {
+        setHoSoBenhAn(hoSoBenhAn);
+    }
 
     public void setMaHoSo(String maHoSo) {
-        if (maHoSo == null || maHoSo.trim().isEmpty()) throw new IllegalArgumentException("maHoSo không được để trống");
-        if (maHoSo.trim().length() > 20) throw new IllegalArgumentException("maHoSo tối đa 20 ký tự");
+        if (maHoSo == null || maHoSo.trim().isEmpty())
+            throw new IllegalArgumentException("maHoSo không được để trống");
+        if (maHoSo.trim().length() > 20)
+            throw new IllegalArgumentException("maHoSo tối đa 20 ký tự");
         HoSoBenhAn hoSoBenhAn = new HoSoBenhAn();
         hoSoBenhAn.setMaHoSo(maHoSo.trim());
         this.maHoSo = hoSoBenhAn;
     }
 
-    public NhanVien getMaNhaSi() { return maNhaSi; }
+    public NhanVien getMaNhaSi() {
+        return maNhaSi;
+    }
 
-    public String getMaNhaSiId() { return maNhaSi == null ? null : maNhaSi.getMaNhanVien(); }
+    public String getMaNhaSiId() {
+        return maNhaSi == null ? null : maNhaSi.getMaNhanVien();
+    }
 
-    public NhanVien getNhaSi() { return maNhaSi; }
+    public NhanVien getNhaSi() {
+        return maNhaSi;
+    }
+
+    public String getMaBenhNhanId() {
+        return maHoSo == null ? null : maHoSo.getMaBenhNhanId();
+    }
+
+    public BenhNhan getBenhNhan() {
+        return maHoSo == null ? null : maHoSo.getBenhNhan();
+    }
 
     public void setNhaSi(NhanVien nhaSi) {
-        if (nhaSi == null) throw new IllegalArgumentException("nhaSi không được null");
+        if (nhaSi == null)
+            throw new IllegalArgumentException("nhaSi không được null");
         this.maNhaSi = nhaSi;
     }
 
-    public void setMaNhaSi(NhanVien nhaSi) { setNhaSi(nhaSi); }
+    public void setMaNhaSi(NhanVien nhaSi) {
+        setNhaSi(nhaSi);
+    }
 
     public void setMaNhaSi(String maNhaSi) {
-        if (maNhaSi == null || maNhaSi.trim().isEmpty()) throw new IllegalArgumentException("maNhaSi không được để trống");
-        if (maNhaSi.trim().length() > 20) throw new IllegalArgumentException("maNhaSi tối đa 20 ký tự");
+        if (maNhaSi == null || maNhaSi.trim().isEmpty())
+            throw new IllegalArgumentException("maNhaSi không được để trống");
+        if (maNhaSi.trim().length() > 20)
+            throw new IllegalArgumentException("maNhaSi tối đa 20 ký tự");
         NhanVien nhaSi = new NhanVien();
         nhaSi.setMaNhanVien(maNhaSi.trim());
         this.maNhaSi = nhaSi;

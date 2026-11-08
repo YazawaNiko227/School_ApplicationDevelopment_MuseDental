@@ -40,7 +40,9 @@ public class ChiTietDonThuoc {
         this.maDonThuoc = donThuoc;
     }
 
-    public void setMaDonThuoc(DonThuoc donThuoc) { setDonThuoc(donThuoc); }
+    public void setMaDonThuoc(DonThuoc donThuoc) {
+        setDonThuoc(donThuoc);
+    }
 
     public void setMaDonThuoc(String maDonThuoc) {
         if (maDonThuoc == null)
@@ -70,7 +72,9 @@ public class ChiTietDonThuoc {
         this.maVatTu = vatTu;
     }
 
-    public void setMaVatTu(VatTu vatTu) { setVatTu(vatTu); }
+    public void setMaVatTu(VatTu vatTu) {
+        setVatTu(vatTu);
+    }
 
     public void setMaVatTu(String maVatTu) {
         if (maVatTu == null)

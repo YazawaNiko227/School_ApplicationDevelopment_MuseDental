@@ -1,7 +1,10 @@
 package dao;
 
 import connectDB.ConnectDB;
-import entity.LichHenTongQuan;
+import entity.BenhNhan;
+import entity.LichHen;
+import entity.NhanVien;
+import entity.PhongKham;
 import entity.ThongKeTongQuan;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -38,28 +41,49 @@ public class DashboardDAO {
         }
     }
 
-    public List<LichHenTongQuan> layLichHenSapToi(int gioiHan) throws SQLException {
+    public List<LichHen> layLichHenSapToi(int gioiHan) throws SQLException {
         if (gioiHan < 1 || gioiHan > 100) {
             throw new IllegalArgumentException("Giới hạn lịch hẹn phải từ 1 đến 100.");
         }
-        String sql = "SELECT TOP (?) LH.ThoiGianHen, BN.HoTen AS TenBenhNhan, "
-                + "NV.HoTen AS TenNhaSi, LH.TrangThai "
+        String sql = "SELECT TOP (?) LH.MaLichHen, LH.ThoiGianHen, LH.TrangThai, LH.NgayTao, "
+                + "LH.ThoiGianCheckIn, LH.MaNhanVienLap, LH.MaNhaSiPhuTrach, NV.HoTen AS TenNhaSi, "
+                + "LH.MaBenhNhan, BN.HoTen AS TenBenhNhan, LH.MaPhong, LH.MaKeHoach "
                 + "FROM LichHen LH "
                 + "JOIN BenhNhan BN ON BN.MaBenhNhan = LH.MaBenhNhan "
                 + "JOIN NhanVien NV ON NV.MaNhanVien = LH.MaNhaSiPhuTrach "
                 + "WHERE LH.ThoiGianHen >= GETDATE() "
                 + "AND LH.TrangThai NOT IN (N'Huy', N'Hoan thanh', N'Vang') "
                 + "ORDER BY LH.ThoiGianHen";
-        List<LichHenTongQuan> appointments = new ArrayList<>();
+        List<LichHen> appointments = new ArrayList<>();
         try (PreparedStatement statement = ConnectDB.getConnection().prepareStatement(sql)) {
             statement.setInt(1, gioiHan);
             try (ResultSet result = statement.executeQuery()) {
                 while (result.next()) {
-                    appointments.add(new LichHenTongQuan(
-                            result.getTimestamp("ThoiGianHen").toLocalDateTime(),
-                            result.getString("TenBenhNhan"),
-                            "Nha sĩ: " + result.getString("TenNhaSi"),
-                            result.getString("TrangThai")));
+                    BenhNhan benhNhan = new BenhNhan();
+                    benhNhan.setMaBenhNhan(result.getString("MaBenhNhan"));
+                    benhNhan.setHoTen(result.getString("TenBenhNhan"));
+
+                    NhanVien nhaSi = new NhanVien();
+                    nhaSi.setMaNhanVien(result.getString("MaNhaSiPhuTrach"));
+                    nhaSi.setHoTen(result.getString("TenNhaSi"));
+
+                    PhongKham phongKham = new PhongKham();
+                    phongKham.setMaPhong(result.getString("MaPhong"));
+
+                    LichHen lichHen = new LichHen();
+                    lichHen.setMaLichHen(result.getString("MaLichHen"));
+                    lichHen.setThoiGianHen(result.getTimestamp("ThoiGianHen").toLocalDateTime());
+                    lichHen.setTrangThai(result.getString("TrangThai"));
+                    lichHen.setNgayTao(result.getDate("NgayTao").toLocalDate());
+                    java.sql.Timestamp thoiGianCheckIn = result.getTimestamp("ThoiGianCheckIn");
+                    lichHen.setThoiGianCheckIn(
+                            thoiGianCheckIn == null ? null : thoiGianCheckIn.toLocalDateTime());
+                    lichHen.setMaNhanVienLap(result.getString("MaNhanVienLap"));
+                    lichHen.setNhaSiPhuTrach(nhaSi);
+                    lichHen.setBenhNhan(benhNhan);
+                    lichHen.setPhongKham(phongKham);
+                    lichHen.setMaKeHoach(result.getString("MaKeHoach"));
+                    appointments.add(lichHen);
                 }
             }
         }

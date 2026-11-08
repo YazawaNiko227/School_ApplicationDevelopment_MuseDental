@@ -1,6 +1,6 @@
 package gui;
 
-import dto.LichHenInfo;
+import entity.LichHen;
 import entity.CaTruc;
 import entity.NhanVien;
 import service.LichLamViecCaNhanService;
@@ -88,7 +88,7 @@ public class XuLyTimKiemLichLamViecCaNhanPanel extends JPanel {
         }
     };
     private final JTable bangLich = new JTable(modelLich);
-    private final List<LichHenInfo> danhSachLichTuan = new ArrayList<>();
+    private final List<LichHen> danhSachLichTuan = new ArrayList<>();
 
     public XuLyTimKiemLichLamViecCaNhanPanel() {
         this(null);
@@ -343,19 +343,20 @@ public class XuLyTimKiemLichLamViecCaNhanPanel extends JPanel {
         String tuKhoa = txtTimBenhNhan.getText().trim().toLowerCase();
         modelLich.setRowCount(0);
 
-        for (LichHenInfo lh : danhSachLichTuan) {
+        for (LichHen lh : danhSachLichTuan) {
             boolean khop = tuKhoa.isEmpty()
-                    || lh.maLichHen().toLowerCase().contains(tuKhoa)
-                    || lh.maBenhNhan().toLowerCase().contains(tuKhoa)
-                    || (lh.hoTen() != null && lh.hoTen().toLowerCase().contains(tuKhoa));
+                    || lh.getMaLichHen().toLowerCase().contains(tuKhoa)
+                    || lh.getMaBenhNhanId().toLowerCase().contains(tuKhoa)
+                    || (lh.getBenhNhan().getHoTen() != null
+                            && lh.getBenhNhan().getHoTen().toLowerCase().contains(tuKhoa));
             if (khop) {
                 modelLich.addRow(new Object[] {
-                        lh.maLichHen(),
-                        GiaoDienUtil.dinhDangNgayGio(lh.thoiGianHen()),
-                        lh.maBenhNhan(),
-                        lh.hoTen(),
-                        lh.maPhong(),
-                        GiaoDienUtil.hienThiTrangThai(lh.trangThai())
+                        lh.getMaLichHen(),
+                        GiaoDienUtil.dinhDangNgayGio(lh.getThoiGianHen()),
+                        lh.getMaBenhNhanId(),
+                        lh.getBenhNhan().getHoTen(),
+                        lh.getMaPhongId(),
+                        GiaoDienUtil.hienThiTrangThai(lh.getTrangThai())
                 });
             }
         }

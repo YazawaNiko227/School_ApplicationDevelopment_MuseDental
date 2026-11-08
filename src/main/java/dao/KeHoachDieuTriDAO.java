@@ -1,8 +1,10 @@
 package dao;
 
 import connectDB.ConnectDB;
+import entity.BenhNhan;
+import entity.ChanDoan;
+import entity.HoSoBenhAn;
 import entity.KeHoachDieuTri;
-import entity.ThongTinBenhNhan;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -41,7 +43,47 @@ public class KeHoachDieuTriDAO {
         }
     }
 
-    public ThongTinBenhNhan layThongTinBenhNhanTheoChanDoan(String maChanDoan) throws SQLException {
+    public List<KeHoachDieuTri> layDanhSachDaLuu() throws SQLException {
+        String sql = "SELECT kh.MaKeHoach, kh.TenPhacDo, kh.ThoiGianDuKien, kh.TrangThai, "
+                + "cd.MaChanDoan, cd.NgayKham, cd.KetLuanChanDoan, cd.TrangThai AS TrangThaiChanDoan, "
+                + "cd.MaLichHen, cd.MaHoSo, cd.MaNhaSi, bn.MaBenhNhan, bn.HoTen "
+                + "FROM KeHoachDieuTri kh "
+                + "JOIN ChanDoan cd ON cd.MaChanDoan = kh.MaChanDoan "
+                + "JOIN BenhNhan bn ON bn.MaBenhNhan = kh.MaBenhNhan "
+                + "ORDER BY cd.NgayKham DESC, kh.MaKeHoach DESC";
+        List<KeHoachDieuTri> danhSach = new ArrayList<>();
+        try (PreparedStatement ps = ConnectDB.getConnection().prepareStatement(sql);
+                ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                BenhNhan benhNhan = new BenhNhan();
+                benhNhan.setMaBenhNhan(rs.getString("MaBenhNhan"));
+                benhNhan.setHoTen(rs.getString("HoTen"));
+                HoSoBenhAn hoSo = new HoSoBenhAn();
+                hoSo.setMaHoSo(rs.getString("MaHoSo"));
+                hoSo.setBenhNhan(benhNhan);
+                ChanDoan chanDoan = new ChanDoan();
+                chanDoan.setMaChanDoan(rs.getString("MaChanDoan"));
+                chanDoan.setNgayKham(rs.getDate("NgayKham").toLocalDate());
+                chanDoan.setKetLuanChanDoan(rs.getString("KetLuanChanDoan"));
+                chanDoan.setTrangThai(rs.getString("TrangThaiChanDoan"));
+                chanDoan.setMaLichHen(rs.getString("MaLichHen"));
+                chanDoan.setHoSoBenhAn(hoSo);
+                chanDoan.setMaNhaSi(rs.getString("MaNhaSi"));
+                KeHoachDieuTri keHoach = new KeHoachDieuTri();
+                keHoach.setMaKeHoach(rs.getString("MaKeHoach"));
+                keHoach.setTenPhacDo(rs.getString("TenPhacDo"));
+                int thoiGian = rs.getInt("ThoiGianDuKien");
+                keHoach.setThoiGianDuKien(rs.wasNull() ? null : thoiGian);
+                keHoach.setTrangThai(rs.getString("TrangThai"));
+                keHoach.setChanDoan(chanDoan);
+                keHoach.setBenhNhan(benhNhan);
+                danhSach.add(keHoach);
+            }
+        }
+        return danhSach;
+    }
+
+    public BenhNhan layThongTinBenhNhanTheoChanDoan(String maChanDoan) throws SQLException {
         String sql = "SELECT B.MaBenhNhan, B.HoTen FROM ChanDoan C "
                 + "JOIN HoSoBenhAn H ON H.MaHoSo = C.MaHoSo "
                 + "JOIN BenhNhan B ON B.MaBenhNhan = H.MaBenhNhan "
@@ -49,7 +91,13 @@ public class KeHoachDieuTriDAO {
         try (PreparedStatement ps = ConnectDB.getConnection().prepareStatement(sql)) {
             ps.setString(1, maChanDoan);
             try (ResultSet rs = ps.executeQuery()) {
-                return rs.next() ? new ThongTinBenhNhan(rs.getString("MaBenhNhan"), rs.getString("HoTen")) : null;
+                if (!rs.next()) {
+                    return null;
+                }
+                BenhNhan benhNhan = new BenhNhan();
+                benhNhan.setMaBenhNhan(rs.getString("MaBenhNhan"));
+                benhNhan.setHoTen(rs.getString("HoTen"));
+                return benhNhan;
             }
         }
     }

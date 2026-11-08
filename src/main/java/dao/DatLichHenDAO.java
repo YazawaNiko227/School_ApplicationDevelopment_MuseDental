@@ -2,7 +2,7 @@ package dao;
 
 import connectDB.ConnectDB;
 import entity.BenhNhan;
-import entity.LichHenThongTin;
+import entity.LichHen;
 import entity.NhanVien;
 import entity.PhongKham;
 
@@ -120,27 +120,47 @@ public class DatLichHenDAO {
         return danhSach;
     }
 
-    public List<LichHenThongTin> layDanhSachLichHen() throws SQLException {
-        String sql = "SELECT lh.MaLichHen, lh.ThoiGianHen, lh.MaBenhNhan, bn.HoTen AS TenBenhNhan, "
-                + "ns.HoTen AS TenNhaSi, pk.TenPhong, lh.TrangThai "
+    public List<LichHen> layDanhSachLichHen() throws SQLException {
+        String sql = "SELECT lh.MaLichHen, lh.ThoiGianHen, lh.TrangThai, lh.NgayTao, lh.ThoiGianCheckIn, "
+                + "lh.MaNhanVienLap, lh.MaNhaSiPhuTrach, ns.HoTen AS TenNhaSi, "
+                + "lh.MaBenhNhan, bn.HoTen AS TenBenhNhan, lh.MaPhong, pk.TenPhong, lh.MaKeHoach "
                 + "FROM LichHen lh "
                 + "INNER JOIN BenhNhan bn ON bn.MaBenhNhan = lh.MaBenhNhan "
                 + "INNER JOIN NhanVien ns ON ns.MaNhanVien = lh.MaNhaSiPhuTrach "
                 + "INNER JOIN PhongKham pk ON pk.MaPhong = lh.MaPhong "
                 + "ORDER BY lh.ThoiGianHen DESC, lh.MaLichHen DESC";
-        List<LichHenThongTin> danhSach = new ArrayList<>();
+        List<LichHen> danhSach = new ArrayList<>();
         try (PreparedStatement statement = getConnection().prepareStatement(sql);
                 ResultSet result = statement.executeQuery()) {
             while (result.next()) {
                 Timestamp thoiGianHen = result.getTimestamp("ThoiGianHen");
-                danhSach.add(new LichHenThongTin(
-                        result.getString("MaLichHen"),
-                        thoiGianHen.toLocalDateTime(),
-                        result.getString("MaBenhNhan"),
-                        result.getString("TenBenhNhan"),
-                        result.getString("TenNhaSi"),
-                        result.getString("TenPhong"),
-                        result.getString("TrangThai")));
+                Timestamp thoiGianCheckIn = result.getTimestamp("ThoiGianCheckIn");
+
+                BenhNhan benhNhan = new BenhNhan();
+                benhNhan.setMaBenhNhan(result.getString("MaBenhNhan"));
+                benhNhan.setHoTen(result.getString("TenBenhNhan"));
+
+                NhanVien nhaSi = new NhanVien();
+                nhaSi.setMaNhanVien(result.getString("MaNhaSiPhuTrach"));
+                nhaSi.setHoTen(result.getString("TenNhaSi"));
+
+                PhongKham phongKham = new PhongKham();
+                phongKham.setMaPhong(result.getString("MaPhong"));
+                phongKham.setTenPhong(result.getString("TenPhong"));
+
+                LichHen lichHen = new LichHen();
+                lichHen.setMaLichHen(result.getString("MaLichHen"));
+                lichHen.setThoiGianHen(thoiGianHen.toLocalDateTime());
+                lichHen.setTrangThai(result.getString("TrangThai"));
+                lichHen.setNgayTao(result.getDate("NgayTao").toLocalDate());
+                lichHen.setThoiGianCheckIn(
+                        thoiGianCheckIn == null ? null : thoiGianCheckIn.toLocalDateTime());
+                lichHen.setMaNhanVienLap(result.getString("MaNhanVienLap"));
+                lichHen.setNhaSiPhuTrach(nhaSi);
+                lichHen.setBenhNhan(benhNhan);
+                lichHen.setPhongKham(phongKham);
+                lichHen.setMaKeHoach(result.getString("MaKeHoach"));
+                danhSach.add(lichHen);
             }
         }
         return danhSach;
@@ -149,49 +169,34 @@ public class DatLichHenDAO {
     public String themLichHen(BenhNhan benhNhanMoi, String maBenhNhan, LocalDateTime thoiGianHen,
             String maNhaSi, String maPhong, String tenDangNhap) throws SQLException {
         Connection connection = getConnection();
-        boolean autoCommit = connection.getAutoCommit();
-        int isolation = connection.getTransactionIsolation();
-        connection.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
-        connection.setAutoCommit(false);
-        try {
-            String maNhanVienLap = layMaNhanVienLap(connection, tenDangNhap);
-            String maBenhNhanDatLich = maBenhNhan;
-            if (benhNhanMoi != null) {
-                maBenhNhanDatLich = taoMa(connection, "BenhNhan", "MaBenhNhan", "BN");
-                benhNhanMoi.setMaBenhNhan(maBenhNhanDatLich);
-                themBenhNhan(connection, benhNhanMoi);
-                taoHoSoBenhAn(connection, maBenhNhanDatLich);
-            }
 
-            kiemTraPhong(connection, maPhong);
-            kiemTraCaTruc(connection, maNhaSi, thoiGianHen);
-            kiemTraLichTrung(connection, maBenhNhanDatLich, maNhaSi, maPhong, thoiGianHen);
-
-            String maLichHen = taoMa(connection, "LichHen", "MaLichHen", "LH");
-            String sql = "INSERT INTO LichHen "
-                    + "(MaLichHen, ThoiGianHen, TrangThai, MaNhanVienLap, MaNhaSiPhuTrach, "
-                    + "MaBenhNhan, MaPhong) VALUES (?, ?, N'Cho xac nhan', ?, ?, ?, ?)";
-            try (PreparedStatement statement = connection.prepareStatement(sql)) {
-                statement.setString(1, maLichHen);
-                statement.setTimestamp(2, Timestamp.valueOf(thoiGianHen));
-                statement.setString(3, maNhanVienLap);
-                statement.setString(4, maNhaSi);
-                statement.setString(5, maBenhNhanDatLich);
-                statement.setString(6, maPhong);
-                statement.executeUpdate();
-            }
-            connection.commit();
-            return maLichHen;
-        } catch (SQLException | RuntimeException ex) {
-            connection.rollback();
-            throw ex;
-        } finally {
-            try {
-                connection.setAutoCommit(autoCommit);
-            } finally {
-                connection.setTransactionIsolation(isolation);
-            }
+        String maNhanVienLap = layMaNhanVienLap(connection, tenDangNhap);
+        String maBenhNhanDatLich = maBenhNhan;
+        if (benhNhanMoi != null) {
+            maBenhNhanDatLich = taoMa(connection, "BenhNhan", "MaBenhNhan", "BN");
+            benhNhanMoi.setMaBenhNhan(maBenhNhanDatLich);
+            themBenhNhan(connection, benhNhanMoi);
+            taoHoSoBenhAn(connection, maBenhNhanDatLich);
         }
+
+        kiemTraPhong(connection, maPhong);
+        kiemTraCaTruc(connection, maNhaSi, thoiGianHen);
+        kiemTraLichTrung(connection, maBenhNhanDatLich, maNhaSi, maPhong, thoiGianHen);
+
+        String maLichHen = taoMa(connection, "LichHen", "MaLichHen", "LH");
+        String sql = "INSERT INTO LichHen "
+                + "(MaLichHen, ThoiGianHen, TrangThai, MaNhanVienLap, MaNhaSiPhuTrach, "
+                + "MaBenhNhan, MaPhong) VALUES (?, ?, N'Cho xac nhan', ?, ?, ?, ?)";
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setString(1, maLichHen);
+            statement.setTimestamp(2, Timestamp.valueOf(thoiGianHen));
+            statement.setString(3, maNhanVienLap);
+            statement.setString(4, maNhaSi);
+            statement.setString(5, maBenhNhanDatLich);
+            statement.setString(6, maPhong);
+            statement.executeUpdate();
+        }
+        return maLichHen;
     }
 
     public boolean capNhatTrangThai(String maLichHen, String trangThaiHienTai, String trangThaiMoi)

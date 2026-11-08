@@ -1,8 +1,9 @@
 package dao;
 
 import connectDB.ConnectDB;
-import dto.LanKham;
+import entity.BenhNhan;
 import entity.ChanDoan;
+import entity.HoSoBenhAn;
 import java.sql.*;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -73,24 +74,76 @@ public class ChanDoanDAO {
     }
 
     /** Lần khám đang mở kèm thông tin bệnh nhân, dùng cho kê đơn và lập phác đồ. */
-    public List<LanKham> layThongTinDangKham() throws SQLException {
+    public List<ChanDoan> layThongTinDangKham() throws SQLException {
         String sql = "SELECT cd.MaChanDoan, bn.MaBenhNhan, bn.HoTen, "
-                + "cd.KetLuanChanDoan, bn.ThongTinDiUng "
+                + "cd.NgayKham, cd.LyDoKham, cd.TrieuChung, cd.KetLuanChanDoan, cd.TrangThai, "
+                + "cd.MaLichHen, cd.MaHoSo, cd.MaNhaSi, bn.ThongTinDiUng "
                 + "FROM ChanDoan cd "
                 + "INNER JOIN HoSoBenhAn hs ON hs.MaHoSo = cd.MaHoSo "
                 + "INNER JOIN BenhNhan bn ON bn.MaBenhNhan = hs.MaBenhNhan "
                 + "WHERE cd.TrangThai = N'Nhap' "
                 + "ORDER BY cd.NgayKham DESC, cd.MaChanDoan DESC";
-        List<LanKham> danhSach = new ArrayList<>();
+        List<ChanDoan> danhSach = new ArrayList<>();
         try (PreparedStatement ps = ConnectDB.getConnection().prepareStatement(sql);
                 ResultSet rs = ps.executeQuery()) {
             while (rs.next()) {
-                danhSach.add(new LanKham(
-                        rs.getString("MaChanDoan"),
-                        rs.getString("MaBenhNhan"),
-                        rs.getString("HoTen"),
-                        rs.getString("KetLuanChanDoan"),
-                        rs.getString("ThongTinDiUng")));
+                BenhNhan benhNhan = new BenhNhan();
+                benhNhan.setMaBenhNhan(rs.getString("MaBenhNhan"));
+                benhNhan.setHoTen(rs.getString("HoTen"));
+                benhNhan.setThongTinDiUng(rs.getString("ThongTinDiUng"));
+
+                HoSoBenhAn hoSo = new HoSoBenhAn();
+                hoSo.setMaHoSo(rs.getString("MaHoSo"));
+                hoSo.setBenhNhan(benhNhan);
+
+                ChanDoan chanDoan = new ChanDoan();
+                chanDoan.setMaChanDoan(rs.getString("MaChanDoan"));
+                chanDoan.setNgayKham(rs.getDate("NgayKham").toLocalDate());
+                chanDoan.setLyDoKham(rs.getString("LyDoKham"));
+                chanDoan.setTrieuChung(rs.getString("TrieuChung"));
+                chanDoan.setKetLuanChanDoan(rs.getString("KetLuanChanDoan"));
+                chanDoan.setTrangThai(rs.getString("TrangThai"));
+                chanDoan.setMaLichHen(rs.getString("MaLichHen"));
+                chanDoan.setHoSoBenhAn(hoSo);
+                chanDoan.setMaNhaSi(rs.getString("MaNhaSi"));
+                danhSach.add(chanDoan);
+            }
+        }
+        return danhSach;
+    }
+
+    public List<ChanDoan> layLanKhamChuaLapHoaDon() throws SQLException {
+        String sql = "SELECT cd.MaChanDoan, cd.NgayKham, cd.LyDoKham, cd.TrieuChung, "
+                + "cd.KetLuanChanDoan, cd.TrangThai, cd.MaLichHen, cd.MaHoSo, cd.MaNhaSi, "
+                + "bn.MaBenhNhan, bn.HoTen, bn.ThongTinDiUng "
+                + "FROM ChanDoan cd "
+                + "JOIN HoSoBenhAn hs ON hs.MaHoSo = cd.MaHoSo "
+                + "JOIN BenhNhan bn ON bn.MaBenhNhan = hs.MaBenhNhan "
+                + "WHERE cd.TrangThai = N'Da chot' "
+                + "AND NOT EXISTS (SELECT 1 FROM HoaDon hd WHERE hd.MaChanDoan = cd.MaChanDoan) "
+                + "ORDER BY cd.NgayKham DESC, cd.MaChanDoan DESC";
+        List<ChanDoan> danhSach = new ArrayList<>();
+        try (PreparedStatement ps = ConnectDB.getConnection().prepareStatement(sql);
+                ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                BenhNhan benhNhan = new BenhNhan();
+                benhNhan.setMaBenhNhan(rs.getString("MaBenhNhan"));
+                benhNhan.setHoTen(rs.getString("HoTen"));
+                benhNhan.setThongTinDiUng(rs.getString("ThongTinDiUng"));
+                HoSoBenhAn hoSo = new HoSoBenhAn();
+                hoSo.setMaHoSo(rs.getString("MaHoSo"));
+                hoSo.setBenhNhan(benhNhan);
+                ChanDoan chanDoan = new ChanDoan();
+                chanDoan.setMaChanDoan(rs.getString("MaChanDoan"));
+                chanDoan.setNgayKham(rs.getDate("NgayKham").toLocalDate());
+                chanDoan.setLyDoKham(rs.getString("LyDoKham"));
+                chanDoan.setTrieuChung(rs.getString("TrieuChung"));
+                chanDoan.setKetLuanChanDoan(rs.getString("KetLuanChanDoan"));
+                chanDoan.setTrangThai(rs.getString("TrangThai"));
+                chanDoan.setMaLichHen(rs.getString("MaLichHen"));
+                chanDoan.setHoSoBenhAn(hoSo);
+                chanDoan.setMaNhaSi(rs.getString("MaNhaSi"));
+                danhSach.add(chanDoan);
             }
         }
         return danhSach;

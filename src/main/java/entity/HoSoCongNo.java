@@ -22,13 +22,33 @@ public class HoSoCongNo {
         this.tongSoTien = tongSoTien;
     }
 
-    public String maCongNo() { return maCongNo; }
-    public String maHoaDon() { return maHoaDon; }
-    public String maBenhNhan() { return maBenhNhan; }
-    public String hoTen() { return hoTen; }
-    public String soDienThoai() { return soDienThoai; }
-    public double tongSoTien() { return tongSoTien; }
-    public List<DotThanhToan> dsDot() { return List.copyOf(dsDot); }
+    public String maCongNo() {
+        return maCongNo;
+    }
+
+    public String maHoaDon() {
+        return maHoaDon;
+    }
+
+    public String maBenhNhan() {
+        return maBenhNhan;
+    }
+
+    public String hoTen() {
+        return hoTen;
+    }
+
+    public String soDienThoai() {
+        return soDienThoai;
+    }
+
+    public double tongSoTien() {
+        return tongSoTien;
+    }
+
+    public List<DotThanhToan> dsDot() {
+        return List.copyOf(dsDot);
+    }
 
     public void addDot(DotThanhToan dot) {
         if (dot == null) {

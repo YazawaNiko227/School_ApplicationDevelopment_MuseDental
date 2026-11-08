@@ -1,10 +1,10 @@
 package dao;
 
 import connectDB.ConnectDB;
+import entity.BenhNhan;
 import entity.ChiTietXuatKho;
+import entity.LichHen;
 import entity.PhieuXuatKho;
-import dto.ChiTietXuatInfo;
-import dto.PhieuXuatTraCuuInfo;
 import java.sql.Connection;
 import java.sql.Date;
 import java.sql.PreparedStatement;
@@ -90,7 +90,7 @@ public class PhieuXuatKhoDAO {
     }
 
     /** Tra cứu phiếu xuất theo từ khóa và khoảng ngày xuất. */
-    public List<PhieuXuatTraCuuInfo> timKiemPhieuXuat(String tuKhoa, LocalDate tuNgay, LocalDate denNgay)
+    public List<PhieuXuatKho> timKiemPhieuXuat(String tuKhoa, LocalDate tuNgay, LocalDate denNgay)
             throws SQLException {
         StringBuilder sql = new StringBuilder(
                 "SELECT PX.MaPhieuXuat, PX.NgayXuat, PX.MaLichHen, LH.MaBenhNhan, BN.HoTen, "
@@ -131,16 +131,25 @@ public class PhieuXuatKhoDAO {
                 ps.setDate(parameter, Date.valueOf(denNgay));
             }
             try (ResultSet rs = ps.executeQuery()) {
-                List<PhieuXuatTraCuuInfo> ketQua = new ArrayList<>();
+                List<PhieuXuatKho> ketQua = new ArrayList<>();
                 while (rs.next()) {
-                    ketQua.add(new PhieuXuatTraCuuInfo(
-                            rs.getString("MaPhieuXuat"),
-                            rs.getDate("NgayXuat").toLocalDate(),
-                            rs.getString("MaLichHen"),
-                            rs.getString("MaBenhNhan"),
-                            rs.getString("HoTen"),
-                            rs.getInt("SoLoaiVatTu"),
-                            rs.getInt("TongSoLuong")));
+                    PhieuXuatKho phieu = new PhieuXuatKho();
+                    phieu.setMaPhieuXuat(rs.getString("MaPhieuXuat"));
+                    phieu.setNgayXuat(rs.getDate("NgayXuat").toLocalDate());
+                    phieu.setMaLichHen(rs.getString("MaLichHen"));
+                    phieu.setSoLoaiVatTu(rs.getInt("SoLoaiVatTu"));
+                    phieu.setTongSoLuong(rs.getInt("TongSoLuong"));
+                    String maBenhNhan = rs.getString("MaBenhNhan");
+                    if (maBenhNhan != null) {
+                        BenhNhan benhNhan = new BenhNhan();
+                        benhNhan.setMaBenhNhan(maBenhNhan);
+                        benhNhan.setHoTen(rs.getString("HoTen"));
+                        LichHen lichHen = new LichHen();
+                        lichHen.setMaLichHen(rs.getString("MaLichHen"));
+                        lichHen.setBenhNhan(benhNhan);
+                        phieu.setLichHen(lichHen);
+                    }
+                    ketQua.add(phieu);
                 }
                 return ketQua;
             }
@@ -148,21 +157,24 @@ public class PhieuXuatKhoDAO {
     }
 
     /** Chi tiết vật tư của một phiếu xuất cụ thể. */
-    public List<ChiTietXuatInfo> layChiTietPhieuXuat(String maPhieuXuat) throws SQLException {
+    public List<ChiTietXuatKho> layChiTietPhieuXuat(String maPhieuXuat) throws SQLException {
         String sql = "SELECT CT.MaPhieuXuat, CT.MaVatTu, VT.TenVatTu, VT.DonViTinh, CT.SoLuongSuDung "
                 + "FROM ChiTietXuatKho CT JOIN VatTu VT ON VT.MaVatTu = CT.MaVatTu "
                 + "WHERE CT.MaPhieuXuat = ? ORDER BY CT.MaVatTu";
         try (PreparedStatement ps = ConnectDB.getConnection().prepareStatement(sql)) {
             ps.setString(1, maPhieuXuat);
             try (ResultSet rs = ps.executeQuery()) {
-                List<ChiTietXuatInfo> ketQua = new ArrayList<>();
+                List<ChiTietXuatKho> ketQua = new ArrayList<>();
                 while (rs.next()) {
-                    ketQua.add(new ChiTietXuatInfo(
-                            rs.getString("MaPhieuXuat"),
-                            rs.getString("MaVatTu"),
-                            rs.getString("TenVatTu"),
-                            rs.getString("DonViTinh"),
-                            rs.getInt("SoLuongSuDung")));
+                    entity.VatTu vatTu = new entity.VatTu();
+                    vatTu.setMaVatTu(rs.getString("MaVatTu"));
+                    vatTu.setTenVatTu(rs.getString("TenVatTu"));
+                    vatTu.setDonViTinh(rs.getString("DonViTinh"));
+                    ChiTietXuatKho chiTiet = new ChiTietXuatKho();
+                    chiTiet.setMaPhieuXuat(maPhieuXuat);
+                    chiTiet.setVatTu(vatTu);
+                    chiTiet.setSoLuongSuDung(rs.getInt("SoLuongSuDung"));
+                    ketQua.add(chiTiet);
                 }
                 return ketQua;
             }

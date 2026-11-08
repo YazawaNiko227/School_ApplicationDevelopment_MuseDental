@@ -33,7 +33,9 @@ public class ChiTietKeHoachDieuTriDichVu {
         this.maKeHoach = keHoachDieuTri;
     }
 
-    public void setMaKeHoach(KeHoachDieuTri keHoachDieuTri) { setKeHoachDieuTri(keHoachDieuTri); }
+    public void setMaKeHoach(KeHoachDieuTri keHoachDieuTri) {
+        setKeHoachDieuTri(keHoachDieuTri);
+    }
 
     public void setMaKeHoach(String maKeHoach) {
         if (maKeHoach == null)
@@ -63,7 +65,9 @@ public class ChiTietKeHoachDieuTriDichVu {
         this.maDichVu = dichVu;
     }
 
-    public void setMaDichVu(DichVu dichVu) { setDichVu(dichVu); }
+    public void setMaDichVu(DichVu dichVu) {
+        setDichVu(dichVu);
+    }
 
     public void setMaDichVu(String maDichVu) {
         if (maDichVu == null)

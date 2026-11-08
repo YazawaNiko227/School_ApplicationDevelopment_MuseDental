@@ -72,7 +72,9 @@ public class DonThuoc {
         this.maChanDoan = chanDoan;
     }
 
-    public void setMaChanDoan(ChanDoan chanDoan) { setChanDoan(chanDoan); }
+    public void setMaChanDoan(ChanDoan chanDoan) {
+        setChanDoan(chanDoan);
+    }
 
     public void setMaChanDoan(String maChanDoan) {
         if (maChanDoan == null)

@@ -1,7 +1,7 @@
 package gui;
 
 import com.toedter.calendar.JDateChooser;
-import entity.LichHenDieuPhoi;
+import entity.LichHen;
 import entity.PhongKham;
 import service.DieuPhoiPhongKhamService;
 import util.GiaoDienUtil;
@@ -372,16 +372,16 @@ public class XuLyDieuPhoiPhongKhamPanel extends JPanel {
                 showMessage("Vui lòng chọn ngày cần điều phối.");
                 return;
             }
-            List<LichHenDieuPhoi> lichTrongNgay = dieuPhoiService.layLichTheoNgay(ngayChon);
+            List<LichHen> lichTrongNgay = dieuPhoiService.layLichTheoNgay(ngayChon);
             List<PhongKham> phongKhamList = dieuPhoiService.layTatCaPhong();
             dsLichHen.clear();
-            for (LichHenDieuPhoi lich : lichTrongNgay) {
+            for (LichHen lich : lichTrongNgay) {
                 dsLichHen.add(new Object[] {
                         lich.getMaLichHen(),
                         lich.getThoiGianHen(),
-                        lich.getTenBenhNhan(),
-                        lich.getNhaSi(),
-                        lich.getMaPhong(),
+                        lich.getBenhNhan().getHoTen(),
+                        lich.getMaNhaSiPhuTrachId() + " - " + lich.getNhaSiPhuTrach().getHoTen(),
+                        lich.getMaPhongId(),
                         dieuPhoiService.trangThaiLichHienThi(lich.getTrangThai()),
                         lich.getThoiGianCheckIn()
                 });

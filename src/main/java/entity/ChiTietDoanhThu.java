@@ -20,10 +20,27 @@ public class ChiTietDoanhThu {
         this.thanhTien = thanhTien;
     }
 
-    public String getMaHoaDon() { return maHoaDon; }
-    public LocalDate getNgayLap() { return ngayLap; }
-    public String getPhuongThucThanhToan() { return phuongThucThanhToan; }
-    public String getLoai() { return loai; }
-    public String getTenMuc() { return tenMuc; }
-    public double getThanhTien() { return thanhTien; }
+    public String getMaHoaDon() {
+        return maHoaDon;
+    }
+
+    public LocalDate getNgayLap() {
+        return ngayLap;
+    }
+
+    public String getPhuongThucThanhToan() {
+        return phuongThucThanhToan;
+    }
+
+    public String getLoai() {
+        return loai;
+    }
+
+    public String getTenMuc() {
+        return tenMuc;
+    }
+
+    public double getThanhTien() {
+        return thanhTien;
+    }
 }

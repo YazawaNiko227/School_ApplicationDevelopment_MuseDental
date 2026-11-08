@@ -2,7 +2,7 @@ package dao;
 
 import connectDB.ConnectDB;
 import entity.BaoCaoDoanhThu;
-import entity.NhomDoanhThu;
+import entity.BaoCaoDoanhThu.NhomDoanhThu;
 import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;

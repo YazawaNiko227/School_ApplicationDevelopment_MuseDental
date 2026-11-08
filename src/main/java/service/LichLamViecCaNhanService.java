@@ -3,7 +3,7 @@ package service;
 import dao.CaTrucDAO;
 import dao.LichHenDAO;
 import dao.NhanVienDAO;
-import dto.LichHenInfo;
+import entity.LichHen;
 import entity.CaTruc;
 import entity.NhanVien;
 
@@ -57,7 +57,7 @@ public class LichLamViecCaNhanService {
         return caTrucDAO.layTheoTuan(maNhanVien, dauTuan, cuoiTuan);
     }
 
-    public List<LichHenInfo> layLichHenTuan(String maNhaSi, LocalDate dauTuan, LocalDate cuoiTuan)
+    public List<LichHen> layLichHenTuan(String maNhaSi, LocalDate dauTuan, LocalDate cuoiTuan)
             throws SQLException {
         kiemTraKhoangTuan(maNhaSi, dauTuan, cuoiTuan);
         return lichHenDAO.layTheoNhaSiTrongTuan(maNhaSi, dauTuan, cuoiTuan);

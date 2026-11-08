@@ -22,8 +22,10 @@ public class CongNoTraGop {
     }
 
     public void setMaCongNo(String maCongNo) {
-        if (maCongNo == null) throw new IllegalArgumentException("MaCongNo không được null.");
-        if (maCongNo != null && maCongNo.length() > 20) throw new IllegalArgumentException("MaCongNo tối đa 20 ký tự.");
+        if (maCongNo == null)
+            throw new IllegalArgumentException("MaCongNo không được null.");
+        if (maCongNo != null && maCongNo.length() > 20)
+            throw new IllegalArgumentException("MaCongNo tối đa 20 ký tự.");
         this.maCongNo = maCongNo;
     }
 
@@ -32,8 +34,10 @@ public class CongNoTraGop {
     }
 
     public void setTongSoTien(double tongSoTien) {
-        if (!Double.isFinite(tongSoTien)) throw new IllegalArgumentException("TongSoTien phải là số hữu hạn.");
-        if (tongSoTien < 0) throw new IllegalArgumentException("TongSoTien phải >= 0.");
+        if (!Double.isFinite(tongSoTien))
+            throw new IllegalArgumentException("TongSoTien phải là số hữu hạn.");
+        if (tongSoTien < 0)
+            throw new IllegalArgumentException("TongSoTien phải >= 0.");
         this.tongSoTien = tongSoTien;
     }
 
@@ -58,15 +62,20 @@ public class CongNoTraGop {
     }
 
     public void setHoaDon(HoaDon hoaDon) {
-        if (hoaDon == null) throw new IllegalArgumentException("HoaDon không được null.");
+        if (hoaDon == null)
+            throw new IllegalArgumentException("HoaDon không được null.");
         this.maHoaDon = hoaDon;
     }
 
-    public void setMaHoaDon(HoaDon hoaDon) { setHoaDon(hoaDon); }
+    public void setMaHoaDon(HoaDon hoaDon) {
+        setHoaDon(hoaDon);
+    }
 
     public void setMaHoaDon(String maHoaDon) {
-        if (maHoaDon == null) throw new IllegalArgumentException("MaHoaDon không được null.");
-        if (maHoaDon != null && maHoaDon.length() > 20) throw new IllegalArgumentException("MaHoaDon tối đa 20 ký tự.");
+        if (maHoaDon == null)
+            throw new IllegalArgumentException("MaHoaDon không được null.");
+        if (maHoaDon != null && maHoaDon.length() > 20)
+            throw new IllegalArgumentException("MaHoaDon tối đa 20 ký tự.");
         HoaDon hoaDon = new HoaDon();
         hoaDon.setMaHoaDon(maHoaDon);
         this.maHoaDon = hoaDon;

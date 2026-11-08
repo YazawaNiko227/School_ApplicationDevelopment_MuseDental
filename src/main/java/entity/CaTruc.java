@@ -106,7 +106,9 @@ public class CaTruc {
         this.maNhanVien = nhanVien;
     }
 
-    public void setMaNhanVien(NhanVien nhanVien) { setNhanVien(nhanVien); }
+    public void setMaNhanVien(NhanVien nhanVien) {
+        setNhanVien(nhanVien);
+    }
 
     public void setMaNhanVien(String maNhanVien) {
         if (maNhanVien == null)
@@ -136,7 +138,9 @@ public class CaTruc {
         this.maPhong = phongKham;
     }
 
-    public void setMaPhong(PhongKham phongKham) { setPhongKham(phongKham); }
+    public void setMaPhong(PhongKham phongKham) {
+        setPhongKham(phongKham);
+    }
 
     public void setMaPhong(String maPhong) {
         if (maPhong == null)

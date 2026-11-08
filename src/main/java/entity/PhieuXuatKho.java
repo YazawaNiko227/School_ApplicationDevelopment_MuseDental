@@ -11,6 +11,8 @@ public class PhieuXuatKho {
     private LocalDate ngayXuat;
     private NhanVien maNhanVien;
     private LichHen maLichHen;
+    private int soLoaiVatTu;
+    private int tongSoLuong;
 
     public PhieuXuatKho() {
         this.ngayXuat = LocalDate.now();
@@ -63,7 +65,9 @@ public class PhieuXuatKho {
         this.maNhanVien = nhanVien;
     }
 
-    public void setMaNhanVien(NhanVien nhanVien) { setNhanVien(nhanVien); }
+    public void setMaNhanVien(NhanVien nhanVien) {
+        setNhanVien(nhanVien);
+    }
 
     public void setMaNhanVien(String maNhanVien) {
         if (maNhanVien == null || maNhanVien.trim().isEmpty())
@@ -91,7 +95,9 @@ public class PhieuXuatKho {
         this.maLichHen = lichHen;
     }
 
-    public void setMaLichHen(LichHen lichHen) { setLichHen(lichHen); }
+    public void setMaLichHen(LichHen lichHen) {
+        setLichHen(lichHen);
+    }
 
     public void setMaLichHen(String maLichHen) {
         if (maLichHen != null && maLichHen.length() > 20)
@@ -103,5 +109,21 @@ public class PhieuXuatKho {
             lichHen.setMaLichHen(maLichHen.trim());
             this.maLichHen = lichHen;
         }
+    }
+
+    public int getSoLoaiVatTu() {
+        return soLoaiVatTu;
+    }
+
+    public void setSoLoaiVatTu(int soLoaiVatTu) {
+        this.soLoaiVatTu = soLoaiVatTu;
+    }
+
+    public int getTongSoLuong() {
+        return tongSoLuong;
+    }
+
+    public void setTongSoLuong(int tongSoLuong) {
+        this.tongSoLuong = tongSoLuong;
     }
 }

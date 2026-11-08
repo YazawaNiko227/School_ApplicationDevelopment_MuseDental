@@ -48,7 +48,9 @@ public class BanGhiBenhAn {
         this.maHoSo = hoSoBenhAn;
     }
 
-    public void setMaHoSo(HoSoBenhAn hoSoBenhAn) { setHoSoBenhAn(hoSoBenhAn); }
+    public void setMaHoSo(HoSoBenhAn hoSoBenhAn) {
+        setHoSoBenhAn(hoSoBenhAn);
+    }
 
     public void setMaHoSo(String maHoSo) {
         if (maHoSo == null) {
@@ -76,7 +78,9 @@ public class BanGhiBenhAn {
         this.maChanDoan = chanDoan;
     }
 
-    public void setMaChanDoan(ChanDoan chanDoan) { setChanDoan(chanDoan); }
+    public void setMaChanDoan(ChanDoan chanDoan) {
+        setChanDoan(chanDoan);
+    }
 
     public void setMaChanDoan(String maChanDoan) {
         if (maChanDoan == null) {
@@ -104,7 +108,9 @@ public class BanGhiBenhAn {
         this.maBenhNhan = benhNhan;
     }
 
-    public void setMaBenhNhan(BenhNhan benhNhan) { setBenhNhan(benhNhan); }
+    public void setMaBenhNhan(BenhNhan benhNhan) {
+        setBenhNhan(benhNhan);
+    }
 
     public void setMaBenhNhan(String maBenhNhan) {
         if (maBenhNhan == null) {
@@ -148,7 +154,9 @@ public class BanGhiBenhAn {
         this.maNhaSi = nhaSi;
     }
 
-    public void setMaNhaSi(NhanVien nhaSi) { setNhaSi(nhaSi); }
+    public void setMaNhaSi(NhanVien nhaSi) {
+        setNhaSi(nhaSi);
+    }
 
     public void setMaNhaSi(String maNhaSi) {
         if (maNhaSi == null) {

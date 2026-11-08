@@ -1,7 +1,6 @@
 package gui;
 
 import com.toedter.calendar.JDateChooser;
-import dto.HoaDonTraCuuView;
 import entity.DongTinhTien;
 import entity.DotHoaDon;
 import entity.HoaDonTraCuu;
@@ -87,7 +86,7 @@ public class TimKiemTraCuuHoaDonPanel extends JPanel {
 
     private final InvoiceSearchService invoiceSearchService = new InvoiceSearchService();
     // Các hóa đơn đang hiển thị trong bảng (cùng thứ tự với dòng bảng).
-    private final List<HoaDonTraCuuView> dangHienThi = new ArrayList<>();
+    private final List<HoaDonTraCuu> dangHienThi = new ArrayList<>();
 
     // ----- Bộ lọc -----
     private final JTextField txtTuKhoa = new JTextField();
@@ -244,17 +243,13 @@ public class TimKiemTraCuuHoaDonPanel extends JPanel {
         try {
             List<HoaDonTraCuu> ketQua = invoiceSearchService.timKiemHoaDon(
                     tuKhoa, giaTriPhuongThucDb(phuongThuc), giaTriTrangThaiDb(trangThai), tuNgay, denNgay);
-            for (HoaDonTraCuu dong : ketQua) {
-                HoaDonTraCuuView hd = new HoaDonTraCuuView(dong.maHoaDon(), dong.ngayLap(), dong.maBenhNhan(),
-                        dong.tenBenhNhan(), dong.maNhanVien(), dong.tenNhanVien(),
-                        hienThiPhuongThuc(dong.phuongThuc()), hienThiTrangThai(dong.trangThai()),
-                        new Object[0][0], new Object[0][0], new Object[0][0], dong.tongTien());
+            for (HoaDonTraCuu hd : ketQua) {
                 dangHienThi.add(hd);
                 tableModel.addRow(new Object[] {
-                        hd.ma, hd.ngayLap.format(NGAY), hd.maBenhNhan, hd.tenBenhNhan,
-                        hd.maNhanVien + " - " + hd.tenNhanVien,
-                        hd.phuongThuc == null ? "-" : hd.phuongThuc,
-                        hd.trangThai, TIEN.format(dong.tongTien()) });
+                        hd.maHoaDon(), hd.ngayLap().format(NGAY), hd.maBenhNhan(), hd.tenBenhNhan(),
+                        hd.maNhanVien() + " - " + hd.tenNhanVien(),
+                        hienThiPhuongThuc(hd.phuongThuc()) == null ? "-" : hienThiPhuongThuc(hd.phuongThuc()),
+                        hienThiTrangThai(hd.trangThai()), TIEN.format(hd.tongTien()) });
             }
         } catch (java.sql.SQLException exception) {
             JOptionPane.showMessageDialog(this,
@@ -283,24 +278,23 @@ public class TimKiemTraCuuHoaDonPanel extends JPanel {
                     "Thông báo", JOptionPane.INFORMATION_MESSAGE);
             return;
         }
-        HoaDonTraCuuView summary = dangHienThi.get(row);
-        HoaDonTraCuuView hd;
+        HoaDonTraCuu hd = dangHienThi.get(table.convertRowIndexToModel(row));
+        List<DongTinhTien> dichVu;
+        List<DongTinhTien> thuoc;
+        List<DotHoaDon> dots;
         try {
-            List<DongTinhTien> dichVu = invoiceSearchService.layChiTietDichVuHoaDon(summary.ma);
-            List<DongTinhTien> thuoc = invoiceSearchService.layChiTietThuocHoaDon(summary.ma);
-            List<DotHoaDon> dots = invoiceSearchService.layDotThanhToanHoaDon(summary.ma);
-            hd = new HoaDonTraCuuView(summary.ma, summary.ngayLap, summary.maBenhNhan, summary.tenBenhNhan,
-                    summary.maNhanVien, summary.tenNhanVien, summary.phuongThuc, summary.trangThai,
-                    chuyenDoiDong(dichVu), chuyenDoiDong(thuoc), chuyenDoiDot(dots), summary.tongTienDb);
+            dichVu = invoiceSearchService.layChiTietDichVuHoaDon(hd.maHoaDon());
+            thuoc = invoiceSearchService.layChiTietThuocHoaDon(hd.maHoaDon());
+            dots = invoiceSearchService.layDotThanhToanHoaDon(hd.maHoaDon());
         } catch (java.sql.SQLException exception) {
             JOptionPane.showMessageDialog(this,
-                    "Không thể tải chi tiết hóa đơn " + summary.ma + ":\n" + exception.getMessage(),
+                    "Không thể tải chi tiết hóa đơn " + hd.maHoaDon() + ":\n" + exception.getMessage(),
                     "Lỗi tải chi tiết", JOptionPane.ERROR_MESSAGE);
             return;
         }
 
         Window owner = SwingUtilities.getWindowAncestor(this);
-        JDialog dialog = new JDialog(owner, "Chi tiết hóa đơn " + hd.ma, Dialog.ModalityType.APPLICATION_MODAL);
+        JDialog dialog = new JDialog(owner, "Chi tiết hóa đơn " + hd.maHoaDon(), Dialog.ModalityType.APPLICATION_MODAL);
         dialog.setSize(820, 640);
         dialog.setLocationRelativeTo(this);
         dialog.setLayout(new BorderLayout());
@@ -311,36 +305,43 @@ public class TimKiemTraCuuHoaDonPanel extends JPanel {
         content.setBorder(new EmptyBorder(16, 20, 16, 20));
 
         // Thông tin chung.
-        JLabel lblTieuDe = new JLabel("Hóa đơn " + hd.ma + "  ·  Ngày lập " + hd.ngayLap.format(NGAY));
+        JLabel lblTieuDe = new JLabel("Hóa đơn " + hd.maHoaDon() + "  ·  Ngày lập " + hd.ngayLap().format(NGAY));
         lblTieuDe.setFont(new Font("Arial", Font.BOLD, 15));
         lblTieuDe.setForeground(INK);
         content.add(left(lblTieuDe));
         content.add(Box.createVerticalStrut(8));
-        content.add(left(createInfoLabel("Bệnh nhân: " + hd.tenBenhNhan + " (" + hd.maBenhNhan + ")")));
+        content.add(left(createInfoLabel("Bệnh nhân: " + hd.tenBenhNhan() + " (" + hd.maBenhNhan() + ")")));
         content.add(Box.createVerticalStrut(4));
-        content.add(left(createInfoLabel("Nhân viên lập: " + hd.tenNhanVien + " (" + hd.maNhanVien + ")")));
+        content.add(left(createInfoLabel("Nhân viên lập: " + hd.tenNhanVien() + " (" + hd.maNhanVien() + ")")));
         content.add(Box.createVerticalStrut(4));
-        content.add(left(createInfoLabel("Phương thức: " + (hd.phuongThuc == null ? "chưa chọn" : hd.phuongThuc)
-                + "  ·  Trạng thái: " + hd.trangThai)));
+        String phuongThucHienThi = hienThiPhuongThuc(hd.phuongThuc());
+        content.add(left(createInfoLabel("Phương thức: " + (phuongThucHienThi == null ? "chưa chọn" : phuongThucHienThi)
+                + "  ·  Trạng thái: " + hienThiTrangThai(hd.trangThai()))));
         content.add(Box.createVerticalStrut(14));
 
         // Dịch vụ.
         content.add(createBangChiTiet("Dịch vụ điều trị",
                 new String[] { "Mã", "Tên dịch vụ", "Đơn giá (đ)", "SL", "Thành tiền (đ)" },
-                dongTien(hd.dichVu)));
+                dongTien(dichVu)));
         content.add(Box.createVerticalStrut(12));
 
         // Thuốc.
         content.add(createBangChiTiet("Thuốc theo đơn",
                 new String[] { "Mã", "Tên thuốc", "Đơn giá (đ)", "SL", "Thành tiền (đ)" },
-                dongTien(hd.thuoc)));
+                dongTien(thuoc)));
         content.add(Box.createVerticalStrut(12));
 
         // Các đợt thanh toán (chỉ có với hóa đơn trả góp).
-        if (hd.dots.length > 0) {
+        if (!dots.isEmpty()) {
             List<Object[]> dong = new ArrayList<>();
-            for (Object[] d : hd.dots) {
-                dong.add(new Object[] { d[0], d[1], TIEN.format((Double) d[2]), d[3], d[4] });
+            for (DotHoaDon dot : dots) {
+                dong.add(new Object[] {
+                        dot.ma(),
+                        dot.ngayDenHan().format(NGAY),
+                        TIEN.format(dot.soTien()),
+                        hienThiTrangThai(dot.trangThai()),
+                        dot.ngayThanhToan() == null ? "-" : dot.ngayThanhToan().format(NGAY)
+                });
             }
             content.add(createBangChiTiet("Các đợt thanh toán",
                     new String[] { "Mã đợt", "Ngày đến hạn", "Số tiền (đ)", "Trạng thái", "Ngày thu" }, dong));
@@ -348,14 +349,14 @@ public class TimKiemTraCuuHoaDonPanel extends JPanel {
         }
 
         // Tổng tiền.
-        content.add(createMoneyRow("Cộng tiền dịch vụ", hd.tienDichVu(), 13, INK));
+        content.add(createMoneyRow("Cộng tiền dịch vụ", tongTien(dichVu), 13, INK));
         content.add(Box.createVerticalStrut(4));
-        content.add(createMoneyRow("Cộng tiền thuốc", hd.tienThuoc(), 13, INK));
+        content.add(createMoneyRow("Cộng tiền thuốc", tongTien(thuoc), 13, INK));
         content.add(Box.createVerticalStrut(6));
         content.add(createMoneyRow("TỔNG GIÁ TRỊ HÓA ĐƠN", hd.tongTien(), 18, TEAL));
 
-        if (CHUYEN_KHOAN.equals(hd.phuongThuc) || "Chuyen khoan".equals(hd.phuongThuc)) {
-            String noiDungQr = "THANH TOAN " + hd.ma + " - " + TIEN.format(hd.tongTien()) + " d";
+        if (CHUYEN_KHOAN.equals(phuongThucHienThi)) {
+            String noiDungQr = "THANH TOAN " + hd.maHoaDon() + " - " + TIEN.format(hd.tongTien()) + " d";
             JPanel qrBox = new JPanel(new BorderLayout(14, 0));
             qrBox.setOpaque(false);
             qrBox.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -438,39 +439,21 @@ public class TimKiemTraCuuHoaDonPanel extends JPanel {
         return trangThai;
     }
 
-    private static Object[][] chuyenDoiDong(List<DongTinhTien> dong) {
-        Object[][] ketQua = new Object[dong.size()][4];
-        for (int i = 0; i < dong.size(); i++) {
-            DongTinhTien ct = dong.get(i);
-            ketQua[i] = new Object[] { ct.ma(), ct.ten(), ct.donGia(), ct.soLuong() };
-        }
-        return ketQua;
-    }
-
-    private static Object[][] chuyenDoiDot(List<DotHoaDon> dots) {
-        Object[][] ketQua = new Object[dots.size()][5];
-        for (int i = 0; i < dots.size(); i++) {
-            DotHoaDon dot = dots.get(i);
-            ketQua[i] = new Object[] {
-                    dot.ma(),
-                    dot.ngayDenHan().format(NGAY),
-                    dot.soTien(),
-                    hienThiTrangThai(dot.trangThai()),
-                    dot.ngayThanhToan() == null ? "-" : dot.ngayThanhToan().format(NGAY)
-            };
-        }
-        return ketQua;
-    }
-
-    // Đổi các dòng {mã, tên, đơn giá, số lượng} thành dòng hiển thị có thành tiền.
-    private List<Object[]> dongTien(Object[][] dong) {
+    private List<Object[]> dongTien(List<DongTinhTien> dong) {
         List<Object[]> kq = new ArrayList<>();
-        for (Object[] d : dong) {
-            double donGia = (Double) d[2];
-            int soLuong = (Integer) d[3];
-            kq.add(new Object[] { d[0], d[1], TIEN.format(donGia), soLuong, TIEN.format(donGia * soLuong) });
+        for (DongTinhTien d : dong) {
+            kq.add(new Object[] { d.ma(), d.ten(), TIEN.format(d.donGia()), d.soLuong(),
+                    TIEN.format(d.thanhTien()) });
         }
         return kq;
+    }
+
+    private double tongTien(List<DongTinhTien> dong) {
+        double tong = 0;
+        for (DongTinhTien dongTinhTien : dong) {
+            tong += dongTinhTien.thanhTien();
+        }
+        return tong;
     }
 
     private LocalDate toLocalDate(Date date) {

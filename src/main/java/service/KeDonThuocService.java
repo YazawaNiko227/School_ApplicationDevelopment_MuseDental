@@ -2,9 +2,7 @@ package service;
 
 import dao.DonThuocDAO;
 import dao.VatTuDAO;
-import dto.DonThuocDaLuu;
-import dto.LanKham;
-import dto.ThuocDonThuocDaLuu;
+import entity.ChanDoan;
 import entity.ChiTietDonThuoc;
 import entity.DonThuoc;
 import entity.VatTu;
@@ -16,15 +14,15 @@ public class KeDonThuocService {
     private final DonThuocDAO donThuocDAO = new DonThuocDAO();
     private final VatTuDAO vatTuDAO = new VatTuDAO();
 
-    public List<LanKham> layLanKhamChoKeDon() throws SQLException {
+    public List<ChanDoan> layLanKhamChoKeDon() throws SQLException {
         return donThuocDAO.layLanKhamChoKeDon();
     }
 
-    public List<DonThuocDaLuu> layDanhSachDonThuocDaLuu() throws SQLException {
+    public List<DonThuoc> layDanhSachDonThuocDaLuu() throws SQLException {
         return donThuocDAO.layDanhSachDonThuocDaLuu();
     }
 
-    public List<ThuocDonThuocDaLuu> layThuocDaKe(String maDonThuoc) throws SQLException {
+    public List<ChiTietDonThuoc> layThuocDaKe(String maDonThuoc) throws SQLException {
         if (maDonThuoc == null || maDonThuoc.trim().isEmpty()) {
             throw new IllegalArgumentException("Mã đơn thuốc không hợp lệ.");
         }

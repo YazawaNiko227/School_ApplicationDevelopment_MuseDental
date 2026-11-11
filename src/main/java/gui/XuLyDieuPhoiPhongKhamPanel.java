@@ -270,7 +270,7 @@ public class XuLyDieuPhoiPhongKhamPanel extends JPanel {
         String maPhong = (String) lich[C_PHONG];
         try {
             if (!dieuPhoiService.checkIn(maLichHen, (String) lich[C_TRANG_THAI])) {
-                showMessage("Lịch hẹn đã được cập nhật ở nơi khác. Danh sách sẽ được tải lại.");
+                showMessage("Lịch hẹn không cập nhật được");
                 lamMoi();
                 return;
             }
@@ -345,7 +345,7 @@ public class XuLyDieuPhoiPhongKhamPanel extends JPanel {
         if (choice == JOptionPane.YES_OPTION) {
             try {
                 if (!dieuPhoiService.danhDauVang((String) lich[C_MA], (String) lich[C_TRANG_THAI])) {
-                    showMessage("Lịch hẹn đã được cập nhật ở nơi khác. Danh sách sẽ được tải lại.");
+                    showMessage("Lịch hẹn không cập nhật được.");
                 }
                 lamMoi();
             } catch (SQLException ex) {

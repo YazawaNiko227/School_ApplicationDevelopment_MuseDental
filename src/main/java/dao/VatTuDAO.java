@@ -42,36 +42,52 @@ public class VatTuDAO {
     }
 
     public List<VatTu> timKiem(String tuKhoa, String loaiVatTu) throws SQLException {
-        StringBuilder sql = new StringBuilder(
-                "SELECT MaVatTu, TenVatTu, LoaiVatTu, DonViTinh, SoLuongTon, "
-                        + "NguongToiThieu, HanSuDung, DonGiaBan FROM VatTu WHERE 1 = 1");
-        if (loaiVatTu != null) {
-            sql.append(" AND LoaiVatTu = ?");
+        // Làm sạch từ khóa: null thì thành chuỗi rỗng, rồi cắt khoảng trắng
+        if (tuKhoa == null) {
+            tuKhoa = "";
         }
-        String tuKhoaTrim = tuKhoa == null ? "" : tuKhoa.trim();
-        if (!tuKhoaTrim.isEmpty()) {
-            sql.append(" AND (MaVatTu LIKE ? OR TenVatTu LIKE ?)");
-        }
-        sql.append(" ORDER BY MaVatTu");
+        tuKhoa = tuKhoa.trim();
 
-        List<VatTu> vatTuList = new ArrayList<>();
-        try (PreparedStatement statement = getConnection().prepareStatement(sql.toString())) {
-            int parameterIndex = 1;
-            if (loaiVatTu != null) {
-                statement.setString(parameterIndex++, loaiVatTu);
+        boolean coLoai = (loaiVatTu != null);
+        boolean coTuKhoa = !tuKhoa.isEmpty();
+
+        // Câu SQL gốc
+        String sql = "SELECT MaVatTu, TenVatTu, LoaiVatTu, DonViTinh, SoLuongTon, "
+                + "NguongToiThieu, HanSuDung, DonGiaBan FROM VatTu WHERE 1 = 1";
+
+        // Có điều kiện nào thì nối thêm điều kiện đó
+        if (coLoai) {
+            sql = sql + " AND LoaiVatTu = ?";
+        }
+        if (coTuKhoa) {
+            sql = sql + " AND (MaVatTu LIKE ? OR TenVatTu LIKE ?)";
+        }
+        sql = sql + " ORDER BY MaVatTu";
+
+        List<VatTu> danhSach = new ArrayList<>();
+
+        try (PreparedStatement statement = getConnection().prepareStatement(sql)) {
+            // Điền giá trị vào các dấu ? theo đúng thứ tự đã nối ở trên
+            int viTri = 1;
+
+            if (coLoai) {
+                statement.setString(viTri, loaiVatTu);
+                viTri = viTri + 1;
             }
-            if (!tuKhoaTrim.isEmpty()) {
-                String pattern = "%" + tuKhoaTrim + "%";
-                statement.setString(parameterIndex++, pattern);
-                statement.setString(parameterIndex, pattern);
+            if (coTuKhoa) {
+                String mau = "%" + tuKhoa + "%";
+                statement.setString(viTri, mau); // ? của MaVatTu
+                statement.setString(viTri + 1, mau); // ? của TenVatTu
             }
+
+            // Chạy câu lệnh và đọc từng dòng kết quả
             try (ResultSet result = statement.executeQuery()) {
                 while (result.next()) {
-                    vatTuList.add(docVatTu(result));
+                    danhSach.add(docVatTu(result));
                 }
             }
         }
-        return vatTuList;
+        return danhSach;
     }
 
     public VatTu timTheoMa(String maVatTu) throws SQLException {

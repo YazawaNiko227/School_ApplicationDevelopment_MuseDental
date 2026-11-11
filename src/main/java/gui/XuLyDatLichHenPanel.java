@@ -85,7 +85,8 @@ public final class XuLyDatLichHenPanel extends JPanel {
     private final JComboBox<NhanVien> cboNhaSi = new JComboBox<>();
     private final JComboBox<PhongKham> cboPhong = new JComboBox<>();
     private final JDateChooser chonNgayHen = new JDateChooser();
-    private final JSpinner spnGioHen = new JSpinner(new SpinnerDateModel(new Date(), null, null, Calendar.MINUTE));
+    private final JSpinner spnGioHen = new JSpinner(
+            new SpinnerDateModel(gioHenMacDinh(), null, null, Calendar.MINUTE));
 
     // ----- Bảng danh sách -----
     private final DefaultTableModel tableModel = new DefaultTableModel(
@@ -456,6 +457,10 @@ public final class XuLyDatLichHenPanel extends JPanel {
         if (thoiGianHen == null) {
             return;
         }
+        if (thoiGianHen.isBefore(LocalDateTime.now())) {
+            themThongBaoNhaSi("Giờ hẹn đã qua; hãy chọn giờ sau thời điểm hiện tại.");
+            return;
+        }
         try {
             List<NhanVien> nhaSiRanh = datLichHenService.layNhaSiRanh(thoiGianHen);
             for (NhanVien nhaSi : nhaSiRanh) {
@@ -465,16 +470,20 @@ public final class XuLyDatLichHenPanel extends JPanel {
                 }
             }
             if (nhaSiRanh.isEmpty()) {
-                NhanVien giuCho = new NhanVien(); // không có mã
-                giuCho.setHoTen("Không có nha sĩ rảnh trong thời gian này");
-                cboNhaSi.addItem(giuCho);
-                cboNhaSi.setToolTipText("Không có nha sĩ rảnh hoặc có ca trực vào thời gian đã chọn.");
+                themThongBaoNhaSi("Không có nha sĩ đang trực và rảnh vào thời gian đã chọn.");
             } else {
                 cboNhaSi.setToolTipText("Chỉ hiển thị nha sĩ có ca trực và chưa có lịch hẹn vào thời gian này.");
             }
         } catch (SQLException ex) {
             showDatabaseError("Không thể tải danh sách nha sĩ rảnh.", ex);
         }
+    }
+
+    private void themThongBaoNhaSi(String thongBao) {
+        NhanVien giuCho = new NhanVien();
+        giuCho.setHoTen(thongBao);
+        cboNhaSi.addItem(giuCho);
+        cboNhaSi.setToolTipText(thongBao);
     }
 
     private void loadAppointments() {
@@ -520,6 +529,14 @@ public final class XuLyDatLichHenPanel extends JPanel {
         return day.getTime().toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime();
     }
 
+    private static Date gioHenMacDinh() {
+        Calendar nextMinute = Calendar.getInstance();
+        nextMinute.add(Calendar.MINUTE, 1);
+        nextMinute.set(Calendar.SECOND, 0);
+        nextMinute.set(Calendar.MILLISECOND, 0);
+        return nextMinute.getTime();
+    }
+
     /**
      * Trả về chỉ số dòng theo model, hoặc -1 (kèm thông báo) nếu chưa chọn dòng
      * nào.
@@ -561,7 +578,7 @@ public final class XuLyDatLichHenPanel extends JPanel {
         khoaThongTinBenhNhan(true);
         cboPhong.setSelectedIndex(cboPhong.getItemCount() == 0 ? -1 : 0);
         GiaoDienUtil.datNgayDuocChon(chonNgayHen, LocalDateTime.now().toLocalDate());
-        spnGioHen.setValue(new Date());
+        spnGioHen.setValue(gioHenMacDinh());
         napNhaSiRanh();
     }
 

@@ -43,9 +43,12 @@ import javax.swing.table.DefaultTableModel;
  * Dữ liệu và quy tắc kê đơn được xử lý qua KeDonThuocService.
  *
  * Quy tắc nghiệp vụ chuẩn y khoa & CSDL:
- * - Mỗi lần khám (ChanDoan) có tối đa 1 đơn thuốc (ràng buộc UQ_DonThuoc_ChanDoan).
- * - Một thuốc chỉ xuất hiện 1 dòng trong một đơn (khóa chính (MaDonThuoc, MaVatTu)).
- * - Thao tác "Lưu đơn thuốc" thực thi trong một Transaction duy nhất (All or Nothing).
+ * - Mỗi lần khám (ChanDoan) có tối đa 1 đơn thuốc (ràng buộc
+ * UQ_DonThuoc_ChanDoan).
+ * - Một thuốc chỉ xuất hiện 1 dòng trong một đơn (khóa chính (MaDonThuoc,
+ * MaVatTu)).
+ * - Thao tác "Lưu đơn thuốc" thực thi trong một Transaction duy nhất (All or
+ * Nothing).
  */
 public class CapNhatKeDonThuocDienTuPanel extends JPanel {
 
@@ -76,7 +79,9 @@ public class CapNhatKeDonThuocDienTuPanel extends JPanel {
     private final DefaultTableModel modelThuoc = new DefaultTableModel(
             new String[] { "Mã", "Tên thuốc", "ĐVT", "Tồn", "Giá bán (đ)" }, 0) {
         @Override
-        public boolean isCellEditable(int row, int column) { return false; }
+        public boolean isCellEditable(int row, int column) {
+            return false;
+        }
     };
     private final JTable bangThuoc = new JTable(modelThuoc);
     private final JTextField txtLieuDung = new JTextField();
@@ -89,7 +94,9 @@ public class CapNhatKeDonThuocDienTuPanel extends JPanel {
     private final DefaultTableModel modelDon = new DefaultTableModel(
             new String[] { "Mã", "Tên thuốc", "Liều dùng", "Đường dùng", "SL", "Thành tiền (đ)" }, 0) {
         @Override
-        public boolean isCellEditable(int row, int column) { return false; }
+        public boolean isCellEditable(int row, int column) {
+            return false;
+        }
     };
     private final JTable bangDon = new JTable(modelDon);
     private final JLabel lblTongTien = new JLabel("0 đ");
@@ -142,7 +149,10 @@ public class CapNhatKeDonThuocDienTuPanel extends JPanel {
         return the;
     }
 
-    /** Thẻ danh mục thuốc bên trái: tìm kiếm thuốc và chọn liều dùng để thêm vào đơn. */
+    /**
+     * Thẻ danh mục thuốc bên trái: tìm kiếm thuốc và chọn liều dùng để thêm vào
+     * đơn.
+     */
     private JPanel taoTheDanhMucThuoc() {
         JPanel the = new JPanel(new BorderLayout(0, 12));
         GiaoDienUtil.trangTriThe(the);
@@ -335,10 +345,13 @@ public class CapNhatKeDonThuocDienTuPanel extends JPanel {
     // 3. XỬ LÝ NGHIỆP VỤ KÊ ĐƠN
     // =========================================================================
 
-    /** Khi chọn lần khám: tải đơn thuốc đã lưu (nếu có) hoặc chuẩn bị tạo đơn mới. */
+    /**
+     * Khi chọn lần khám: tải đơn thuốc đã lưu (nếu có) hoặc chuẩn bị tạo đơn mới.
+     */
     private void chonLanKham() {
         int index = cboLanKham.getSelectedIndex();
-        if (index < 0 || index >= danhSachLanKham.size()) return;
+        if (index < 0 || index >= danhSachLanKham.size())
+            return;
 
         ChanDoan lk = danhSachLanKham.get(index);
         lblBenhNhan.setText("Bệnh nhân: " + lk.getBenhNhan().getHoTen() + "  ·  Mã: " + lk.getMaBenhNhanId());
@@ -367,12 +380,12 @@ public class CapNhatKeDonThuocDienTuPanel extends JPanel {
                 lblNgayKe.setText(LocalDate.now().format(DINH_DANG_NGAY));
                 txtLoiDan.setText("");
             } else {
-                lblTrangThaiDon.setText("Đã có đơn thuốc " + donThuocHienTai.getMaDonThuoc() + ". Lưu sẽ cập nhật đơn này.");
+                lblTrangThaiDon
+                        .setText("Đã có đơn thuốc " + donThuocHienTai.getMaDonThuoc() + ". Lưu sẽ cập nhật đơn này.");
                 lblNgayKe.setText(donThuocHienTai.getNgayKe().format(DINH_DANG_NGAY));
                 txtLoiDan.setText(donThuocHienTai.getLoiDanChamSoc() == null ? "" : donThuocHienTai.getLoiDanChamSoc());
 
-                List<ChiTietDonThuoc> chiTietList =
-                        keDonThuocService.layChiTiet(donThuocHienTai.getMaDonThuoc());
+                List<ChiTietDonThuoc> chiTietList = keDonThuocService.layChiTiet(donThuocHienTai.getMaDonThuoc());
                 for (ChiTietDonThuoc ct : chiTietList) {
                     mapChiTietDangSoan.put(ct.getMaVatTuId(), ct);
                 }
@@ -383,7 +396,10 @@ public class CapNhatKeDonThuocDienTuPanel extends JPanel {
         }
     }
 
-    /** Thêm thuốc từ danh mục vào đơn đang soạn (ghi đè nếu thuốc đã tồn tại trong đơn). */
+    /**
+     * Thêm thuốc từ danh mục vào đơn đang soạn (ghi đè nếu thuốc đã tồn tại trong
+     * đơn).
+     */
     private void themThuocVaoDon() {
         int row = bangThuoc.getSelectedRow();
         if (row < 0) {
@@ -393,7 +409,8 @@ public class CapNhatKeDonThuocDienTuPanel extends JPanel {
 
         String maVatTu = (String) modelThuoc.getValueAt(row, 0);
         VatTu vt = mapCacheVatTu.get(maVatTu);
-        if (vt == null) return;
+        if (vt == null)
+            return;
 
         String lieuDung = txtLieuDung.getText().trim();
         int soLuong = (Integer) spnSoLuong.getValue();
@@ -407,7 +424,8 @@ public class CapNhatKeDonThuocDienTuPanel extends JPanel {
         }
 
         String duongDung = (String) cboDuongDung.getSelectedItem();
-        ChiTietDonThuoc ct = new ChiTietDonThuoc(donThuocHienTai.getMaDonThuoc(), maVatTu, lieuDung, duongDung, soLuong);
+        ChiTietDonThuoc ct = new ChiTietDonThuoc(donThuocHienTai.getMaDonThuoc(), maVatTu, lieuDung, duongDung,
+                soLuong);
         mapChiTietDangSoan.put(maVatTu, ct);
 
         txtLieuDung.setText("");
@@ -476,7 +494,8 @@ public class CapNhatKeDonThuocDienTuPanel extends JPanel {
                     "Cảnh báo dị ứng",
                     JOptionPane.YES_NO_OPTION,
                     JOptionPane.WARNING_MESSAGE);
-            if (xacNhan != JOptionPane.YES_OPTION) return;
+            if (xacNhan != JOptionPane.YES_OPTION)
+                return;
         }
 
         donThuocHienTai.setLoiDanChamSoc(loiDan.isEmpty() ? null : loiDan);
@@ -485,6 +504,7 @@ public class CapNhatKeDonThuocDienTuPanel extends JPanel {
         try {
             keDonThuocService.luuDonThuoc(donThuocHienTai, chiTietList);
             GiaoDienUtil.thongBao(this, "Đã lưu đơn thuốc " + donThuocHienTai.getMaDonThuoc() + " thành công!");
+            taiDanhSachThuoc();
             chonLanKham();
         } catch (SQLException e) {
             GiaoDienUtil.baoLoi(this, e);

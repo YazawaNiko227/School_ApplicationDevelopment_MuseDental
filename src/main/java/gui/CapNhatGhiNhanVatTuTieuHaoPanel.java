@@ -29,6 +29,8 @@ import javax.swing.JTextField;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.table.DefaultTableModel;
 
+import dao.VatTuDAO;
+
 /**
  * Panel "Ghi nhận vật tư tiêu hao" (xuất kho dùng cho lần khám hoặc phòng
  * khám).
@@ -271,12 +273,9 @@ public class CapNhatGhiNhanVatTuTieuHaoPanel extends JPanel {
 
     /** Nạp danh mục vật tư y tế theo từ khóa và loại. */
     public void taiDanhSachVatTu() {
-        String tuKhoa = txtTimVatTu.getText().trim();
-        String loai = (String) cboLoai.getSelectedItem();
-        String loaiLoc = TAT_CA.equals(loai) ? null : loai;
 
         try {
-            List<VatTu> danhSach = vatTuTieuHaoService.timVatTu(tuKhoa, loaiLoc);
+            List<VatTu> danhSach = new VatTuDAO().getAllExceptLoai(VatTuDAO.LOAI_THUOC);
             modelVatTu.setRowCount(0);
             for (VatTu vt : danhSach) {
                 mapCacheVatTu.put(vt.getMaVatTu(), vt);
@@ -392,8 +391,7 @@ public class CapNhatGhiNhanVatTuTieuHaoPanel extends JPanel {
         String maLichHen = (index <= 0) ? null : danhSachLichHen.get(index - 1).getMaLichHen();
 
         try {
-            VatTuTieuHaoService.KetQuaLuuPhieu ketQua =
-                    vatTuTieuHaoService.luuPhieuXuat(mapVatTuDangSoan, maLichHen);
+            VatTuTieuHaoService.KetQuaLuuPhieu ketQua = vatTuTieuHaoService.luuPhieuXuat(mapVatTuDangSoan, maLichHen);
 
             String msg = "Đã lưu phiếu xuất " + ketQua.getMaPhieu() + " thành công và tự động trừ tồn kho!";
             if (!ketQua.getCanhBaoTon().isEmpty()) {

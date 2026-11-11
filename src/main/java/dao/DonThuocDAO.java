@@ -162,9 +162,29 @@ public class DonThuocDAO {
     public DonThuoc luuDonThuoc(DonThuoc don, List<ChiTietDonThuoc> chiTiet) throws SQLException {
         Connection con = ConnectDB.getConnection();
         boolean autoCommitCu = con.getAutoCommit();
+        VatTuDAO vatTuDAO = new VatTuDAO();
         try {
             con.setAutoCommit(false);
+
             if (tonTai(con, don.getMaDonThuoc())) {
+                // Đơn đã có: đọc các dòng thuốc cũ để hoàn lại kho
+                List<ChiTietDonThuoc> dongCu = new ArrayList<>();
+                try (PreparedStatement ps = con.prepareStatement(
+                        "SELECT MaVatTu, SoLuong FROM ChiTietDonThuoc WHERE MaDonThuoc = ?")) {
+                    ps.setString(1, don.getMaDonThuoc());
+                    try (ResultSet rs = ps.executeQuery()) {
+                        while (rs.next()) {
+                            ChiTietDonThuoc ct = new ChiTietDonThuoc();
+                            ct.setMaVatTu(rs.getString("MaVatTu"));
+                            ct.setSoLuong(rs.getInt("SoLuong"));
+                            dongCu.add(ct);
+                        }
+                    }
+                }
+                for (ChiTietDonThuoc ct : dongCu) {
+                    vatTuDAO.congTon(con, ct.getMaVatTuId(), ct.getSoLuong());
+                }
+
                 try (PreparedStatement ps = con.prepareStatement(
                         "UPDATE DonThuoc SET LoiDanChamSoc = ? WHERE MaDonThuoc = ?")) {
                     ps.setString(1, don.getLoiDanChamSoc());
@@ -188,6 +208,7 @@ public class DonThuocDAO {
                 ps.setString(1, don.getMaDonThuoc());
                 ps.executeUpdate();
             }
+
             try (PreparedStatement ps = con.prepareStatement(
                     "INSERT INTO ChiTietDonThuoc (MaDonThuoc, MaVatTu, LieuDung, DuongDung, SoLuong) "
                             + "VALUES (?, ?, ?, ?, ?)")) {
@@ -198,6 +219,9 @@ public class DonThuocDAO {
                     ps.setString(4, dong.getDuongDung());
                     ps.setInt(5, dong.getSoLuong());
                     ps.executeUpdate();
+
+                    // Trừ kho theo số lượng mới (không đủ tồn thì ném lỗi -> rollback)
+                    vatTuDAO.truTon(con, dong.getMaVatTuId(), dong.getSoLuong());
                 }
             }
             con.commit();

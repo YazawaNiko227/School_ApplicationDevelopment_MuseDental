@@ -101,6 +101,31 @@ public class VatTuDAO {
         }
     }
 
+    public List<VatTu> timKiemKhongThuoc(String tuKhoa) throws SQLException {
+        if (tuKhoa == null) {
+            tuKhoa = "";
+        }
+        String mau = "%" + tuKhoa.trim() + "%";
+
+        String sql = "SELECT MaVatTu, TenVatTu, LoaiVatTu, DonViTinh, SoLuongTon, "
+                + "NguongToiThieu, HanSuDung, DonGiaBan FROM VatTu "
+                + "WHERE (LoaiVatTu IS NULL OR LoaiVatTu <> ?) "
+                + "AND (MaVatTu LIKE ? OR TenVatTu LIKE ?) ORDER BY MaVatTu";
+
+        List<VatTu> danhSach = new ArrayList<>();
+        try (PreparedStatement statement = getConnection().prepareStatement(sql)) {
+            statement.setString(1, LOAI_THUOC);
+            statement.setString(2, mau);
+            statement.setString(3, mau);
+            try (ResultSet result = statement.executeQuery()) {
+                while (result.next()) {
+                    danhSach.add(docVatTu(result));
+                }
+            }
+        }
+        return danhSach;
+    }
+
     public String getNextId() throws SQLException {
         String sql = "SELECT COALESCE(MAX(TRY_CONVERT(int, SUBSTRING(MaVatTu, 3, 18))), 0) + 1 "
                 + "FROM VatTu WHERE MaVatTu LIKE 'VT%' "
@@ -158,6 +183,15 @@ public class VatTuDAO {
         try (PreparedStatement statement = getConnection().prepareStatement(sql)) {
             statement.setString(1, maVatTu);
             return statement.executeUpdate() == 1;
+        }
+    }
+
+    public void congTon(Connection connection, String maVatTu, int soLuong) throws SQLException {
+        String sql = "UPDATE VatTu SET SoLuongTon = SoLuongTon + ? WHERE MaVatTu = ?";
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setInt(1, soLuong);
+            statement.setString(2, maVatTu);
+            statement.executeUpdate();
         }
     }
 
